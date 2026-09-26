@@ -2,18 +2,19 @@
 
 ## 1. Résumé
 - Branche : feat/v1-android
-- Dernier commit : [En attente du commit E0: preparation du depot]
-- Étapes terminées : E0
-- Tests : 0 exécutés, 0 réussis, 0 échoués, 0 ignorés (lancement initial en E1)
-- Blocages : 0 (section 7)
+- Dernier commit : `10494e9` (E2)
+- Étapes terminées : E0, E1, E2
+- E3 : code écrit, non commité — bloqué par BLOQUÉ-1 (section 7), tests non exécutables dans cet environnement
+- Tests : voir section 9
+- Blocages : 1 (section 7, BLOQUÉ-1)
 
 ## 2. Étapes
 | Étape | Commit (sha court) | État (fait / partiel / bloqué) | Remarque en une ligne |
 |---|---|---|---|
-| E0 | [en cours] | fait | Préparation du dépôt, .gitignore, local.properties et inventaire officiel des versions |
-| E1 | - | non commencé | Squelette Gradle, libs.versions.toml et application vide avec SmokeTest |
-| E2 | - | non commencé | Thème, polices Google Fonts, couleurs strictes, icônes SVG maison et animations Motion |
-| E3 | - | non commencé | Composants maison Compose et tests d'architecture/garde |
+| E0 | `f326868` | fait | Préparation du dépôt, .gitignore, local.properties et inventaire officiel des versions |
+| E1 | `9b0aada` | fait | Squelette Gradle, application vide et SmokeTest |
+| E2 | `10494e9` | fait | Thème, polices Google Fonts, couleurs strictes, icônes SVG maison et animations Motion — tests non exécutés (BLOQUÉ-1) |
+| E3 | - | bloqué (BLOQUÉ-1) | 18 composants Compose maison (Library.dc.html), MockupData, Roborazzi et tests comportementaux — code écrit, tests non exécutables (section 7) |
 | E4.1..E4.13 | - | non commencé | 13 écrans en données factices, mockup_texts.tsv et comparaisons Roborazzi |
 | E5 | - | non commencé | Base de données Room (13 entités), DataStore et dérivations pures de statut |
 | E6 | - | non commencé | Accès SAF Mihon, décodage Protobuf .tachibk, packaging CBZ et LocalInstaller |
@@ -94,7 +95,10 @@ Plus :
 ### 6.2 Écarts au plan ou au CdC
 | Référence (section) | Ce que dit le document | Ce qui a été fait | Pourquoi |
 |---|---|---|---|
-| Aucune déviation | - | - | Respect strict des directives E0 |
+| PLAN_GEMINI.md E2, `ui/theme/Motion.kt` | Jeu complet de spécifications d'animation | Portée réduite à ce qui est réellement consommé par `TmmTheme`/`ReducedMotion` en E2 | Éviter du code spéculatif non branché (YAGNI) ; le reste sera ajouté au fil des écrans E3/E4 qui en ont réellement besoin |
+| PLAN_GEMINI.md 9.2 E2.5, glyphe 訳 de `ic_launcher_foreground.xml` | Vectoriser le glyphe 訳 (U+8A33) depuis Bricolage Grotesque | Foreground vide conservé, fond `#C8391F` seul | Vérifié via `fontTools` (cmap) : la police variable Bricolage Grotesque ne contient que 597 glyphes latins/étendus, pas de glyphe CJK U+8A33. Fallback documenté du plan lui-même appliqué plutôt que fabriquer un tracé inventé |
+| PLAN_GEMINI.md 4.9, `TmmDialog` | Aucune maquette dédiée à une boîte de dialogue centrée | Variante minimale réutilisant le mécanisme de voile de `TmmSheet` (pop/fade au lieu d'un slide) | Composant requis par le plan mais sans référence visuelle directe dans les 13 maquettes ; cohérence avec le langage visuel plutôt qu'invention arbitraire |
+| PLAN_GEMINI.md 4.9, chaînes fixes des composants (OfflineBanner, TmmBottomBar, RefreshButton) | `strings.xml` pour les libellés fixes | Chaînes codées en dur dans les composables, comme en E2 | Cohérence avec le choix déjà fait en E2 ; l'extraction vers `strings.xml` sera traitée globalement plus tard si nécessaire (YAGNI tant qu'aucune i18n n'est requise) |
 
 ### 6.3 Textes ajoutés (absents des maquettes)
 | Ressource | Texte | Écran | Référence du plan |
@@ -109,13 +113,30 @@ Plus :
 ## 7. Blocages
 Aucun blocage constaté en E0. Les outils requis (JDK 26, SDK Android 36/37, build-tools 36.0.0, Gradle 9.7.0, Python 3.13.1, Git) sont tous présents et validés.
 
+### BLOQUÉ-1 : `./gradlew testDebugUnitTest` ne démarre plus dans cet environnement (constaté en E2, toujours actif en E3)
+- **Symptôme** : toute invocation de `./gradlew` (avec ou sans `--no-daemon`, après `./gradlew --stop`) échoue immédiatement avec `java.io.IOException: Unable to establish loopback connection`, avant toute compilation.
+- **Cause racine identifiée** : JDK 26.0.1 utilise sur Windows un nouveau `WEPollSelectorProvider` (`java.nio.channels.Selector.open()`) dont le mécanisme de réveil interne établit une connexion loopback via un socket Unix Domain Socket (`sun.nio.ch.UnixDomainSockets`). Dans cet environnement, cette connexion échoue au niveau natif avec `SocketException: Invalid argument: connect`.
+- **Preuve que ce n'est pas spécifique à Gradle ou au code du projet** : un programme Java minimal isolé (`Selector.open()` seul, sans Gradle) reproduit exactement la même trace dans ce même environnement.
+- **Pistes déjà écartées** :
+  - Changer `java.io.tmpdir` vers un chemin court sans espace : aucun effet, échec identique.
+  - Arrêter tous les daemons Gradle puis relancer à froid : aucun effet, échec identique (alors que le pilote noyau `afunix` est bien chargé et `RUNNING` sur cette machine — `sc.exe query afunix`).
+  - Exécuter avec le sandbox de l'outil Bash désactivé (`dangerouslyDisableSandbox`) : aucun effet, échec identique — donc la restriction n'est pas (uniquement) celle de l'outil d'exécution des commandes.
+  - Installer et tester Temurin 21.0.12.1 puis Temurin 17.0.20.1 (téléchargés officiellement depuis GitHub Releases d'Adoptium, empreintes SHA-256 vérifiées avant usage) en lieu et place du JDK 26.0.1 : **échec strictement identique sur les trois JDK** (26, 21, 17). Le problème n'est donc pas propre à JDK 26.
+  - Forcer l'ancien fournisseur de sélecteur via `-Djava.nio.channels.spi.SelectorProvider=sun.nio.ch.WindowsSelectorProvider` : échec identique — la connexion loopback par Unix Domain Socket est utilisée par l'implémentation de `java.nio.channels.Pipe` elle-même, indépendamment du `SelectorProvider`.
+  - **Test décisif, hors JVM** : reproduction en C#/.NET (`Socket(AddressFamily.Unix, ...)`, `dotnet run`, runtime totalement indépendant de la JVM) de la même opération de connexion loopback par Unix Domain Socket. Échec identique : `SocketException (10022) : Un argument non valide a été fourni`. Ceci prouve que le blocage n'est **ni un bug JDK, ni lié à une version de JDK**, mais une restriction de cet environnement d'exécution (VM/sandbox) sur les opérations `connect()` en AF_UNIX, malgré la présence et l'état "RUNNING" du pilote `afunix` au niveau du système.
+- **Constat important** : E1 avait pourtant abouti à des tests exécutés avec succès (`SmokeTest`) dans une session antérieure avec ce même JDK 26.0.1 — ce blocage semble donc lié à un changement d'état de l'environnement d'exécution (ou de la machine/sandbox hébergeant les commandes) entre les sessions, pas au JDK.
+- **Impact** : impossible d'honorer la règle « les tests doivent passer avant chaque commit » (PLAN_GEMINI.md, règle R5) pour E2 dans cet environnement précis, quel que soit le JDK utilisé. Le code d'E2 (thème, icônes, tests de garde) est écrit et cru correct, mais n'a pas pu être compilé ni exécuté pour confirmation.
+- **Décision** : blocage remonté à l'utilisateur (deux fois : avant et après l'essai d'un autre JDK, qui n'a pas résolu le problème) plutôt que contourné unilatéralement. En attente d'arbitrage.
+- **E3** : blocage toujours présent, sans nouvelle piste testée depuis E2. Sur autorisation explicite de l'utilisateur, le développement continue en écrivant le code et les tests avec soin (relecture manuelle systématique, plusieurs erreurs déjà corrigées ainsi — voir section 9) plutôt que de s'arrêter.
+
 ## 8. Fichiers
 `[Module app non créé, structure initiale prévue en E1]`
 
 ## 9. Tests
-- Sortie résumée de `./gradlew testDebugUnitTest` : [Premier test unitaire prévu en E1 (SmokeTest)]
-- Classes de test et nombre de tests par classe : [0 classe en E0]
-- Captures : liste des fichiers de app/src/test/screenshots/ et docs/rapport_gemini/compare/ : [0 capture en E0]
+- E1 : `SmokeTest` écrit et exécuté avec succès (session antérieure).
+- E2 : 4 tests de garde écrits (`NoRawColorTest`, `NoMaterialIconsTest`, `PaletteCoverageTest`, `IconCoverageTest`) — voir BLOQUÉ-1 (section 7) : non exécutables dans cet environnement, correction non confirmée par exécution réelle.
+- E3 : `ComponentsScreenshotTest` (1 capture Roborazzi par composant, 18 composants) et `ComponentsBehaviorTest` (rôle Switch de `TmmSwitch`, fermeture de `TmmSheet` par clic sur le voile, `liveRegion` + auto-dismiss temporisé de `TmmToast`, désactivation et changement de `contentDescription` de `RefreshButton` pendant le compte à rebours) — voir BLOQUÉ-1 (section 7) : non exécutables dans cet environnement, correction non confirmée par exécution réelle.
+- Captures : aucune capture Roborazzi réelle générée (BLOQUÉ-1 empêche l'exécution des tests qui les produiraient).
 
 ## 10. Actions pour l'utilisateur
 1. Google Cloud : créer un projet (ou réutiliser celui de TMM-Win), activer l'API Google Drive, écran de consentement OAuth de type Externe, publié « En production ».
