@@ -308,4 +308,38 @@
     <string name="new_trans_btn_done">Ajouté à la file · Voir</string>
     <string name="new_trans_btn_send_single">Envoyer 1 chapitre</string>
     <string name="new_trans_btn_send_multi_fmt">Envoyer %1$d chapitres</string>
+
+    <!-- Settings.dc.html (E4.8) -->
+    <string name="settings_title">Réglages</string>
+    <string name="settings_back_cd">Retour à l\'accueil</string>
+    <string name="settings_pc_status_cd">État du PC</string>
+    <string name="settings_pc_online">En ligne</string>
+    <string name="settings_pc_last_signal_fmt">Dernier signal %1$s · le PC écrit sur Drive toutes les minutes</string>
+    <string name="settings_group_drive">Google Drive</string>
+    <string name="settings_group_mihon">Mihon</string>
+    <string name="settings_group_translation">Traduction</string>
+    <string name="settings_group_network">Réseau</string>
+    <string name="settings_group_diagnostic">Diagnostic</string>
+    <string name="settings_row_account">Compte</string>
+    <string name="settings_row_shared_folder">Dossier partagé</string>
+    <string name="settings_row_drive_retention">Conservation sur Drive</string>
+    <string name="settings_retention_never">Jamais supprimer</string>
+    <string name="settings_retention_30_days">Après 30 jours</string>
+    <string name="settings_retention_after_download">Après récupération</string>
+    <string name="settings_action_change">Changer</string>
+    <string name="settings_action_edit">Modifier</string>
+    <string name="settings_row_mihon_folder">Dossier Mihon</string>
+    <string name="settings_row_last_backup">Dernière sauvegarde lue</string>
+    <string name="settings_row_reinstall">Refaire l\'installation</string>
+    <string name="settings_row_reinstall_desc">3 étapes, rien n’est effacé</string>
+    <string name="settings_row_pc_translation_settings">Réglages de traduction du PC</string>
+    <string name="settings_row_wifi_only">Wi-Fi uniquement</string>
+    <string name="settings_wifi_only_on_desc">Les envois attendent le Wi-Fi</string>
+    <string name="settings_wifi_only_off_desc">Envois aussi en données mobiles</string>
+    <string name="settings_row_logs">Journaux</string>
+    <string name="settings_action_export">Exporter</string>
+    <string name="settings_footer_app_version">TMM Mobile 1.0.0 · protocole v1</string>
+    <string name="settings_toast_choose_account">Choix du compte Google</string>
+    <string name="settings_toast_folder_picker">Sélecteur de dossier Android</string>
+    <string name="settings_toast_logs_ready">Journaux prêts à partager</string>
 </resources>

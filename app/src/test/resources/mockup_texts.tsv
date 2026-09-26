@@ -394,6 +394,47 @@ NewTranslation.dc.html	Dépôt sur Google Drive...	STR	new_trans_btn_busy
 NewTranslation.dc.html	Envoyer 1 chapitre	STR	new_trans_btn_send_single
 NewTranslation.dc.html	Envoyer 3 chapitres	FMT	new_trans_btn_send_multi_fmt		[3]
 NewTranslation.dc.html	Ajouté à la file · Voir	STR	new_trans_btn_done
+Settings.dc.html	Retour à l'accueil	STR	settings_back_cd
+Settings.dc.html	Réglages	STR	settings_title
+Settings.dc.html	État du PC	STR	settings_pc_status_cd
+Settings.dc.html	PC-BUREAU	DEMO
+Settings.dc.html	TMM-Win 2.4.1 · protocole v1	DEMO
+Settings.dc.html	En ligne	STR	settings_pc_online
+Settings.dc.html	Dernier signal %1$s · le PC écrit sur Drive toutes les minutes	FMT	settings_pc_last_signal_fmt		["il y a 12 s"]
+Settings.dc.html	il y a 12 s	DEMO
+Settings.dc.html	Google Drive	STR	settings_group_drive
+Settings.dc.html	Compte	STR	settings_row_account
+Settings.dc.html	vous@gmail.com	DEMO
+Settings.dc.html	Changer	STR	settings_action_change
+Settings.dc.html	Choix du compte Google	STR	settings_toast_choose_account
+Settings.dc.html	Dossier partagé	STR	settings_row_shared_folder
+Settings.dc.html	TranslateMyManga/	DEMO
+Settings.dc.html	Conservation sur Drive	STR	settings_row_drive_retention
+Settings.dc.html	Jamais supprimer	STR	settings_retention_never
+Settings.dc.html	Après 30 jours	STR	settings_retention_30_days
+Settings.dc.html	Après récupération	STR	settings_retention_after_download
+Settings.dc.html	Modifier	STR	settings_action_edit
+Settings.dc.html	Mihon	STR	settings_group_mihon
+Settings.dc.html	Dossier Mihon	STR	settings_row_mihon_folder
+Settings.dc.html	/Documents/Mihon	DEMO
+Settings.dc.html	Sélecteur de dossier Android	STR	settings_toast_folder_picker
+Settings.dc.html	Dernière sauvegarde lue	STR	settings_row_last_backup
+Settings.dc.html	Aujourd'hui 03:00 · 142 séries	DEMO
+Settings.dc.html	Refaire l'installation	STR	settings_row_reinstall
+Settings.dc.html	3 étapes, rien n’est effacé	STR	settings_row_reinstall_desc
+Settings.dc.html	Traduction	STR	settings_group_translation
+Settings.dc.html	Réglages de traduction du PC	STR	settings_row_pc_translation_settings
+Settings.dc.html	Gemini · japonais vers français · 4 en parallèle	DEMO
+Settings.dc.html	Réseau	STR	settings_group_network
+Settings.dc.html	Wi-Fi uniquement	STR	settings_row_wifi_only
+Settings.dc.html	Envois aussi en données mobiles	STR	settings_wifi_only_off_desc
+Settings.dc.html	Les envois attendent le Wi-Fi	STR	settings_wifi_only_on_desc
+Settings.dc.html	Diagnostic	STR	settings_group_diagnostic
+Settings.dc.html	Journaux	STR	settings_row_logs
+Settings.dc.html	7 derniers jours · 240 Ko	DEMO
+Settings.dc.html	Exporter	STR	settings_action_export
+Settings.dc.html	Journaux prêts à partager	STR	settings_toast_logs_ready
+Settings.dc.html	TMM Mobile 1.0.0 · protocole v1	STR	settings_footer_app_version
 
 
 
