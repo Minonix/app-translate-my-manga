@@ -410,4 +410,18 @@
     <string name="onb_btn_verifying">Vérification...</string>
     <string name="onb_btn_finish">Ouvrir TMM Mobile</string>
     <string name="onb_btn_previous_step">Étape précédente</string>
+
+    <!-- Empty.dc.html (E4.11) -->
+    <string name="empty_app_name">TMM Mobile</string>
+    <string name="empty_title">Accueil</string>
+    <string name="empty_no_chapters_title">Aucun chapitre téléchargé</string>
+    <string name="empty_no_chapters_desc">Téléchargez des chapitres dans Mihon, puis revenez ici : ils apparaîtront prêts à être envoyés au PC.</string>
+    <string name="empty_btn_scan">Scanner Mihon</string>
+    <string name="empty_btn_scanning">Analyse de Mihon...</string>
+    <string name="empty_btn_still_nothing">Toujours rien, réessayer</string>
+    <string name="empty_no_backup_title">Pas encore de sauvegarde Mihon</string>
+    <string name="empty_no_backup_desc">Sans elle, pas de catégories. Activez-la dans Mihon : Plus, Paramètres, Sauvegarde, Sauvegarde automatique.</string>
+    <string name="empty_read_backup_link">J\'ai une sauvegarde, la lire</string>
+    <string name="empty_queue_empty_title">File vide</string>
+    <string name="empty_queue_empty_desc">Rien ne se traduit sur le PC.</string>
 </resources>

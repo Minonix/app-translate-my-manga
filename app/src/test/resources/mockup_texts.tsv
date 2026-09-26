@@ -541,8 +541,17 @@ Onboarding.dc.html	Choisir le dossier Mihon	STR	onb_btn_pick_folder
 Onboarding.dc.html	Vérification...	STR	onb_btn_verifying
 Onboarding.dc.html	Ouvrir TMM Mobile	STR	onb_btn_finish
 Onboarding.dc.html	Étape précédente	STR	onb_btn_previous_step
-
-
-
-
-
+Empty.dc.html	訳	STR	app_name_glyph
+Empty.dc.html	TMM Mobile	STR	empty_app_name
+Empty.dc.html	PC vu il y a 3 h	DEMO
+Empty.dc.html	Accueil	STR	empty_title
+Empty.dc.html	Aucun chapitre téléchargé	STR	empty_no_chapters_title
+Empty.dc.html	Téléchargez des chapitres dans Mihon, puis revenez ici : ils apparaîtront prêts à être envoyés au PC.	STR	empty_no_chapters_desc
+Empty.dc.html	Scanner Mihon	STR	empty_btn_scan
+Empty.dc.html	Analyse de Mihon...	STR	empty_btn_scanning
+Empty.dc.html	Toujours rien, réessayer	STR	empty_btn_still_nothing
+Empty.dc.html	Pas encore de sauvegarde Mihon	STR	empty_no_backup_title
+Empty.dc.html	Sans elle, pas de catégories. Activez-la dans Mihon : Plus, Paramètres, Sauvegarde, Sauvegarde automatique.	STR	empty_no_backup_desc
+Empty.dc.html	J'ai une sauvegarde, la lire	STR	empty_read_backup_link
+Empty.dc.html	File vide	STR	empty_queue_empty_title
+Empty.dc.html	Rien ne se traduit sur le PC.	STR	empty_queue_empty_desc
