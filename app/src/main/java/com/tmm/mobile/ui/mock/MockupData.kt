@@ -10,6 +10,14 @@ import com.tmm.mobile.ui.screens.main.PcTone
 import com.tmm.mobile.ui.screens.series.SeriesChapter
 import com.tmm.mobile.ui.screens.series.SeriesChapterStats
 import com.tmm.mobile.ui.screens.series.SeriesState
+import com.tmm.mobile.ui.screens.queue.ActiveJob
+import com.tmm.mobile.ui.screens.queue.DoneJob
+import com.tmm.mobile.ui.screens.queue.DoneJobAlert
+import com.tmm.mobile.ui.screens.queue.FailedJob
+import com.tmm.mobile.ui.screens.queue.QueueJobType
+import com.tmm.mobile.ui.screens.queue.QueueState
+import com.tmm.mobile.ui.screens.queue.QueueTab
+import com.tmm.mobile.ui.screens.queue.WaitingJob
 import com.tmm.mobile.ui.screens.transfers.LiveTransferItem
 import com.tmm.mobile.ui.screens.transfers.SyncFetchItem
 import com.tmm.mobile.ui.screens.transfers.SyncSeriesItem
@@ -185,5 +193,162 @@ object MockupData {
         scanning = false,
         scannedAgo = "il y a 4 min",
         missingCount = 2,
+    )
+
+    val queue = QueueState(
+        activeTab = QueueTab.Active,
+        slotsCount = 4,
+        slotsMax = 4,
+        pcName = "PC-BUREAU",
+        focusedJobIndex = 0,
+        activeJobs = listOf(
+            ActiveJob(
+                title = "Solo Leveling · Ch. 201",
+                color = TmmColors.CC9D3DE,
+                type = QueueJobType.Translation,
+                currentPage = 14,
+                totalPages = 22,
+                currentStepIndex = 3,
+                extra = "Gemini",
+            ),
+            ActiveJob(
+                title = "Kagurabachi · Ch. 52",
+                color = TmmColors.CCFD8C6,
+                type = QueueJobType.Translation,
+                currentPage = 6,
+                totalPages = 19,
+                currentStepIndex = 2,
+                extra = "Gemini",
+            ),
+            ActiveJob(
+                title = "One Piece · Ch. 1119",
+                color = TmmColors.CE6DCC0,
+                type = QueueJobType.Verification,
+                currentPage = 11,
+                totalPages = 17,
+                currentStepIndex = 4,
+                extra = "7 bulles à revoir",
+            ),
+            ActiveJob(
+                title = "Blue Lock · Ch. 205",
+                color = TmmColors.CD8D2E4,
+                type = QueueJobType.Retranslation,
+                currentPage = 3,
+                totalPages = 24,
+                currentStepIndex = 1,
+                extra = "Gemini",
+            ),
+        ),
+        waitingJobs = listOf(
+            WaitingJob(
+                id = "k53",
+                position = "05",
+                title = "Kagurabachi · Ch. 53",
+                color = TmmColors.CCFD8C6,
+                source = "Traduction · depuis le téléphone",
+                isPhone = true,
+            ),
+            WaitingJob(
+                id = "b213",
+                position = "06",
+                title = "Blue Lock · Ch. 213",
+                color = TmmColors.CD8D2E4,
+                source = "Traduction · original déjà sur le PC",
+                isPhone = false,
+            ),
+            WaitingJob(
+                id = "v1",
+                position = "07",
+                title = "Vinland Saga · 214 ch.",
+                color = TmmColors.CDCCFC4,
+                source = "Vérification · série entière",
+                isPhone = false,
+            ),
+        ),
+        doneJobs = listOf(
+            DoneJob(
+                title = "Frieren · Ch. 140",
+                whenText = "Aujourd’hui 14:02",
+                stateText = "À récupérer",
+                stateColor = TmmColors.C2B4C7E,
+                color = TmmColors.CE2C6BB,
+                totalPages = 18,
+                translatedPages = 18,
+                totalBubbles = 131,
+                untranslatedBubbles = 0,
+                sfxCount = 7,
+                alerts = emptyList(),
+                isExpanded = false,
+            ),
+            DoneJob(
+                title = "Blue Lock · Ch. 212",
+                whenText = "Aujourd’hui 13:40",
+                stateText = "À récupérer",
+                stateColor = TmmColors.C2B4C7E,
+                color = TmmColors.CD8D2E4,
+                totalPages = 22,
+                translatedPages = 22,
+                totalBubbles = 184,
+                untranslatedBubbles = 3,
+                sfxCount = 12,
+                alerts = listOf(
+                    DoneJobAlert(page = 7, code = "source_text"),
+                    DoneJobAlert(page = 15, code = "overflow"),
+                ),
+                isExpanded = true,
+            ),
+            DoneJob(
+                title = "One Piece · Ch. 1122",
+                whenText = "Aujourd’hui 11:15",
+                stateText = "À récupérer",
+                stateColor = TmmColors.C2B4C7E,
+                color = TmmColors.CE6DCC0,
+                totalPages = 17,
+                translatedPages = 17,
+                totalBubbles = 203,
+                untranslatedBubbles = 0,
+                sfxCount = 21,
+                alerts = emptyList(),
+                isExpanded = false,
+            ),
+            DoneJob(
+                title = "Kagurabachi · Ch. 51",
+                whenText = "Hier 22:10",
+                stateText = "Dans Mihon",
+                stateColor = TmmColors.C2F7D4F,
+                color = TmmColors.CCFD8C6,
+                totalPages = 19,
+                translatedPages = 18,
+                totalBubbles = 142,
+                untranslatedBubbles = 6,
+                sfxCount = 9,
+                alerts = listOf(
+                    DoneJobAlert(page = 11, code = "source_copy"),
+                ),
+                isExpanded = false,
+            ),
+            DoneJob(
+                title = "Solo Leveling · Ch. 200",
+                whenText = "Hier 21:48",
+                stateText = "Dans Mihon",
+                stateColor = TmmColors.C2F7D4F,
+                color = TmmColors.CC9D3DE,
+                totalPages = 21,
+                translatedPages = 21,
+                totalBubbles = 170,
+                untranslatedBubbles = 0,
+                sfxCount = 15,
+                alerts = emptyList(),
+                isExpanded = false,
+            ),
+        ),
+        failedJob = FailedJob(
+            title = "Frieren · Ch. 139",
+            color = TmmColors.CE2C6BB,
+            page = 9,
+            message = "moteur indisponible",
+            keptInfo = "Il y a 20 min · les pages 1 à 8 sont conservées",
+        ),
+        isRetried = false,
     )
 }

@@ -217,4 +217,51 @@
         <item quantity="one">%1$d chapitre manquant partout</item>
         <item quantity="other">%1$d chapitres manquants partout</item>
     </plurals>
+
+    <!-- Queue.dc.html (E4.5) -->
+    <string name="queue_title">File</string>
+    <string name="queue_subtitle">Traductions et vérifications envoyées au PC</string>
+    <string name="queue_new_translation_cd">Nouvelle traduction</string>
+    <string name="queue_tablist_cd">État des traductions</string>
+    <string name="queue_tab_active">Actives</string>
+    <string name="queue_tab_done">Terminées</string>
+    <string name="queue_tab_fail">Échecs</string>
+    <string name="queue_parallel_on_pc_fmt">en parallèle sur %1$s</string>
+    <string name="queue_settings_action">Régler</string>
+    <string name="queue_active_section_cd">Chapitres en cours</string>
+    <string name="queue_page_detail_fmt">Page %1$d sur %2$d · %3$s</string>
+    <string name="queue_steps_cd">Étapes</string>
+    <string name="queue_step_fetch">Récup.</string>
+    <string name="queue_step_ocr">OCR</string>
+    <string name="queue_step_translate">Trad.</string>
+    <string name="queue_step_lettering">Lettrage</string>
+    <string name="queue_step_verify">Vérif.</string>
+    <string name="queue_see_details_aria_fmt">Voir le détail de %1$s</string>
+    <string name="queue_touch_hint">Touchez un chapitre pour le détail</string>
+    <string name="queue_auto_return">Retour auto</string>
+    <string name="queue_waiting_title_fmt">Ensuite (%1$d)</string>
+    <string name="queue_no_waiting">Rien d\'autre en attente.</string>
+    <string name="queue_remove_cd_fmt">Retirer %1$s de la file</string>
+    <string name="queue_alert_cd">Alerte</string>
+    <string name="queue_done_details_cd_fmt">Détails de traduction, %1$s</string>
+    <string name="queue_alert_source_copy">bulle recopiée en VO</string>
+    <string name="queue_alert_source_text">texte resté en VO</string>
+    <string name="queue_alert_overflow">texte qui déborde</string>
+    <string name="queue_alert_too_small">police trop petite</string>
+    <string name="queue_alert_row_fmt">p. %1$d · %2$s</string>
+    <string name="queue_verify_page_action">Vérifier la page</string>
+    <string name="queue_in_queue_status">Dans la file</string>
+    <string name="queue_fail_message_fmt">Échec page %1$d : %2$s</string>
+    <string name="queue_fail_message_simple_fmt">Échec : %1$s</string>
+    <string name="queue_fail_kept_fmt">%1$s · les pages 1 à %2$d sont conservées</string>
+    <string name="queue_retry_button_fmt">Réessayer à partir de la page %1$d</string>
+    <string name="queue_retry_button_simple">Réessayer</string>
+    <string name="queue_retried_title">Remis dans la file</string>
+    <string name="queue_no_failures">Aucun échec en cours.</string>
+    <string name="queue_no_alerts">Aucune alerte</string>
+
+    <plurals name="queue_alerts_count">
+        <item quantity="one">%1$d alerte</item>
+        <item quantity="other">%1$d alertes</item>
+    </plurals>
 </resources>

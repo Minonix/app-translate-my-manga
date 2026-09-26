@@ -263,5 +263,68 @@ Sync.dc.html	Analyse de 104 séries...	FMT	sync_scan_scanning_fmt		[104]
 Sync.dc.html	Mihon/downloads · scanné il y a 4 min	FMT	sync_scan_last_fmt		["il y a 4 min"]
 Sync.dc.html	Mihon/downloads · scanné à l’instant	FMT	sync_scan_last_fmt		["à l’instant"]
 Sync.dc.html	2 chapitres manquants partout	PLU	sync_missing_count	2	[2]
+Queue.dc.html	File	STR	queue_title
+Queue.dc.html	Traductions et vérifications envoyées au PC	STR	queue_subtitle
+Queue.dc.html	Nouvelle traduction	STR	queue_new_translation_cd
+Queue.dc.html	État des traductions	STR	queue_tablist_cd
+Queue.dc.html	Actives	STR	queue_tab_active
+Queue.dc.html	Terminées	STR	queue_tab_done
+Queue.dc.html	Échecs	STR	queue_tab_fail
+Queue.dc.html	4/4 en parallèle sur PC-BUREAU	FMT	queue_parallel_on_pc_fmt		["PC-BUREAU"]
+Queue.dc.html	Régler	STR	queue_settings_action
+Queue.dc.html	Chapitres en cours	STR	queue_active_section_cd
+Queue.dc.html	Traduction	STR	home_job_type_translation
+Queue.dc.html	Vérification	STR	home_job_type_verification
+Queue.dc.html	Retraduction	STR	home_job_type_retranslation
+Queue.dc.html	Solo Leveling · Ch. 201	DEMO
+Queue.dc.html	Kagurabachi · Ch. 52	DEMO
+Queue.dc.html	One Piece · Ch. 1119	DEMO
+Queue.dc.html	Blue Lock · Ch. 205	DEMO
+Queue.dc.html	Page 14 sur 22 · Gemini	FMT	queue_page_detail_fmt		[14, 22, "Gemini"]
+Queue.dc.html	64%	DEMO
+Queue.dc.html	Étapes	STR	queue_steps_cd
+Queue.dc.html	Récup.	STR	queue_step_fetch
+Queue.dc.html	OCR	STR	queue_step_ocr
+Queue.dc.html	Trad.	STR	queue_step_translate
+Queue.dc.html	Lettrage	STR	queue_step_lettering
+Queue.dc.html	Vérif.	STR	queue_step_verify
+Queue.dc.html	Voir le détail de Kagurabachi · Ch. 52	FMT	queue_see_details_aria_fmt		["Kagurabachi · Ch. 52"]
+Queue.dc.html	Touchez un chapitre pour le détail	STR	queue_touch_hint
+Queue.dc.html	Retour auto	STR	queue_auto_return
+Queue.dc.html	Ensuite (3)	FMT	queue_waiting_title_fmt		[3]
+Queue.dc.html	Kagurabachi · Ch. 53	DEMO
+Queue.dc.html	Traduction · depuis le téléphone	DEMO
+Queue.dc.html	Retirer Kagurabachi · Ch. 53 de la file	FMT	queue_remove_cd_fmt		["Kagurabachi · Ch. 53"]
+Queue.dc.html	Blue Lock · Ch. 213	DEMO
+Queue.dc.html	Traduction · original déjà sur le PC	DEMO
+Queue.dc.html	Vinland Saga · 214 ch.	DEMO
+Queue.dc.html	Vérification · série entière	DEMO
+Queue.dc.html	Rien d'autre en attente.	STR	queue_no_waiting
+Queue.dc.html	Frieren · Ch. 140	DEMO
+Queue.dc.html	Aujourd’hui 14:02	DEMO
+Queue.dc.html	À récupérer	DEMO
+Queue.dc.html	Alerte	STR	queue_alert_cd
+Queue.dc.html	Détails de traduction, Blue Lock · Ch. 212	FMT	queue_done_details_cd_fmt		["Blue Lock · Ch. 212"]
+Queue.dc.html	Blue Lock · Ch. 212	DEMO
+Queue.dc.html	22/22 pages	FMT	series_chip_pages_fmt		[22, 22]
+Queue.dc.html	184 bulles traduites	FMT	series_chip_bubbles_translated_fmt		[184]
+Queue.dc.html	3 non traduites	FMT	series_chip_bubbles_untranslated_fmt		[3]
+Queue.dc.html	12 SFX gardés	FMT	series_chip_sfx_fmt		[12]
+Queue.dc.html	2 alertes	PLU	queue_alerts_count	2	[2]
+Queue.dc.html	Aucune alerte	STR	queue_no_alerts
+Queue.dc.html	p. 7 · texte resté en VO	FMT	queue_alert_row_fmt		[7, "texte resté en VO"]
+Queue.dc.html	bulle recopiée en VO	STR	queue_alert_source_copy
+Queue.dc.html	texte resté en VO	STR	queue_alert_source_text
+Queue.dc.html	texte qui déborde	STR	queue_alert_overflow
+Queue.dc.html	police trop petite	STR	queue_alert_too_small
+Queue.dc.html	Vérifier la page	STR	queue_verify_page_action
+Queue.dc.html	Dans la file	STR	queue_in_queue_status
+Queue.dc.html	Frieren · Ch. 139	DEMO
+Queue.dc.html	Échec page 9 : moteur indisponible	FMT	queue_fail_message_fmt		[9, "moteur indisponible"]
+Queue.dc.html	Il y a 20 min · les pages 1 à 8 sont conservées	FMT	queue_fail_kept_fmt		["Il y a 20 min", 8]
+Queue.dc.html	Réessayer à partir de la page 9	FMT	queue_retry_button_fmt		[9]
+Queue.dc.html	Remis dans la file	STR	queue_retried_title
+Queue.dc.html	Aucun échec en cours.	STR	queue_no_failures
+
 
 
