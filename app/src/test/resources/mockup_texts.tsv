@@ -572,3 +572,13 @@ Offline.dc.html	Attend le réseau	STR	offline_why_network
 Offline.dc.html	Attend la reconnexion à Drive	STR	offline_why_token
 Offline.dc.html	Toujours disponible	STR	offline_available_title
 Offline.dc.html	La bibliothèque et les chapitres déjà rangés dans Mihon restent lisibles.	STR	offline_available_desc
+Permission.dc.html	L'app ne voit plus le dossier Mihon	STR	perm_title
+Permission.dc.html	Android a retiré l'autorisation, souvent après une mise à jour ou un déplacement du dossier. Rien n'a été supprimé.	STR	perm_desc
+Permission.dc.html	Dossier attendu	STR	perm_expected_label
+Permission.dc.html	/Documents/Mihon	DEMO
+Permission.dc.html	Il doit contenir downloads/, local/ et autobackup/.	STR	perm_expected_desc
+Permission.dc.html	Accès rétabli	STR	perm_access_restored
+Permission.dc.html	Choisir à nouveau le dossier	STR	perm_btn_pick
+Permission.dc.html	Vérification...	STR	perm_btn_verifying
+Permission.dc.html	Revenir à l'accueil	STR	perm_btn_back_home
+Permission.dc.html	Aide et réglages	STR	perm_link_settings

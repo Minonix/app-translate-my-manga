@@ -13,9 +13,7 @@ import org.junit.Test
  * des commits E4.2 a E4.13, vide a E4.13.
  */
 class MockupTextCoverageTest {
-    private val pendingScreens = setOf(
-        "Permission.dc.html",
-    )
+    private val pendingScreens = emptySet<String>()
 
     private data class TsvRow(val fichier: String, val texte: String, val type: String, val ressource: String)
 

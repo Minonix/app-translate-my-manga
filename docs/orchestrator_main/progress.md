@@ -19,7 +19,7 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
   - Tests écrits : `ComponentsScreenshotTest` (Roborazzi, 1 capture/composant), `ComponentsBehaviorTest` (rôles sémantiques, callbacks, RefreshButton/TmmToast temporisés)
   - Toujours bloqué par BLOQUÉ-1 : code écrit et relu manuellement (plusieurs erreurs d'alias de couleur et d'import déjà corrigées ainsi), non compilé ni exécuté
   - Écart noté : `TmmDialog` n'a pas de maquette dédiée (aucune boîte de dialogue centrée dans les 13 .dc.html) — variante minimale construite par cohérence avec `TmmSheet`
-- [ ] E4 : Écrans en données factices, navigation & Roborazzi
+- [x] E4 : Écrans en données factices, navigation & Roborazzi
   - [x] E4.1 : écran Main (commit `d1fc645`) — tests non exécutés dans cet environnement, voir BLOQUÉ-1
     - `MainState`/`MainEvent`/`MainScreen`/`MainViewModel` (patron section 5.20) ; navigation exposée en lambdas simples (`onOpenSettings`, `onOpenSync`, `onOpenQueue`, `onOpenNewTranslation`, `onOpenSeries`), câblage réel `TmmRoot`/`NavHost` différé à E10
     - Toasts modélisés en `MainToast` (sealed interface `Sent`/`Received`) plutôt qu'en texte pré-formaté dans le ViewModel, pour respecter la règle 4.10 (`stringResource` non appelable hors Composable)
@@ -79,6 +79,10 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
     - `OfflineState`, `OfflineEvent`, `OfflineScreen`, `OfflineViewModel` (patron 5.20) : conformité stricte avec `Offline.dc.html` (bannière dynamique selon la cause réseau ou token expiré avec bouton 'Reconnecter' / 'Ouverture...', en-tête avec pastille 'État du PC inconnu', carte 'En attente d'envoi' avec décompte pluriel, liste des chapitres et motifs d'attente horodatés avec icône d'horloge, section 'Toujours disponible' avec les 3 vignettes en demi-teinte).
     - Ressources de chaînes et pluriel ajoutés dans `strings.xml` ; `Offline.dc.html` couvert dans `mockup_texts.tsv` et retiré des exclusions de `MockupTextCoverageTest`.
     - Tests validés : `OfflineScreenBehaviorTest` (4 tests comportementaux couvrant affichage initial réseau, affichage et bouton de reconnexion pour la cause token, transition vers l'état de reconnexion, libellé du bouton pendant l'ouverture), `OfflineScreenshotTest` (3 captures Roborazzi : réseau, token, reconnexion). 100% de succès.
+  - [x] E4.13 : écran Permission (Accès Mihon perdu)
+    - `PermissionState`, `PermissionEvent`, `PermissionScreen`, `PermissionViewModel` (patron 5.20) : conformité stricte avec `Permission.dc.html` (icône dossier refusé dans un bloc d'alerte, titre et explication de la révocation Android, carte du dossier attendu `/Documents/Mihon` avec les 3 sous-dossiers requis, bandeau de succès 'Accès rétabli', bouton 'Choisir à nouveau le dossier' avec spinner animé 'Vérification...', bouton de retour 'Revenir à l'accueil' et lien 'Aide et réglages').
+    - Ressources de chaînes ajoutées dans `strings.xml` ; `Permission.dc.html` couvert dans `mockup_texts.tsv` et `MockupTextCoverageTest.pendingScreens` désormais entièrement vide (13/13 écrans couverts et validés).
+    - Tests validés : `PermissionScreenBehaviorTest` (4 tests comportementaux couvrant affichage initial, transition vers l'état de vérification, affichage du statut rétabli avec retour à l'accueil, navigation vers réglages), `PermissionScreenshotTest` (3 captures Roborazzi : défaut, vérification, rétabli). 100% de succès.
 - [ ] E5 : Room, DataStore, TmmDatabase & DAO
 - [ ] E6 : Accès SAF, parsing Mihon, CBZ & installation
 - [ ] E7 : FakeDrive, FakePc & transport REST OkHttp

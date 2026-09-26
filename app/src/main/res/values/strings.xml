@@ -442,4 +442,15 @@
     <string name="offline_why_token">Attend la reconnexion à Drive</string>
     <string name="offline_available_title">Toujours disponible</string>
     <string name="offline_available_desc">La bibliothèque et les chapitres déjà rangés dans Mihon restent lisibles.</string>
+
+    <!-- Permission.dc.html (E4.13) -->
+    <string name="perm_title">L\'app ne voit plus le dossier Mihon</string>
+    <string name="perm_desc">Android a retiré l\'autorisation, souvent après une mise à jour ou un déplacement du dossier. Rien n\'a été supprimé.</string>
+    <string name="perm_expected_label">Dossier attendu</string>
+    <string name="perm_expected_desc">Il doit contenir downloads/, local/ et autobackup/.</string>
+    <string name="perm_access_restored">Accès rétabli</string>
+    <string name="perm_btn_pick">Choisir à nouveau le dossier</string>
+    <string name="perm_btn_verifying">Vérification...</string>
+    <string name="perm_btn_back_home">Revenir à l\'accueil</string>
+    <string name="perm_link_settings">Aide et réglages</string>
 </resources>
