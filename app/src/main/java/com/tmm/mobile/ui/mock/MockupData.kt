@@ -18,6 +18,7 @@ import com.tmm.mobile.ui.screens.queue.QueueJobType
 import com.tmm.mobile.ui.screens.queue.QueueState
 import com.tmm.mobile.ui.screens.queue.QueueTab
 import com.tmm.mobile.ui.screens.queue.WaitingJob
+import com.tmm.mobile.ui.screens.catalog.CatalogState
 import com.tmm.mobile.ui.screens.transfers.LiveTransferItem
 import com.tmm.mobile.ui.screens.transfers.SyncFetchItem
 import com.tmm.mobile.ui.screens.transfers.SyncSeriesItem
@@ -351,4 +352,6 @@ object MockupData {
         ),
         isRetried = false,
     )
+
+    val catalog = CatalogState()
 }

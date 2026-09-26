@@ -264,4 +264,23 @@
         <item quantity="one">%1$d alerte</item>
         <item quantity="other">%1$d alertes</item>
     </plurals>
+
+    <!-- Catalog.dc.html (E4.6) -->
+    <string name="catalog_title">Catalogue</string>
+    <string name="catalog_subtitle">Votre bibliothèque Mihon, séries et catégories</string>
+    <string name="catalog_backup_label">Sauvegarde Mihon</string>
+    <string name="catalog_imported_fmt">Importée %1$s · depuis Mihon/autobackup</string>
+    <string name="catalog_step_reading_file">Lecture du fichier...</string>
+    <string name="catalog_step_decompression">Décompression...</string>
+    <string name="catalog_step_reading_series_fmt">Lecture des %1$d séries...</string>
+    <string name="catalog_step_categories">Catégories...</string>
+    <string name="catalog_step_comparison">Comparaison avec le téléphone...</string>
+    <string name="catalog_reimport_button">Relire la dernière sauvegarde</string>
+    <string name="catalog_backup_info">Mihon crée une sauvegarde automatique chaque jour. Elle est relue à chaque ouverture de l\'app.</string>
+    <string name="catalog_stat_series">séries</string>
+    <string name="catalog_stat_absent">non téléchargées</string>
+    <string name="catalog_stat_categories">catégories</string>
+    <string name="catalog_categories_title">Catégories</string>
+    <string name="catalog_readonly_hint">Lecture seule en V1</string>
+    <string name="catalog_open_category_cd_fmt">Ouvrir la catégorie %1$s</string>
 </resources>

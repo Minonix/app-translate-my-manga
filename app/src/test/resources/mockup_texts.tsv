@@ -325,6 +325,43 @@ Queue.dc.html	Il y a 20 min · les pages 1 à 8 sont conservées	FMT	queue_fail_
 Queue.dc.html	Réessayer à partir de la page 9	FMT	queue_retry_button_fmt		[9]
 Queue.dc.html	Remis dans la file	STR	queue_retried_title
 Queue.dc.html	Aucun échec en cours.	STR	queue_no_failures
+Catalog.dc.html	Catalogue	STR	catalog_title
+Catalog.dc.html	Votre bibliothèque Mihon, séries et catégories	STR	catalog_subtitle
+Catalog.dc.html	Sauvegarde Mihon	STR	catalog_backup_label
+Catalog.dc.html	com.mihon_2026-09-26.tachibk	DEMO
+Catalog.dc.html	Importée aujourd'hui 03:00 · depuis Mihon/autobackup	FMT	catalog_imported_fmt		["aujourd'hui 03:00"]
+Catalog.dc.html	Importée à l'instant · depuis Mihon/autobackup	FMT	catalog_imported_fmt		["à l'instant"]
+Catalog.dc.html	Lecture du fichier...	STR	catalog_step_reading_file
+Catalog.dc.html	Décompression...	STR	catalog_step_decompression
+Catalog.dc.html	Lecture des 142 séries...	FMT	catalog_step_reading_series_fmt		[142]
+Catalog.dc.html	Catégories...	STR	catalog_step_categories
+Catalog.dc.html	Comparaison avec le téléphone...	STR	catalog_step_comparison
+Catalog.dc.html	Relire la dernière sauvegarde	STR	catalog_reimport_button
+Catalog.dc.html	Mihon crée une sauvegarde automatique chaque jour. Elle est relue à chaque ouverture de l'app.	STR	catalog_backup_info
+Catalog.dc.html	142	DEMO
+Catalog.dc.html	séries	STR	catalog_stat_series
+Catalog.dc.html	38	DEMO
+Catalog.dc.html	non téléchargées	STR	catalog_stat_absent
+Catalog.dc.html	7	DEMO
+Catalog.dc.html	catégories	STR	catalog_stat_categories
+Catalog.dc.html	Catégories	STR	catalog_categories_title
+Catalog.dc.html	Lecture seule en V1	STR	catalog_readonly_hint
+Catalog.dc.html	En cours	DEMO
+Catalog.dc.html	24	DEMO
+Catalog.dc.html	À lire	DEMO
+Catalog.dc.html	31	DEMO
+Catalog.dc.html	Terminé	DEMO
+Catalog.dc.html	58	DEMO
+Catalog.dc.html	Favoris	DEMO
+Catalog.dc.html	12	DEMO
+Catalog.dc.html	Webtoons	DEMO
+Catalog.dc.html	9	DEMO
+Catalog.dc.html	Abandonné	DEMO
+Catalog.dc.html	5	DEMO
+Catalog.dc.html	Sans catégorie	DEMO
+Catalog.dc.html	3	DEMO
+Catalog.dc.html	Ouvrir la catégorie En cours	FMT	catalog_open_category_cd_fmt		["En cours"]
+
 
 
 
