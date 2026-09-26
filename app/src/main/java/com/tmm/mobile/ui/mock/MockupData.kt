@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.mock
 
 import com.tmm.mobile.ui.components.StatusTone
+import com.tmm.mobile.ui.screens.library.LibraryState
 import com.tmm.mobile.ui.screens.main.MainJobType
 import com.tmm.mobile.ui.screens.main.MainQueueJob
 import com.tmm.mobile.ui.screens.main.MainRecentChapter
@@ -37,6 +38,16 @@ object MockupData {
         MockSeries("Chainsaw Man", "#E2C6BB", "Terminé", 97, 97, 0, 0, "À jour", StatusTone.Ok),
     )
 
+    /** Library.dc.html, onglets de categories Mihon (nom, nombre total demo). */
+    val libraryCategories = listOf(
+        "Tous" to 142,
+        "En cours" to 24,
+        "À lire" to 31,
+        "Terminé" to 58,
+        "Favoris" to 12,
+        "Webtoons" to 9,
+    )
+
     /** Main.dc.html, etat initial (page=0, animations des compteurs deja terminees). */
     val main = MainState(
         pcTone = PcTone.Online,
@@ -62,5 +73,11 @@ object MockupData {
             MainRecentChapter("Blue Lock", "Ch. 212", TmmColors.CD8D2E4, inMihon = false, onPc = true),
             MainRecentChapter("One Piece", "Ch. 1120", TmmColors.CE6DCC0, inMihon = true, onPc = false),
         ),
+    )
+
+    /** Library.dc.html, etat initial (aucune categorie/vue/selection active). */
+    val library = LibraryState(
+        categories = libraryCategories,
+        allSeries = series,
     )
 }

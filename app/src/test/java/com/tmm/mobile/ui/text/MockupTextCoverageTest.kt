@@ -14,7 +14,6 @@ import org.junit.Test
  */
 class MockupTextCoverageTest {
     private val pendingScreens = setOf(
-        "Library.dc.html",
         "Series.dc.html",
         "Sync.dc.html",
         "Queue.dc.html",

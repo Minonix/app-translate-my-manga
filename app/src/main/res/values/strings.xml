@@ -42,4 +42,67 @@
     <string name="home_toast_sent_fmt">%1$d chapitres partent vers le PC via Google Drive.</string>
     <string name="home_toast_received_fmt">%1$d chapitres traduits rangés dans Mihon/local.</string>
     <string name="home_toast_action">Voir</string>
+
+    <!-- Partagé (E4.2+) -->
+    <string name="common_cancel">Annuler</string>
+
+    <!-- Library.dc.html (E4.2) -->
+    <string name="library_title">Bibliothèque</string>
+    <string name="library_subtitle_default">142 séries · 7 catégories Mihon</string>
+    <string name="library_categories_cd">Catégories</string>
+    <string name="library_categories_tablist_cd">Catégories Mihon</string>
+    <string name="library_select_button">Sélectionner</string>
+    <string name="library_finish_button">Terminer</string>
+    <string name="library_search_placeholder">Rechercher une série</string>
+    <string name="library_view_all">Toutes</string>
+    <string name="library_view_todo">À traduire</string>
+    <string name="library_view_absent">Non téléchargées</string>
+    <string name="library_picking_hint">Touchez les séries à inclure</string>
+    <string name="library_select_all_fmt">Tout cocher (%1$d)</string>
+    <string name="library_deselect_all">Tout décocher</string>
+    <string name="library_empty_title">Aucune série ici</string>
+    <string name="library_empty_subtitle">Essayez une autre catégorie ou un autre filtre.</string>
+    <string name="library_fr_progress_fmt">FR %1$d/%2$d</string>
+    <string name="library_fr_mihon_only">Dans Mihon seulement</string>
+    <string name="library_action_send_label">Envoyer au PC</string>
+    <string name="library_action_get_label">Récupérer</string>
+    <string name="library_action_verify_label">Vérifier</string>
+    <string name="library_action_retranslate_label">Retraduire</string>
+    <string name="library_action_hint_send">absents du PC</string>
+    <string name="library_action_hint_get">vers Mihon</string>
+    <string name="library_action_hint_verify">corrige les oublis</string>
+    <string name="library_action_hint_retranslate">refait tout</string>
+    <string name="library_confirm_title_fmt">Retraduire %1$s ?</string>
+    <string name="library_confirm_text_fmt">Sur %1$s. Les versions françaises actuelles restent lisibles dans Mihon jusqu\'à ce que les nouvelles soient prêtes.</string>
+    <string name="library_confirm_info">Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.</string>
+    <string name="library_toast_action">Voir la file</string>
+
+    <plurals name="library_chapters_count">
+        <item quantity="one">%1$d chapitre</item>
+        <item quantity="other">%1$d chapitres</item>
+    </plurals>
+    <plurals name="library_series_count">
+        <item quantity="one">%1$d série</item>
+        <item quantity="other">%1$d séries</item>
+    </plurals>
+    <plurals name="library_series_selected">
+        <item quantity="one">%1$d série sélectionnée</item>
+        <item quantity="other">%1$d séries sélectionnées</item>
+    </plurals>
+    <plurals name="library_toast_sent">
+        <item quantity="one">%1$d chapitre envoyé au PC.</item>
+        <item quantity="other">%1$d chapitres envoyés au PC.</item>
+    </plurals>
+    <plurals name="library_toast_received">
+        <item quantity="one">%1$d traduction en téléchargement.</item>
+        <item quantity="other">%1$d traductions en téléchargement.</item>
+    </plurals>
+    <plurals name="library_toast_verified">
+        <item quantity="one">%1$d chapitre ajouté en vérification.</item>
+        <item quantity="other">%1$d chapitres ajoutés en vérification.</item>
+    </plurals>
+    <plurals name="library_toast_retranslated">
+        <item quantity="one">%1$d chapitre ajouté en retraduction.</item>
+        <item quantity="other">%1$d chapitres ajoutés en retraduction.</item>
+    </plurals>
 </resources>

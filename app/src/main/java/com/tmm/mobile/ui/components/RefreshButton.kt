@@ -25,10 +25,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.tmm.mobile.R
 import com.tmm.mobile.core.LocalReducedMotion
 import com.tmm.mobile.ui.icons.TmmIcon
 import com.tmm.mobile.ui.icons.TmmIconId
@@ -47,7 +49,11 @@ private const val RingDashLength = 138f
  * anneau de recharge 30s (bouton desactive) -> disponible.
  */
 @Composable
-fun RefreshButton(onRefresh: () -> Unit, modifier: Modifier = Modifier) {
+fun RefreshButton(
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    onSpinComplete: () -> Unit = {},
+) {
     var spinning by remember { mutableStateOf(false) }
     var cooldown by remember { mutableIntStateOf(0) }
     val reducedMotion = LocalReducedMotion.current
@@ -57,6 +63,7 @@ fun RefreshButton(onRefresh: () -> Unit, modifier: Modifier = Modifier) {
             delay(SpinDurationMs.toLong())
             spinning = false
             cooldown = CooldownSeconds
+            onSpinComplete()
         }
     }
     LaunchedEffect(cooldown) {
@@ -67,7 +74,11 @@ fun RefreshButton(onRefresh: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     val disabled = spinning || cooldown > 0
-    val description = if (cooldown > 0) "Rafraîchir, disponible dans $cooldown secondes" else "Rafraîchir"
+    val description = if (cooldown > 0) {
+        stringResource(R.string.common_refresh_cooldown_cd_fmt, cooldown)
+    } else {
+        stringResource(R.string.common_refresh_cd)
+    }
 
     Box(
         modifier = modifier

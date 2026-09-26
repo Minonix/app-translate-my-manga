@@ -85,4 +85,18 @@ object TmmColors {
 
     fun placeholderFor(seriesKey: String): Color =
         placeholderPalette[(seriesKey.hashCode() and 0x7fffffff) % placeholderPalette.size]
+
+    /** Couleurs de tuile de MockupData.series (Library.dc.html), indexees par leur hex de maquette. */
+    private val byHex: Map<String, Color> = mapOf(
+        "#D8D2E4" to CD8D2E4,
+        "#C9D3DE" to CC9D3DE,
+        "#E2C6BB" to CE2C6BB,
+        "#CFD8C6" to CCFD8C6,
+        "#F4F1EA" to CF4F1EA,
+        "#E6DCC0" to CE6DCC0,
+        "#DCCFC4" to CDCCFC4,
+    )
+
+    fun fromHex(hex: String): Color =
+        byHex[hex] ?: error("Couleur absente de la palette TmmColors : $hex")
 }

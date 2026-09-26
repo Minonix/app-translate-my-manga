@@ -51,3 +51,70 @@ Main.dc.html	FR	DEMO
 Main.dc.html	12 chapitres partent vers le PC via Google Drive.	FMT	home_toast_sent_fmt		[12]
 Main.dc.html	8 chapitres traduits rangés dans Mihon/local.	FMT	home_toast_received_fmt		[8]
 Main.dc.html	Voir	STR	home_toast_action
+Library.dc.html	Bibliothèque	STR	library_title
+Library.dc.html	142 séries · 7 catégories Mihon	STR	library_subtitle_default
+Library.dc.html	1 série sélectionnée	PLU	library_series_selected	1	[1]
+Library.dc.html	3 séries sélectionnées	PLU	library_series_selected	3	[3]
+Library.dc.html	Catégories	STR	library_categories_cd
+Library.dc.html	Catégories Mihon	STR	library_categories_tablist_cd
+Library.dc.html	Sélectionner	STR	library_select_button
+Library.dc.html	Terminer	STR	library_finish_button
+Library.dc.html	Rechercher une série	STR	library_search_placeholder
+Library.dc.html	Tous	DEMO
+Library.dc.html	En cours	DEMO
+Library.dc.html	À lire	DEMO
+Library.dc.html	Terminé	DEMO
+Library.dc.html	Favoris	DEMO
+Library.dc.html	Webtoons	DEMO
+Library.dc.html	Toutes	STR	library_view_all
+Library.dc.html	À traduire	STR	library_view_todo
+Library.dc.html	Non téléchargées	STR	library_view_absent
+Library.dc.html	Touchez les séries à inclure	STR	library_picking_hint
+Library.dc.html	Tout cocher (6)	FMT	library_select_all_fmt		[6]
+Library.dc.html	Tout décocher	STR	library_deselect_all
+Library.dc.html	Blue Lock	DEMO
+Library.dc.html	Solo Leveling	DEMO
+Library.dc.html	Frieren	DEMO
+Library.dc.html	Kagurabachi	DEMO
+Library.dc.html	Dandadan	DEMO
+Library.dc.html	One Piece	DEMO
+Library.dc.html	Vinland Saga	DEMO
+Library.dc.html	Sakamoto Days	DEMO
+Library.dc.html	Chainsaw Man	DEMO
+Library.dc.html	1 à envoyer	DEMO
+Library.dc.html	Traduction en cours	DEMO
+Library.dc.html	1 à récupérer	DEMO
+Library.dc.html	3 à envoyer	DEMO
+Library.dc.html	Non téléchargée	DEMO
+Library.dc.html	2 à récupérer	DEMO
+Library.dc.html	À jour	DEMO
+Library.dc.html	12 à envoyer	DEMO
+Library.dc.html	FR 205/214	FMT	library_fr_progress_fmt		[205, 214]
+Library.dc.html	Dans Mihon seulement	STR	library_fr_mihon_only
+Library.dc.html	Aucune série ici	STR	library_empty_title
+Library.dc.html	Essayez une autre catégorie ou un autre filtre.	STR	library_empty_subtitle
+Library.dc.html	Envoyer au PC	STR	library_action_send_label
+Library.dc.html	Récupérer	STR	library_action_get_label
+Library.dc.html	Vérifier	STR	library_action_verify_label
+Library.dc.html	Retraduire	STR	library_action_retranslate_label
+Library.dc.html	absents du PC	STR	library_action_hint_send
+Library.dc.html	vers Mihon	STR	library_action_hint_get
+Library.dc.html	corrige les oublis	STR	library_action_hint_verify
+Library.dc.html	refait tout	STR	library_action_hint_retranslate
+Library.dc.html	1 chapitre	PLU	library_chapters_count	1	[1]
+Library.dc.html	4 chapitres	PLU	library_chapters_count	4	[4]
+Library.dc.html	1 série	PLU	library_series_count	1	[1]
+Library.dc.html	2 séries	PLU	library_series_count	2	[2]
+Library.dc.html	Retraduire 4 chapitres ?	FMT	library_confirm_title_fmt		["4 chapitres"]
+Library.dc.html	Sur 2 séries. Les versions françaises actuelles restent lisibles dans Mihon jusqu'à ce que les nouvelles soient prêtes.	FMT	library_confirm_text_fmt		["2 séries"]
+Library.dc.html	Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.	STR	library_confirm_info
+Library.dc.html	Annuler	STR	common_cancel
+Library.dc.html	Voir la file	STR	library_toast_action
+Library.dc.html	1 chapitre envoyé au PC.	PLU	library_toast_sent	1	[1]
+Library.dc.html	4 chapitres envoyés au PC.	PLU	library_toast_sent	4	[4]
+Library.dc.html	1 traduction en téléchargement.	PLU	library_toast_received	1	[1]
+Library.dc.html	3 traductions en téléchargement.	PLU	library_toast_received	3	[3]
+Library.dc.html	1 chapitre ajouté en vérification.	PLU	library_toast_verified	1	[1]
+Library.dc.html	4 chapitres ajoutés en vérification.	PLU	library_toast_verified	4	[4]
+Library.dc.html	1 chapitre ajouté en retraduction.	PLU	library_toast_retranslated	1	[1]
+Library.dc.html	4 chapitres ajoutés en retraduction.	PLU	library_toast_retranslated	4	[4]
