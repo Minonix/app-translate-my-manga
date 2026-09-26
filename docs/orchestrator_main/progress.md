@@ -30,6 +30,15 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
     - `MockupTextCoverageTest` : vérifie que chaque écran déjà livré a ses lignes dans le TSV et que chaque ressource STR/FMT/PLU déclarée existe dans `strings.xml` ; liste d'écrans en attente qui se réduit à chaque commit E4.x, vide à E4.13
     - Tests écrits : `MainScreenshotTest` (Roborazzi, états en ligne/hors ligne), `MainScreenBehaviorTest` (cycle Envoyer/Récupérer Idle→Busy→Done, formulation des toasts, notice hors ligne)
     - Toujours bloqué par BLOQUÉ-1 : code relu manuellement (API de chaque composant vérifiée par lecture directe), non compilé ni exécuté
+  - [x] E4.2 : écran Library (commit `15f07ab`) — tests non exécutés dans cet environnement, voir BLOQUÉ-1
+    - `LibraryState`/`LibraryEvent`/`LibraryScreen`/`LibraryViewModel` (patron section 5.20) ; ViewModel synchrone (pas de `viewModelScope.launch`/`delay`), Library.dc.html n'ayant aucune transition temporisée côté logique
+    - Aucun nouveau composant partagé requis : réutilise tel quel `TmmChip`, `TmmSegmented`, `TmmSearchField`, `TmmActionButton`, `TmmSheet`, `TmmCheckbox`, `TmmButton`, `TmmToast`, `StatusBadge`, `ProgressBar`, `dashedBorder`
+    - `Cover` étendu d'un paramètre `color` optionnel rétrocompatible (couleur exacte de la maquette plutôt que le hash de `seriesKey`) ; `TmmColors.fromHex` ajouté en repli
+    - Écart corrigé en marge de ce commit : `RefreshButton` (E4.1) utilisait des `contentDescription` en dur plutôt qu'en `stringResource` (règle 4.10)
+    - `<plurals>` ajoutés à `strings.xml` pour les décomptes (CLDR français "one" couvrant 0 et 1), lus via `pluralStringResource` (compose-bom 2026.06.01, vérifié avant usage plutôt que supposé)
+    - `mockup_texts.tsv` complété pour Library.dc.html ; `"Library.dc.html"` retiré de `MockupTextCoverageTest.pendingScreens`
+    - Tests écrits : `LibraryScreenshotTest` (Roborazzi : grille, sélection, vide, confirmation, toast), `LibraryScreenBehaviorTest` (recherche, filtres catégorie/vue, sélection/tout cocher, garde `selectionToVerify == 0` sur la retraduction, formulation des toasts)
+    - Toujours bloqué par BLOQUÉ-1 : code relu manuellement, non compilé ni exécuté
 - [ ] E5 : Room, DataStore, TmmDatabase & DAO
 - [ ] E6 : Accès SAF, parsing Mihon, CBZ & installation
 - [ ] E7 : FakeDrive, FakePc & transport REST OkHttp
