@@ -507,6 +507,40 @@ TranslationSettings.dc.html	1800 px · HD	DEMO
 TranslationSettings.dc.html	2048 px · Maximum	DEMO
 TranslationSettings.dc.html	Anime Ace	DEMO
 TranslationSettings.dc.html	Manga Temple	DEMO
+Onboarding.dc.html	訳	STR	app_name_glyph
+Onboarding.dc.html	Progression de l'installation	STR	onb_progress_cd
+Onboarding.dc.html	1/3	FMT	onb_progress_step_fmt		[1]
+Onboarding.dc.html	2/3	FMT	onb_progress_step_fmt		[2]
+Onboarding.dc.html	3/3	FMT	onb_progress_step_fmt		[3]
+Onboarding.dc.html	Drive	STR	onb_drive_label
+Onboarding.dc.html	Relier le téléphone et le PC	STR	onb_step1_title
+Onboarding.dc.html	Les chapitres passent par un dossier de votre Google Drive. Le PC n'a pas besoin d'être allumé pour que vous envoyiez.	STR	onb_step1_desc
+Onboarding.dc.html	vous@gmail.com	DEMO
+Onboarding.dc.html	Dossier TranslateMyManga/ trouvé · PC vu il y a 2 min	DEMO
+Onboarding.dc.html	Où est le dossier Mihon ?	STR	onb_step2_title
+Onboarding.dc.html	Choisissez le dossier racine de Mihon. Android vous demandera l'autorisation une seule fois.	STR	onb_step2_desc
+Onboarding.dc.html	Aucun dossier choisi	STR	onb_step2_no_folder
+Onboarding.dc.html	/Documents/Mihon	DEMO
+Onboarding.dc.html	downloads/	DEMO
+Onboarding.dc.html	Chapitres téléchargés, lus par l’app	STR	onb_step2_downloads_desc
+Onboarding.dc.html	local/	DEMO
+Onboarding.dc.html	Traductions rangées ici	STR	onb_step2_local_desc
+Onboarding.dc.html	autobackup/	DEMO
+Onboarding.dc.html	Sauvegardes, pour vos catégories	STR	onb_step2_autobackup_desc
+Onboarding.dc.html	Votre bibliothèque	STR	onb_step3_title
+Onboarding.dc.html	La dernière sauvegarde automatique de Mihon est lue tout de suite. Rien n'est modifié dans Mihon.	STR	onb_step3_desc
+Onboarding.dc.html	autobackup/com.mihon_2026-09-26.tachibk	DEMO
+Onboarding.dc.html	séries	STR	onb_step3_series_label
+Onboarding.dc.html	catégories	STR	onb_step3_categories_label
+Onboarding.dc.html	téléchargées	STR	onb_step3_downloaded_label
+Onboarding.dc.html	12 chapitres téléchargés dans Mihon ne sont pas encore sur le PC. Vous pourrez les envoyer depuis l'accueil.	STR	onb_step3_todo_notice
+Onboarding.dc.html	Se connecter avec Google	STR	onb_btn_connect_google
+Onboarding.dc.html	Connexion...	STR	onb_btn_connecting
+Onboarding.dc.html	Continuer	STR	onb_btn_continue
+Onboarding.dc.html	Choisir le dossier Mihon	STR	onb_btn_pick_folder
+Onboarding.dc.html	Vérification...	STR	onb_btn_verifying
+Onboarding.dc.html	Ouvrir TMM Mobile	STR	onb_btn_finish
+Onboarding.dc.html	Étape précédente	STR	onb_btn_previous_step
 
 
 

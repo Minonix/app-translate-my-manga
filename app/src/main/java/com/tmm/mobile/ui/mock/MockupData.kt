@@ -20,6 +20,7 @@ import com.tmm.mobile.ui.screens.queue.QueueTab
 import com.tmm.mobile.ui.screens.queue.WaitingJob
 import com.tmm.mobile.ui.screens.catalog.CatalogState
 import com.tmm.mobile.ui.screens.newtranslation.NewTranslationState
+import com.tmm.mobile.ui.screens.onboarding.OnboardingState
 import com.tmm.mobile.ui.screens.settings.SettingsState
 import com.tmm.mobile.ui.screens.translationsettings.TranslationSettingsState
 import com.tmm.mobile.ui.screens.transfers.LiveTransferItem
@@ -363,4 +364,6 @@ object MockupData {
     val settings = SettingsState()
 
     val translationSettings = TranslationSettingsState()
+
+    val onboarding = OnboardingState()
 }
