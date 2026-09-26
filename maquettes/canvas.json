@@ -1,0 +1,153 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Catalog.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Catalogue",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "Empty.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "État vide",
+      "w": 390,
+      "x": 1410,
+      "y": 1264
+    },
+    "Library.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Bibliothèque",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Accueil",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "NewTranslation.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Nouvelle traduction",
+      "w": 390,
+      "x": 470,
+      "y": 1264
+    },
+    "Offline.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Hors ligne / Drive expiré",
+      "w": 390,
+      "x": 1880,
+      "y": 1264
+    },
+    "Onboarding.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Installation en 3 étapes",
+      "w": 390,
+      "x": 0,
+      "y": 1264
+    },
+    "Permission.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Accès Mihon perdu",
+      "w": 390,
+      "x": 2350,
+      "y": 1264
+    },
+    "Queue.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "File",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "Series.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Fiche série",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "Settings.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Réglages",
+      "w": 390,
+      "x": 940,
+      "y": 1264
+    },
+    "Sync.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Transferts",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "TranslationSettings.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Réglages de traduction du PC",
+      "w": 390,
+      "x": 2820,
+      "y": 1264
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-26T11:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "row1": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "Les 5 onglets de la V1",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "row2": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "Parcours, réglages et états",
+      "w": 240,
+      "x": 0,
+      "y": 964
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Library.dc.html",
+    "Series.dc.html",
+    "Sync.dc.html",
+    "Queue.dc.html",
+    "Catalog.dc.html",
+    "Onboarding.dc.html",
+    "NewTranslation.dc.html",
+    "Settings.dc.html",
+    "Empty.dc.html",
+    "Offline.dc.html",
+    "Permission.dc.html",
+    "TranslationSettings.dc.html"
+  ],
+  "pages": [],
+  "title": "TMM Mobile"
+}

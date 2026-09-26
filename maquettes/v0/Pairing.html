@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Associer au PC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=IBM+Plex+Mono:wght@500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;display:flex;justify-content:center;padding:24px 0;background:#E9E4D8;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16161A}
+a{color:#C8391F}a:hover{color:#9E2A14}
+.d{font-family:'Bricolage Grotesque',Georgia,serif}
+.m{font-family:'IBM Plex Mono',ui-monospace,monospace}
+svg{display:block;flex-shrink:0}
+button,input{font-family:inherit}
+input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:#16161A;flex-shrink:0}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F1EA; overflow: hidden">
+<header style="height: 56px; flex-shrink: 0; padding: 0 8px; display: flex; align-items: center">
+<a href="Main.html" aria-label="Retour" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #16161A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+</header>
+<main style="flex-grow: 1; overflow: hidden; padding: 0 20px 20px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; justify-content: center; gap: 14px; padding: 24px 0 8px; color: #16161A">
+<div style="width: 64px; height: 64px; border-radius: 16px; background: #2B4C7E; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+<svg width="48" height="12" viewBox="0 0 48 12" fill="none" stroke="#9C9486" stroke-width="2" stroke-dasharray="3 5" stroke-linecap="round" aria-hidden="true"><path d="M2 6h44"/></svg>
+<div style="width: 64px; height: 64px; border-radius: 16px; background: #16161A; color: #F4F1EA; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; text-align: center">
+<h1 class="d" style="margin: 0; font-size: 30px; line-height: 1.05; font-weight: 800">Associer ce téléphone au PC</h1>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #5E5A52">Dans TMM-Win, ouvrez Réglages › Appareils, puis scannez le QR code ou saisissez le code affiché.</p>
+</div>
+<button type="button" style="height: 52px; border-radius: 14px; border: 0; background: #C8391F; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 8h3v3H8zM13 13h3v3h-3z"/></svg>Scanner le QR code</button>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="font-size: 13px; color: #5E5A52; margin-bottom: 10px">Ou saisir le code à 6 chiffres</legend>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px">
+<input class="m" inputmode="numeric" maxlength="1" aria-label="Chiffre 1" value="4" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid #16161A; background: #FFFFFF; text-align: center; font-size: 22px; color: #16161A; min-width: 0">
+<input class="m" inputmode="numeric" maxlength="1" aria-label="Chiffre 2" value="8" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1.5px solid #16161A; background: #FFFFFF; text-align: center; font-size: 22px; color: #16161A; min-width: 0">
+<input class="m" inputmode="numeric" maxlength="1" aria-label="Chiffre 3" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1px solid #D5CDBC; background: #FFFFFF; text-align: center; font-size: 22px; color: #16161A; min-width: 0">
+<input class="m" inputmode="numeric" maxlength="1" aria-label="Chiffre 4" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1px solid #D5CDBC; background: #FFFFFF; text-align: center; font-size: 22px; color: #16161A; min-width: 0">
+<input class="m" inputmode="numeric" maxlength="1" aria-label="Chiffre 5" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1px solid #D5CDBC; background: #FFFFFF; text-align: center; font-size: 22px; color: #16161A; min-width: 0">
+<input class="m" inputmode="numeric" maxlength="1" aria-label="Chiffre 6" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1px solid #D5CDBC; background: #FFFFFF; text-align: center; font-size: 22px; color: #16161A; min-width: 0">
+</div>
+</fieldset>
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #5E5A52">PC associés</h2>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDD6C8">
+<span style="width: 10px; height: 10px; border-radius: 5px; background: #2F7D4F"></span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">[Nom du PC]</span><span style="font-size: 12px; color: #5E5A52">Connecté · réseau local</span></div>
+<button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #D5CDBC; background: #FBF9F4; font-size: 13px; color: #16161A">Oublier</button>
+</div>
+<label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 14px; background: #FBF9F4; border: 1px solid #DDD6C8; font-size: 14px; line-height: 1.4"><input type="checkbox" style="margin-top: 1px"><span>Accès hors du réseau local<br><span style="font-size: 12px; color: #5E5A52">Pour lancer des traductions depuis un autre ordinateur ou en 4G.</span></span></label>
+</section>
+</main>
+</div>
+</body>
+</html>

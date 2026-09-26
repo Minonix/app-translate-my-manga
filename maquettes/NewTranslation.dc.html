@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Nouvelle traduction</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=IBM+Plex+Mono:wght@500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E4D8;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16161A}
+a{color:#C8391F}a:hover{color:#9E2A14}
+.d{font-family:'Bricolage Grotesque',Georgia,serif}
+.m{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tone{background-image:radial-gradient(rgba(22,22,26,.28) 1px,transparent 1.3px);background-size:5px 5px}
+svg{display:block;flex-shrink:0}
+button,input,select{font-family:inherit}
+button{cursor:pointer}button:disabled{cursor:default}
+.scroll{overflow-y:auto;scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.hscroll{overflow-x:auto;scrollbar-width:none}.hscroll::-webkit-scrollbar{display:none}
+.press{transition:transform .15s ease,box-shadow .2s ease,background-color .2s ease}.press:active{transform:scale(.97)}
+.lift:hover{box-shadow:0 6px 18px rgba(22,22,26,.08)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.r1{animation-delay:.05s}.r2{animation-delay:.12s}.r3{animation-delay:.19s}.r4{animation-delay:.26s}.r5{animation-delay:.33s}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,125,79,.55)}70%{box-shadow:0 0 0 7px rgba(47,125,79,0)}100%{box-shadow:0 0 0 0 rgba(47,125,79,0)}}
+.pulse{animation:pulse 2s ease-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+@keyframes stripes{to{background-position:24px 0}}
+.stripes{background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 6px,transparent 6px 12px);background-size:24px 24px;animation:stripes .9s linear infinite}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+.pop{animation:pop .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes toast{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.toast{animation:toast .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pill{from{transform:scaleX(.4);opacity:.3}to{transform:none;opacity:1}}
+.pill{animation:pill .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+.sheet{animation:sheet .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.fade{animation:fade .4s ease both}
+@keyframes slide{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+.slide{animation:slide .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.grow{transform-origin:left center;animation:grow 1.1s cubic-bezier(.2,.8,.2,1) both .2s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.float{animation:float 3.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.blink{animation:blink 1.4s ease-in-out infinite}@keyframes travel{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 8px);opacity:0}}.travel{animation:travel 1.8s linear infinite}
+@keyframes shimmer{from{background-position:-200px 0}to{background-position:200px 0}}
+.shimmer{background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);background-size:200px 100%;background-repeat:no-repeat;animation:shimmer 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F1EA; overflow: hidden; position: relative">
+<div aria-hidden="true" style="padding: 24px 20px; display: flex; flex-direction: column; gap: 16px">
+<div class="d" style="font-size: 36px; font-weight: 800">File</div>
+<div style="height: 180px; border-radius: 18px; background: #16161A"></div>
+<div style="height: 64px; border-radius: 16px; background: #FFFFFF"></div>
+<div style="height: 64px; border-radius: 16px; background: #FFFFFF"></div>
+</div>
+<a href="Queue.dc.html" aria-label="Fermer" class="fade" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(22,22,26,.45)"></a>
+<section role="dialog" aria-modal="true" aria-labelledby="nt-title" class="sheet" style="position: absolute; left: 0; right: 0; bottom: 0; height: 720px; background: #F4F1EA; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; box-shadow: 0 -12px 40px rgba(22,22,26,.2)">
+<div style="display: flex; justify-content: center; padding-top: 10px"><span style="width: 40px; height: 5px; border-radius: 3px; background: #D5CDBC"></span></div>
+<div style="padding: 10px 12px 8px 20px; display: flex; align-items: center; gap: 8px">
+<sc-if value="{{ isChapters }}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{ back }}" aria-label="Changer de série" class="press" style="width: 44px; height: 44px; margin-left: -12px; border: 0; border-radius: 22px; background: transparent; color: #16161A; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+</sc-if>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5E5A52">{{ stepLabel }}</div>
+<h1 id="nt-title" class="d" style="margin: 0; font-size: 24px; font-weight: 800">{{ title }}</h1>
+</div>
+<a href="Queue.dc.html" aria-label="Fermer" class="press" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #16161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></a>
+</div>
+<sc-if value="{{ isSeries }}" hint-placeholder-val="{{ true }}">
+<div class="fade" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 0 20px">
+<label style="height: 46px; border-radius: 12px; border: 1px solid #D5CDBC; background: #FFFFFF; display: flex; align-items: center; gap: 10px; padding: 0 14px; color: #5E5A52; flex-shrink: 0">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+<input type="search" value="{{ q }}" onInput="{{ onQ }}" placeholder="Série téléchargée dans Mihon" aria-label="Chercher une série" style="flex-grow: 1; border: 0; outline: 0; background: transparent; font-size: 15px; color: #16161A; min-width: 0">
+</label>
+<div style="font-size: 12px; color: #5E5A52">Séries avec des chapitres pas encore envoyés</div>
+<div class="scroll" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px">
+<sc-for list="{{ series }}" as="s" hint-placeholder-count="4">
+<button type="button" onClick="{{ s.pick }}" class="press lift rise" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid #DDD6C8; background: #FFFFFF; color: #16161A; text-align: left; animation-delay: {{ s.delay }}">
+<span class="tone" style="width: 40px; height: 56px; border-radius: 5px; background-color: {{ s.color }}; flex-shrink: 0"></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">{{ s.t }}</span><span style="font-size: 12px; color: #5E5A52">{{ s.sub }}</span></span>
+<span style="height: 26px; padding: 0 10px; border-radius: 13px; background: #FBE3DC; color: #7A2210; font-size: 12px; font-weight: 600; display: flex; align-items: center">{{ s.n }} à envoyer</span>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ isChapters }}" hint-placeholder-val="{{ false }}">
+<div class="slide" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column">
+<div style="padding: 0 20px 10px; display: flex; justify-content: space-between; align-items: center">
+<span style="font-size: 13px; color: #5E5A52">Téléchargés dans Mihon, absents du PC</span>
+<button type="button" onClick="{{ all }}" style="border: 0; background: transparent; padding: 8px 0; color: #C8391F; font-size: 13px; font-weight: 600">{{ allLabel }}</button>
+</div>
+<div class="scroll" style="flex-grow: 1; min-height: 0; margin: 0 20px; background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px">
+<sc-for list="{{ chapters }}" as="c" hint-placeholder-count="5">
+<label style="min-height: 56px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-bottom: 1px solid #ECE7DC; cursor: pointer; background: {{ c.bg }}; transition: background-color .2s ease">
+<input type="checkbox" checked="{{ c.on }}" onChange="{{ c.toggle }}" style="width: 20px; height: 20px; margin: 0; accent-color: #16161A">
+<span class="m" style="flex-grow: 1; font-size: 14px">Ch. {{ c.n }}</span>
+<span style="font-size: 12px; color: #5E5A52">{{ c.pages }} pages</span>
+</label>
+</sc-for>
+</div>
+<div style="padding: 14px 20px 8px">
+<label style="display: flex; align-items: center; gap: 12px; cursor: pointer">
+<input type="checkbox" checked="{{ translate }}" onChange="{{ toggleTr }}" style="width: 20px; height: 20px; margin: 0; accent-color: #16161A">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 500">Traduire à l'arrivée</span><span style="font-size: 12px; color: #5E5A52">{{ trHint }}</span></span>
+</label>
+</div>
+</div>
+</sc-if>
+<div style="flex-shrink: 0; padding: 12px 20px 24px; border-top: 1px solid #DDD6C8; background: #FBF9F4">
+<sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ send }}" disabled="{{ cantSend }}" class="press" style="width: 100%; height: 52px; border-radius: 14px; border: 0; background: {{ sendBg }}; color: {{ sendFg }}; font-size: 16px; font-weight: 600; transition: background-color .2s ease; display: flex; align-items: center; justify-content: center; gap: 8px">
+<sc-if value="{{ sending }}" hint-placeholder-val="{{ false }}"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg></sc-if>
+{{ sendLabel }}</button>
+</sc-if>
+<sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+<a href="Queue.dc.html" class="pop" style="width: 100%; height: 52px; border-radius: 14px; background: #2F7D4F; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Ajouté à la file · Voir</a>
+</sc-if>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  state = { pick: null, q: '', sel: {}, translate: true, phase: 'idle' };
+  componentWillUnmount() { clearTimeout(this.t); }
+  data = [
+    { t: 'Kagurabachi', sub: 'En cours · anglais', color: '#CFD8C6', ch: [52, 53, 54] },
+    { t: 'Sakamoto Days', sub: 'À lire · anglais', color: '#C9D3DE', ch: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+    { t: 'Blue Lock', sub: 'En cours · anglais', color: '#D8D2E4', ch: [214] },
+    { t: 'Kaiju No. 8', sub: 'Webtoons · coréen', color: '#E6DCC0', ch: [118, 119] }
+  ];
+  send = () => {
+    this.setState({ phase: 'busy' });
+    this.t = setTimeout(() => this.setState({ phase: 'done' }), 1200);
+  };
+  renderVals() {
+    const s = this.state;
+    const cur = this.data.find((d) => d.t === s.pick);
+    const q = s.q.trim().toLowerCase();
+    const n = cur ? cur.ch.filter((c) => s.sel[c]).length : 0;
+    return {
+      isSeries: !cur, isChapters: !!cur,
+      stepLabel: cur ? 'Étape 2 sur 2 · chapitres' : 'Étape 1 sur 2 · série',
+      title: cur ? cur.t : 'Nouvelle traduction',
+      back: () => this.setState({ pick: null, sel: {}, phase: 'idle' }),
+      q: s.q, onQ: (e) => this.setState({ q: e.target.value }),
+      series: this.data.filter((d) => !q || d.t.toLowerCase().includes(q)).map((d, i) => ({
+        t: d.t, sub: d.sub, color: d.color, n: d.ch.length, delay: (i * 0.05) + 's',
+        pick: () => this.setState({ pick: d.t, sel: Object.fromEntries(d.ch.map((c) => [c, true])) })
+      })),
+      chapters: cur ? cur.ch.map((c) => ({
+        n: c, pages: 18 + (c % 7), on: !!s.sel[c], bg: s.sel[c] ? '#FBF9F4' : '#FFFFFF',
+        toggle: () => this.setState((p) => ({ sel: { ...p.sel, [c]: !p.sel[c] } }))
+      })) : [],
+      allLabel: cur && n === cur.ch.length ? 'Tout décocher' : 'Tout cocher',
+      all: () => this.setState((p) => {
+        const full = cur.ch.every((c) => p.sel[c]);
+        return { sel: Object.fromEntries(cur.ch.map((c) => [c, !full])) };
+      }),
+      translate: s.translate, toggleTr: () => this.setState((p) => ({ translate: !p.translate })),
+      trHint: s.translate ? 'Retour automatique dans Mihon une fois traduit' : 'Simple copie sur le PC, sans traduction',
+      notSent: s.phase !== 'done', sent: s.phase === 'done', sending: s.phase === 'busy',
+      cantSend: !cur || n === 0 || s.phase !== 'idle',
+      send: this.send,
+      sendBg: cur && n > 0 ? '#C8391F' : '#DDD6C8', sendFg: cur && n > 0 ? '#FFFFFF' : '#5E5A52',
+      sendLabel: s.phase === 'busy' ? 'Dépôt sur Google Drive...' : !cur ? 'Choisissez une série' : n === 0 ? 'Cochez des chapitres' : 'Envoyer ' + n + ' chapitre' + (n > 1 ? 's' : '')
+    };
+  }
+}
+</script>
+
+</body>
+</html>

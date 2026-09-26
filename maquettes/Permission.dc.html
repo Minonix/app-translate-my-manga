@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Accès Mihon perdu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=IBM+Plex+Mono:wght@500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E4D8;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16161A}
+a{color:#C8391F}a:hover{color:#9E2A14}
+.d{font-family:'Bricolage Grotesque',Georgia,serif}
+.m{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tone{background-image:radial-gradient(rgba(22,22,26,.28) 1px,transparent 1.3px);background-size:5px 5px}
+svg{display:block;flex-shrink:0}
+button,input,select{font-family:inherit}
+button{cursor:pointer}button:disabled{cursor:default}
+.scroll{overflow-y:auto;scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.hscroll{overflow-x:auto;scrollbar-width:none}.hscroll::-webkit-scrollbar{display:none}
+.press{transition:transform .15s ease,box-shadow .2s ease,background-color .2s ease}.press:active{transform:scale(.97)}
+.lift:hover{box-shadow:0 6px 18px rgba(22,22,26,.08)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.r1{animation-delay:.05s}.r2{animation-delay:.12s}.r3{animation-delay:.19s}.r4{animation-delay:.26s}.r5{animation-delay:.33s}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,125,79,.55)}70%{box-shadow:0 0 0 7px rgba(47,125,79,0)}100%{box-shadow:0 0 0 0 rgba(47,125,79,0)}}
+.pulse{animation:pulse 2s ease-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+@keyframes stripes{to{background-position:24px 0}}
+.stripes{background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 6px,transparent 6px 12px);background-size:24px 24px;animation:stripes .9s linear infinite}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+.pop{animation:pop .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes toast{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.toast{animation:toast .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pill{from{transform:scaleX(.4);opacity:.3}to{transform:none;opacity:1}}
+.pill{animation:pill .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+.sheet{animation:sheet .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.fade{animation:fade .4s ease both}
+@keyframes slide{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+.slide{animation:slide .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.grow{transform-origin:left center;animation:grow 1.1s cubic-bezier(.2,.8,.2,1) both .2s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.float{animation:float 3.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.blink{animation:blink 1.4s ease-in-out infinite}@keyframes travel{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 8px);opacity:0}}.travel{animation:travel 1.8s linear infinite}
+@keyframes shimmer{from{background-position:-200px 0}to{background-position:200px 0}}
+.shimmer{background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);background-size:200px 100%;background-repeat:no-repeat;animation:shimmer 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F1EA; overflow: hidden; position: relative; padding: 0 24px">
+<main style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px">
+<div class="rise" style="width: 88px; height: 88px; border-radius: 24px; background: #FBE3DC; color: #C8391F; display: flex; align-items: center; justify-content: center; position: relative">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/><path d="M10 13l4 4M14 13l-4 4"/></svg>
+</div>
+<div class="rise r1" style="display: flex; flex-direction: column; gap: 10px">
+<h1 class="d" style="margin: 0; font-size: 30px; line-height: 1.05; font-weight: 800">L'app ne voit plus le dossier Mihon</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #5E5A52">Android a retiré l'autorisation, souvent après une mise à jour ou un déplacement du dossier. Rien n'a été supprimé.</p>
+</div>
+<div class="rise r2" style="background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5E5A52">Dossier attendu</div>
+<div class="m" style="font-size: 14px">/Documents/Mihon</div>
+<div style="font-size: 13px; color: #5E5A52; line-height: 1.45">Il doit contenir <span class="m">downloads/</span>, <span class="m">local/</span> et <span class="m">autobackup/</span>.</div>
+</div>
+<sc-if value="{{ fixed }}" hint-placeholder-val="{{ false }}">
+<div class="pop" role="status" style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: #E8F1EB; color: #2F7D4F; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Accès rétabli
+</div>
+</sc-if>
+</main>
+<footer class="rise r3" style="flex-shrink: 0; padding: 16px 0 28px; display: flex; flex-direction: column; gap: 8px">
+<sc-if value="{{ notFixed }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ pick }}" disabled="{{ busy }}" class="press" style="height: 54px; border-radius: 14px; border: 0; background: #16161A; color: #F4F1EA; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px">
+<sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg></sc-if>
+{{ label }}</button>
+</sc-if>
+<sc-if value="{{ fixed }}" hint-placeholder-val="{{ false }}">
+<a href="Main.dc.html" class="press pop" style="height: 54px; border-radius: 14px; background: #C8391F; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center">Revenir à l'accueil</a>
+</sc-if>
+<a href="Settings.dc.html" style="height: 44px; display: flex; align-items: center; justify-content: center; color: #5E5A52; font-size: 14px; font-weight: 500; text-decoration: none">Aide et réglages</a>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  state = { st: 'idle' };
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const st = this.state.st;
+    return {
+      busy: st === 'busy', fixed: st === 'ok', notFixed: st !== 'ok',
+      label: st === 'busy' ? 'Vérification...' : 'Choisir à nouveau le dossier',
+      pick: () => { this.setState({ st: 'busy' }); this.t = setTimeout(() => this.setState({ st: 'ok' }), 1200); }
+    };
+  }
+}
+</script>
+
+</body>
+</html>
