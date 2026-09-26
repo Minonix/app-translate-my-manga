@@ -3,7 +3,7 @@ package com.tmm.mobile.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Palette fermee de l'application, reproduite depuis les maquettes (maquettes/*.dc.html).
+ * Palette fermee de l'application, reproduite depuis les maquettes (maquettes).
  * Aucune autre couleur ne doit apparaitre ailleurs dans le code (voir NoRawColorTest).
  */
 object TmmColors {

@@ -45,6 +45,7 @@
 
     <!-- Partagé (E4.2+) -->
     <string name="common_cancel">Annuler</string>
+    <string name="common_not_applicable">Non applicable</string>
 
     <!-- Library.dc.html (E4.2) -->
     <string name="library_title">Bibliothèque</string>
@@ -104,5 +105,73 @@
     <plurals name="library_toast_retranslated">
         <item quantity="one">%1$d chapitre ajouté en retraduction.</item>
         <item quantity="other">%1$d chapitres ajoutés en retraduction.</item>
+    </plurals>
+
+    <!-- Series.dc.html (E4.3) -->
+    <string name="series_back_cd">Retour à la bibliothèque</string>
+    <string name="series_location_stats_cd">Où sont les chapitres</string>
+    <string name="series_sheet_title">Toute la série</string>
+    <string name="series_legend_phone">Téléphone</string>
+    <string name="series_legend_pc">PC</string>
+    <string name="series_legend_fr">Français</string>
+    <string name="series_legend_absent">Absent</string>
+    <string name="series_stat_pc_original">PC original</string>
+    <string name="series_stat_translated_label">Traduits</string>
+    <string name="series_stat_fr_tag">FR</string>
+    <string name="series_chapters_title">Chapitres</string>
+    <string name="series_select_todo_button">Tout ce qui reste à faire</string>
+    <string name="series_deselect_all">Désélectionner</string>
+    <string name="series_gap_rest">Il manque partout. Téléchargez-le dans Mihon ou ignorez-le.</string>
+    <string name="series_gap_dismiss">Ignorer</string>
+    <string name="series_confirm_text">La version française actuelle sera remplacée une fois la nouvelle prête. Elle reste lisible dans Mihon en attendant.</string>
+    <string name="series_confirm_kicker">Confirmation</string>
+    <string name="series_action_hint_send">Absents du PC</string>
+    <string name="series_action_hint_get">Vers Mihon/local</string>
+    <string name="series_action_hint_verify">Corrige les oublis</string>
+    <string name="series_action_hint_retranslate">Refait tout</string>
+    <string name="series_sheet_action_send_label">Envoyer ce qui manque</string>
+    <string name="series_sheet_action_send_hint">Chapitres du téléphone absents du PC</string>
+    <string name="series_sheet_action_get_label">Récupérer les traductions</string>
+    <string name="series_sheet_action_get_hint">Traduites mais pas encore dans Mihon</string>
+    <string name="series_sheet_action_verify_label">Vérifier toute la série</string>
+    <string name="series_sheet_action_verify_hint">Relit tout, ne corrige que les oublis</string>
+    <string name="series_sheet_action_retranslate_label">Retraduire toute la série</string>
+    <string name="series_sheet_action_retranslate_hint">Refait la traduction de zéro</string>
+    <string name="series_chip_never_verified">Jamais vérifié</string>
+    <string name="series_gap_bold_fmt">Trou dans la suite : ch. %1$d.</string>
+    <string name="series_chapter_number_fmt">Ch. %1$d</string>
+    <string name="series_chapter_aria_fmt">Chapitre %1$d, %2$s</string>
+    <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$d</string>
+    <string name="series_sheet_kicker_fmt">%1$s · %2$s</string>
+    <string name="series_sheet_count_fmt">%1$d ch.</string>
+    <string name="series_chip_pages_fmt">%1$d/%2$d pages</string>
+    <string name="series_chip_bubbles_translated_fmt">%1$d bulles traduites</string>
+    <string name="series_chip_bubbles_untranslated_fmt">%1$d non traduites</string>
+    <string name="series_chip_sfx_fmt">%1$d SFX gardés</string>
+    <string name="series_chip_verified_fmt">Vérifié le %1$s</string>
+
+    <plurals name="series_chapters_count">
+        <item quantity="one">%1$d chapitre</item>
+        <item quantity="other">%1$d chapitres</item>
+    </plurals>
+    <plurals name="series_chapters_selected">
+        <item quantity="one">%1$d chapitre sélectionné</item>
+        <item quantity="other">%1$d chapitres sélectionnés</item>
+    </plurals>
+    <plurals name="series_toast_sent">
+        <item quantity="one">%1$d chapitre envoyé au PC.</item>
+        <item quantity="other">%1$d chapitres envoyés au PC.</item>
+    </plurals>
+    <plurals name="series_toast_received">
+        <item quantity="one">%1$d traduction en téléchargement vers Mihon.</item>
+        <item quantity="other">%1$d traductions en téléchargement vers Mihon.</item>
+    </plurals>
+    <plurals name="series_toast_verified">
+        <item quantity="one">%1$d chapitre ajouté à la file en vérification.</item>
+        <item quantity="other">%1$d chapitres ajoutés à la file en vérification.</item>
+    </plurals>
+    <plurals name="series_toast_retranslated">
+        <item quantity="one">%1$d chapitre ajouté à la file en retraduction.</item>
+        <item quantity="other">%1$d chapitres ajoutés à la file en retraduction.</item>
     </plurals>
 </resources>

@@ -13,6 +13,7 @@ import com.tmm.mobile.R
  * Styles de texte de l'application. Les ecrans ne doivent jamais appeler
  * TextStyle(...) directement : ils passent par sans()/display()/mono().
  */
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 object TmmType {
     private val sansCache = HashMap<Pair<Int, Int>, FontFamily>()
     private val displayCache = HashMap<Pair<Int, Int>, FontFamily>()

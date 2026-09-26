@@ -29,6 +29,7 @@ fun TmmCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val border = if (checked) TmmColors.accent else TmmColors.C9C9486
     val bg = if (checked) TmmColors.accent else TmmColors.White85
@@ -40,6 +41,7 @@ fun TmmCheckbox(
             .border(2.dp, border, CircleShape)
             .toggleable(
                 value = checked,
+                enabled = enabled,
                 role = Role.Checkbox,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },

@@ -7,13 +7,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ImageVector
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.vector.ImageVector.Builder
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -22,7 +22,7 @@ import com.tmm.mobile.ui.theme.TmmColors
 /**
  * Element geometrique d'une icone, dans le systeme de coordonnees SVG des
  * maquettes (viewBox 0 0 24 24). Reproduit path/rect/circle tels qu'extraits
- * de maquettes/*.dc.html (voir 4.6 du plan).
+ * des maquettes (voir 4.6 du plan).
  */
 sealed class IconElement {
     data class Path(val d: String) : IconElement()
@@ -32,7 +32,7 @@ sealed class IconElement {
 
 /**
  * Catalogue ferme des icones de l'application, extrait des 13 maquettes
- * (maquettes/*.dc.html). Aucune icone Material n'est utilisee (voir NoMaterialIconsTest).
+ * (maquettes). Aucune icone Material n'est utilisee (voir NoMaterialIconsTest).
  * Les noms d'entrees suivent l'objet `I` des scripts de maquette quand il existe,
  * sinon une description anglaise camelCase de la forme.
  */
@@ -112,7 +112,7 @@ private fun PathBuilder.circleOutline(circle: IconElement.Circle) {
 }
 
 private fun buildImageVector(icon: TmmIconId, sizeDp: Int, strokeWidth: Float): ImageVector =
-    Builder(
+    ImageVector.Builder(
         name = icon.name,
         defaultWidth = sizeDp.dp,
         defaultHeight = sizeDp.dp,
@@ -150,19 +150,20 @@ private fun buildImageVector(icon: TmmIconId, sizeDp: Int, strokeWidth: Float): 
 @Composable
 fun TmmIcon(
     icon: TmmIconId,
+    modifier: Modifier = Modifier,
     size: Dp = 24.dp,
     tint: Color = TmmColors.ink,
     strokeWidth: Float = icon.defaultStrokeWidth,
     contentDescription: String? = null,
 ) {
     val sizeDp = size.value.toInt()
-    val vector = remember(icon, sizeDp, strokeWidth) {
+    val vector: ImageVector = remember(icon, sizeDp, strokeWidth) {
         vectorCache.getOrPut(Triple(icon, sizeDp, strokeWidth)) { buildImageVector(icon, sizeDp, strokeWidth) }
     }
     Image(
         painter = rememberVectorPainter(vector),
         contentDescription = contentDescription,
         colorFilter = ColorFilter.tint(tint),
-        modifier = Modifier.size(size),
+        modifier = modifier.size(size),
     )
 }

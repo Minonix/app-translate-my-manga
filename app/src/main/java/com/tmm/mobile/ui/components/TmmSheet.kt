@@ -32,7 +32,7 @@ import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.TmmType
 
-private val ScrimColor = Color(0x73161616)
+private val ScrimColor = TmmColors.Ink45
 
 /**
  * Feuille modale du bas (pattern confirmation de Library.dc.html) : voile plein-ecran

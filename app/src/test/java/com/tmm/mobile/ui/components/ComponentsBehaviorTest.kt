@@ -10,12 +10,12 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.printToLog
 import com.tmm.mobile.ui.theme.TmmTheme
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -87,6 +87,7 @@ class ComponentsBehaviorTest {
         }
         composeRule.onNodeWithContentDescription("Rafraîchir").assertExists()
         composeRule.onNodeWithContentDescription("Rafraîchir").performClick()
+        composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(1_400)
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Rafraîchir, disponible dans 30 secondes").assertExists()

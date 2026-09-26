@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -17,7 +18,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Courbes d'animation nommees, reprises des keyframes CSS des maquettes
- * (maquettes/*.dc.html, balise <style>).
+ * (maquettes, balise <style>).
  */
 object Motion {
     /** cubic-bezier(.2,.8,.2,1) : rise/pop/toast/pill/sheet/slide/grow */

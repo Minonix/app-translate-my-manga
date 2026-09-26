@@ -31,7 +31,7 @@ import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.TmmType
 
-private val ScrimColor = Color(0x73161616)
+private val ScrimColor = TmmColors.Ink45
 
 /** Variante centree de TmmSheet (pop/fade au lieu d'un slide) pour les alertes courtes. */
 @Composable

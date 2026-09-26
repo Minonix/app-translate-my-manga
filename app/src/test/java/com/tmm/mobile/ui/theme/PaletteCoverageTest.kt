@@ -2,6 +2,7 @@ package com.tmm.mobile.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import java.io.File
+import kotlin.math.roundToInt
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -21,12 +22,13 @@ class PaletteCoverageTest {
             hexPattern.findAll(text).forEach { match ->
                 val hex = match.value.removePrefix("#")
                 val rgb = hex.toInt(16)
-                colors += Color((0xFF shl 24) or rgb)
+                colors += Color((0xFFL shl 24) or rgb.toLong())
             }
             rgbaPattern.findAll(text).forEach { match ->
                 val (r, g, b, a) = match.destructured
                 val alpha = if (a.isEmpty()) 1f else a.toFloat()
-                colors += Color(red = r.toInt() / 255f, green = g.toInt() / 255f, blue = b.toInt() / 255f, alpha = alpha)
+                val aInt = (alpha * 255f).roundToInt()
+                colors += Color((aInt.toLong() shl 24) or (r.toInt().toLong() shl 16) or (g.toInt().toLong() shl 8) or b.toInt().toLong())
             }
         }
         return colors
@@ -34,15 +36,15 @@ class PaletteCoverageTest {
 
     private fun themeColors(): List<Color> =
         TmmColors.javaClass.declaredFields
-            .filter { it.type == Color::class.java }
+            .filter { it.type == java.lang.Long.TYPE }
             .onEach { it.isAccessible = true }
-            .map { it.get(TmmColors) as Color }
+            .map { Color(it.getLong(TmmColors).toULong()) }
 
     @Test
     fun everyMockupColorExistsInTmmColors() {
-        val theme = themeColors()
+        val themeValues = themeColors().map { it.value }.toSet()
         val missing = mockupColors().filterNot { mockup ->
-            theme.any { it.value == mockup.value }
+            themeValues.contains(mockup.value)
         }
         assertTrue("Couleurs des maquettes absentes de TmmColors : $missing", missing.isEmpty())
     }

@@ -3,8 +3,9 @@ package com.tmm.mobile.ui.screens.main
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -68,7 +69,7 @@ class MainScreenBehaviorTest {
     fun doneState_showsDonePillLabel() {
         setState(MockupData.main.copy(sendState = BusyState.Done, getState = BusyState.Done))
         composeRule.onNodeWithText("En file").assertExists()
-        composeRule.onNodeWithText("Dans Mihon").assertExists()
+        composeRule.onAllNodesWithText("Dans Mihon").onFirst().assertExists()
     }
 
     @Test

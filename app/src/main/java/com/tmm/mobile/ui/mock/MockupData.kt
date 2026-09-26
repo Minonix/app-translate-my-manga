@@ -7,6 +7,9 @@ import com.tmm.mobile.ui.screens.main.MainQueueJob
 import com.tmm.mobile.ui.screens.main.MainRecentChapter
 import com.tmm.mobile.ui.screens.main.MainState
 import com.tmm.mobile.ui.screens.main.PcTone
+import com.tmm.mobile.ui.screens.series.SeriesChapter
+import com.tmm.mobile.ui.screens.series.SeriesChapterStats
+import com.tmm.mobile.ui.screens.series.SeriesState
 import com.tmm.mobile.ui.theme.TmmColors
 
 /**
@@ -79,5 +82,40 @@ object MockupData {
     val library = LibraryState(
         categories = libraryCategories,
         allSeries = series,
+    )
+
+    /** Series.dc.html, etat initial (detail de Blue Lock, chapitres recopies tel quel depuis le JS de la maquette). */
+    val seriesDetail = SeriesState(
+        title = "Blue Lock",
+        categoryLabel = "En cours",
+        formatLabel = "Manga · anglais vers français",
+        coverColor = TmmColors.CD8D2E4,
+        onPhoneCount = 212,
+        onPcCount = 213,
+        frCount = 205,
+        totalChapters = 214,
+        chapters = listOf(
+            SeriesChapter(214, StatusTone.Send, "Sur le téléphone · à envoyer", TmmColors.dangerText, onPhone = true, onPc = false, onFr = false),
+            SeriesChapter(213, StatusTone.Busy, "Traduction en cours · 45 %", TmmColors.ink, onPhone = false, onPc = true, onFr = false, translationProgress = 0.45f),
+            SeriesChapter(
+                212, StatusTone.Get, "Traduit · à récupérer", TmmColors.info, onPhone = true, onPc = true, onFr = true,
+                stats = SeriesChapterStats(pagesTotal = 22, pagesTranslated = 22, bubblesTranslated = 184, bubblesUntranslated = 3, sfxKept = 12, verifiedDate = null),
+            ),
+            SeriesChapter(
+                211, StatusTone.Ok, "À jour partout", TmmColors.success, onPhone = true, onPc = true, onFr = true,
+                stats = SeriesChapterStats(pagesTotal = 20, pagesTranslated = 20, bubblesTranslated = 161, bubblesUntranslated = 0, sfxKept = 8, verifiedDate = "24/09"),
+            ),
+            SeriesChapter(
+                210, StatusTone.Ok, "À jour · 1 page restée en VO", TmmColors.absentText, onPhone = true, onPc = true, onFr = true,
+                stats = SeriesChapterStats(pagesTotal = 19, pagesTranslated = 18, bubblesTranslated = 142, bubblesUntranslated = 6, sfxKept = 9, verifiedDate = null),
+            ),
+            SeriesChapter(
+                209, StatusTone.Ok, "À jour partout", TmmColors.success, onPhone = true, onPc = true, onFr = true,
+                stats = SeriesChapterStats(pagesTotal = 21, pagesTranslated = 21, bubblesTranslated = 170, bubblesUntranslated = 0, sfxKept = 15, verifiedDate = "24/09"),
+            ),
+            SeriesChapter(23, StatusTone.Gap, "Manquant partout", TmmColors.dangerText, onPhone = false, onPc = false, onFr = false),
+        ),
+        selected = setOf(214, 212, 210),
+        expandedStats = setOf(212),
     )
 }

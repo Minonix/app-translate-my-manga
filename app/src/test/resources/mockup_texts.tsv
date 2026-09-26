@@ -118,3 +118,89 @@ Library.dc.html	1 chapitre ajouté en vérification.	PLU	library_toast_verified	
 Library.dc.html	4 chapitres ajoutés en vérification.	PLU	library_toast_verified	4	[4]
 Library.dc.html	1 chapitre ajouté en retraduction.	PLU	library_toast_retranslated	1	[1]
 Library.dc.html	4 chapitres ajoutés en retraduction.	PLU	library_toast_retranslated	4	[4]
+Series.dc.html	Retour à la bibliothèque	STR	series_back_cd
+Series.dc.html	Où sont les chapitres	STR	series_location_stats_cd
+Series.dc.html	Bibliothèque	STR	library_title
+Series.dc.html	Toute la série	STR	series_sheet_title
+Series.dc.html	En cours	DEMO
+Series.dc.html	Blue Lock	DEMO
+Series.dc.html	Manga · anglais vers français	DEMO
+Series.dc.html	Téléphone	STR	series_legend_phone
+Series.dc.html	PC original	STR	series_stat_pc_original
+Series.dc.html	FR	STR	series_stat_fr_tag
+Series.dc.html	Traduits	STR	series_stat_translated_label
+Series.dc.html	Trou dans la suite : ch. 23.	FMT	series_gap_bold_fmt		[23]
+Series.dc.html	Il manque partout. Téléchargez-le dans Mihon ou ignorez-le.	STR	series_gap_rest
+Series.dc.html	Ignorer	STR	series_gap_dismiss
+Series.dc.html	Chapitres	STR	series_chapters_title
+Series.dc.html	Tout ce qui reste à faire	STR	series_select_todo_button
+Series.dc.html	PC	STR	series_legend_pc
+Series.dc.html	Français	STR	series_legend_fr
+Series.dc.html	Absent	STR	series_legend_absent
+Series.dc.html	Ch. 214	DEMO
+Series.dc.html	Ch. 213	DEMO
+Series.dc.html	Ch. 212	DEMO
+Series.dc.html	Ch. 211	DEMO
+Series.dc.html	Ch. 210	DEMO
+Series.dc.html	Ch. 209	DEMO
+Series.dc.html	Ch. 23	DEMO
+Series.dc.html	Sur le téléphone · à envoyer	DEMO
+Series.dc.html	Traduction en cours · 45 %	DEMO
+Series.dc.html	Traduit · à récupérer	DEMO
+Series.dc.html	À jour partout	DEMO
+Series.dc.html	À jour · 1 page restée en VO	DEMO
+Series.dc.html	Manquant partout	DEMO
+Series.dc.html	22/22 pages	DEMO
+Series.dc.html	184 bulles traduites	DEMO
+Series.dc.html	3 non traduites	DEMO
+Series.dc.html	12 SFX gardés	DEMO
+Series.dc.html	Jamais vérifié	STR	series_chip_never_verified
+Series.dc.html	20/20 pages	DEMO
+Series.dc.html	161 bulles traduites	DEMO
+Series.dc.html	0 non traduites	DEMO
+Series.dc.html	8 SFX gardés	DEMO
+Series.dc.html	Vérifié le 24/09	DEMO
+Series.dc.html	18/19 pages	DEMO
+Series.dc.html	142 bulles traduites	DEMO
+Series.dc.html	6 non traduites	DEMO
+Series.dc.html	9 SFX gardés	DEMO
+Series.dc.html	21/21 pages	DEMO
+Series.dc.html	170 bulles traduites	DEMO
+Series.dc.html	15 SFX gardés	DEMO
+Series.dc.html	1 chapitre sélectionné	PLU	series_chapters_selected	1	[1]
+Series.dc.html	3 chapitres sélectionnés	PLU	series_chapters_selected	3	[3]
+Series.dc.html	Désélectionner	STR	series_deselect_all
+Series.dc.html	Envoyer au PC	STR	library_action_send_label
+Series.dc.html	Récupérer	STR	library_action_get_label
+Series.dc.html	Vérifier	STR	library_action_verify_label
+Series.dc.html	Retraduire	STR	library_action_retranslate_label
+Series.dc.html	Absents du PC	STR	series_action_hint_send
+Series.dc.html	Vers Mihon/local	STR	series_action_hint_get
+Series.dc.html	Corrige les oublis	STR	series_action_hint_verify
+Series.dc.html	Refait tout	STR	series_action_hint_retranslate
+Series.dc.html	Non applicable	STR	common_not_applicable
+Series.dc.html	Blue Lock · 214 chapitres	DEMO
+Series.dc.html	Confirmation	STR	series_confirm_kicker
+Series.dc.html	Envoyer ce qui manque	STR	series_sheet_action_send_label
+Series.dc.html	Chapitres du téléphone absents du PC	STR	series_sheet_action_send_hint
+Series.dc.html	Récupérer les traductions	STR	series_sheet_action_get_label
+Series.dc.html	Traduites mais pas encore dans Mihon	STR	series_sheet_action_get_hint
+Series.dc.html	Vérifier toute la série	STR	series_sheet_action_verify_label
+Series.dc.html	Relit tout, ne corrige que les oublis	STR	series_sheet_action_verify_hint
+Series.dc.html	Retraduire toute la série	STR	series_sheet_action_retranslate_label
+Series.dc.html	Refait la traduction de zéro	STR	series_sheet_action_retranslate_hint
+Series.dc.html	1 ch.	DEMO
+Series.dc.html	205 ch.	DEMO
+Series.dc.html	La version française actuelle sera remplacée une fois la nouvelle prête. Elle reste lisible dans Mihon en attendant.	STR	series_confirm_text
+Series.dc.html	Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.	STR	library_confirm_info
+Series.dc.html	Annuler	STR	common_cancel
+Series.dc.html	1 chapitre envoyé au PC.	PLU	series_toast_sent	1	[1]
+Series.dc.html	2 chapitres envoyés au PC.	PLU	series_toast_sent	2	[2]
+Series.dc.html	1 traduction en téléchargement vers Mihon.	PLU	series_toast_received	1	[1]
+Series.dc.html	2 traductions en téléchargement vers Mihon.	PLU	series_toast_received	2	[2]
+Series.dc.html	1 chapitre ajouté à la file en vérification.	PLU	series_toast_verified	1	[1]
+Series.dc.html	2 chapitres ajoutés à la file en vérification.	PLU	series_toast_verified	2	[2]
+Series.dc.html	1 chapitre ajouté à la file en retraduction.	PLU	series_toast_retranslated	1	[1]
+Series.dc.html	2 chapitres ajoutés à la file en retraduction.	PLU	series_toast_retranslated	2	[2]
+Series.dc.html	Voir la file	STR	library_toast_action
+

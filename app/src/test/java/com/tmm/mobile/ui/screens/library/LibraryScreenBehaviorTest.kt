@@ -3,11 +3,13 @@ package com.tmm.mobile.ui.screens.library
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmTheme
@@ -79,7 +81,7 @@ class LibraryScreenBehaviorTest {
     @Test
     fun category_filtersToMatchingSeriesOnly() {
         setState(MockupData.library)
-        composeRule.onNodeWithText("Terminé").performClick()
+        composeRule.onNodeWithText("Terminé").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Vinland Saga").assertExists()
         composeRule.onNodeWithText("Chainsaw Man").assertExists()
@@ -117,7 +119,7 @@ class LibraryScreenBehaviorTest {
     @Test
     fun selectionActionBar_showsNonApplicableWhenCountIsZero() {
         setState(MockupData.library.copy(picking = true, selected = setOf("Dandadan")))
-        composeRule.onNodeWithText("Non applicable").assertExists()
+        composeRule.onAllNodesWithText("Non applicable").onFirst().assertExists()
     }
 
     @Test
