@@ -20,7 +20,7 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
   - Toujours bloqué par BLOQUÉ-1 : code écrit et relu manuellement (plusieurs erreurs d'alias de couleur et d'import déjà corrigées ainsi), non compilé ni exécuté
   - Écart noté : `TmmDialog` n'a pas de maquette dédiée (aucune boîte de dialogue centrée dans les 13 .dc.html) — variante minimale construite par cohérence avec `TmmSheet`
 - [ ] E4 : Écrans en données factices, navigation & Roborazzi
-  - [x] E4.1 : écran Main (commit à suivre) — tests non exécutés dans cet environnement, voir BLOQUÉ-1
+  - [x] E4.1 : écran Main (commit `d1fc645`) — tests non exécutés dans cet environnement, voir BLOQUÉ-1
     - `MainState`/`MainEvent`/`MainScreen`/`MainViewModel` (patron section 5.20) ; navigation exposée en lambdas simples (`onOpenSettings`, `onOpenSync`, `onOpenQueue`, `onOpenNewTranslation`, `onOpenSeries`), câblage réel `TmmRoot`/`NavHost` différé à E10
     - Toasts modélisés en `MainToast` (sealed interface `Sent`/`Received`) plutôt qu'en texte pré-formaté dans le ViewModel, pour respecter la règle 4.10 (`stringResource` non appelable hors Composable)
     - `ProgressBar` (composant E3) étendu d'un paramètre `fillColor` optionnel rétrocompatible, pour les barres colorées par type de job (au lieu d'un nouveau composant dupliqué)
