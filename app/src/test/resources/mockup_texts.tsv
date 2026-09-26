@@ -361,6 +361,40 @@ Catalog.dc.html	5	DEMO
 Catalog.dc.html	Sans catégorie	DEMO
 Catalog.dc.html	3	DEMO
 Catalog.dc.html	Ouvrir la catégorie En cours	FMT	catalog_open_category_cd_fmt		["En cours"]
+NewTranslation.dc.html	Fermer	STR	new_trans_close_cd
+NewTranslation.dc.html	Changer de série	STR	new_trans_change_series_cd
+NewTranslation.dc.html	Étape 1 sur 2 · série	STR	new_trans_step1_label
+NewTranslation.dc.html	Étape 2 sur 2 · chapitres	STR	new_trans_step2_label
+NewTranslation.dc.html	Nouvelle traduction	STR	new_trans_title
+NewTranslation.dc.html	Série téléchargée dans Mihon	STR	new_trans_search_placeholder
+NewTranslation.dc.html	Chercher une série	STR	new_trans_search_cd
+NewTranslation.dc.html	Séries avec des chapitres pas encore envoyés	STR	new_trans_series_subtitle
+NewTranslation.dc.html	Kagurabachi	DEMO
+NewTranslation.dc.html	En cours · anglais	DEMO
+NewTranslation.dc.html	3 à envoyer	FMT	new_trans_to_send_badge_fmt		[3]
+NewTranslation.dc.html	Sakamoto Days	DEMO
+NewTranslation.dc.html	À lire · anglais	DEMO
+NewTranslation.dc.html	12 à envoyer	FMT	new_trans_to_send_badge_fmt		[12]
+NewTranslation.dc.html	Blue Lock	DEMO
+NewTranslation.dc.html	1 à envoyer	FMT	new_trans_to_send_badge_fmt		[1]
+NewTranslation.dc.html	Kaiju No. 8	DEMO
+NewTranslation.dc.html	Webtoons · coréen	DEMO
+NewTranslation.dc.html	2 à envoyer	FMT	new_trans_to_send_badge_fmt		[2]
+NewTranslation.dc.html	Téléchargés dans Mihon, absents du PC	STR	new_trans_chapters_subtitle
+NewTranslation.dc.html	Tout décocher	STR	new_trans_uncheck_all
+NewTranslation.dc.html	Tout cocher	STR	new_trans_check_all
+NewTranslation.dc.html	Ch. 52	FMT	new_trans_chapter_item_fmt		[52]
+NewTranslation.dc.html	18 pages	FMT	new_trans_pages_count_fmt		[18]
+NewTranslation.dc.html	Traduire à l'arrivée	STR	new_trans_translate_on_arrival_title
+NewTranslation.dc.html	Retour automatique dans Mihon une fois traduit	STR	new_trans_translate_hint_on
+NewTranslation.dc.html	Simple copie sur le PC, sans traduction	STR	new_trans_translate_hint_off
+NewTranslation.dc.html	Choisissez une série	STR	new_trans_btn_pick_series
+NewTranslation.dc.html	Cochez des chapitres	STR	new_trans_btn_check_chapters
+NewTranslation.dc.html	Dépôt sur Google Drive...	STR	new_trans_btn_busy
+NewTranslation.dc.html	Envoyer 1 chapitre	STR	new_trans_btn_send_single
+NewTranslation.dc.html	Envoyer 3 chapitres	FMT	new_trans_btn_send_multi_fmt		[3]
+NewTranslation.dc.html	Ajouté à la file · Voir	STR	new_trans_btn_done
+
 
 
 

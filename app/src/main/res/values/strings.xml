@@ -283,4 +283,29 @@
     <string name="catalog_categories_title">Catégories</string>
     <string name="catalog_readonly_hint">Lecture seule en V1</string>
     <string name="catalog_open_category_cd_fmt">Ouvrir la catégorie %1$s</string>
+
+    <!-- NewTranslation.dc.html (E4.7) -->
+    <string name="new_trans_title">Nouvelle traduction</string>
+    <string name="new_trans_step1_label">Étape 1 sur 2 · série</string>
+    <string name="new_trans_step2_label">Étape 2 sur 2 · chapitres</string>
+    <string name="new_trans_close_cd">Fermer</string>
+    <string name="new_trans_change_series_cd">Changer de série</string>
+    <string name="new_trans_search_placeholder">Série téléchargée dans Mihon</string>
+    <string name="new_trans_search_cd">Chercher une série</string>
+    <string name="new_trans_series_subtitle">Séries avec des chapitres pas encore envoyés</string>
+    <string name="new_trans_to_send_badge_fmt">%1$d à envoyer</string>
+    <string name="new_trans_chapters_subtitle">Téléchargés dans Mihon, absents du PC</string>
+    <string name="new_trans_check_all">Tout cocher</string>
+    <string name="new_trans_uncheck_all">Tout décocher</string>
+    <string name="new_trans_chapter_item_fmt">Ch. %1$d</string>
+    <string name="new_trans_pages_count_fmt">%1$d pages</string>
+    <string name="new_trans_translate_on_arrival_title">Traduire à l\'arrivée</string>
+    <string name="new_trans_translate_hint_on">Retour automatique dans Mihon une fois traduit</string>
+    <string name="new_trans_translate_hint_off">Simple copie sur le PC, sans traduction</string>
+    <string name="new_trans_btn_pick_series">Choisissez une série</string>
+    <string name="new_trans_btn_check_chapters">Cochez des chapitres</string>
+    <string name="new_trans_btn_busy">Dépôt sur Google Drive...</string>
+    <string name="new_trans_btn_done">Ajouté à la file · Voir</string>
+    <string name="new_trans_btn_send_single">Envoyer 1 chapitre</string>
+    <string name="new_trans_btn_send_multi_fmt">Envoyer %1$d chapitres</string>
 </resources>
