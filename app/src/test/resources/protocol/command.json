@@ -1,0 +1,1 @@
+{ "protocol": 1, "cmdId": "c0a1...", "createdAt": "...", "type": "settings", "baseVersion": 12, "changes": { "chapterConcurrency": 2 } }

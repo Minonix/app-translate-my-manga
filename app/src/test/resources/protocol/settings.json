@@ -1,0 +1,10 @@
+{
+  "protocol": 1, "updatedAt": "...", "version": 12, "lastCommandId": "c0a1...",
+  "values": {
+    "sourceLanguage": "auto", "targetLanguage": "FRA", "translationProvider": "gemini",
+    "autoFailoverToLocalLlm": true, "autoVerifyAfterTranslate": true,
+    "chapterConcurrency": 4, "concurrency": 2, "pileSize": 3, "useGpu": true,
+    "detector": "default", "preferredOcr": "auto", "inpainter": "lama_large",
+    "inpaintingSize": 1280, "font": "Anime Ace"
+  }
+}

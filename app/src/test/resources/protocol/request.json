@@ -1,0 +1,11 @@
+{
+  "protocol": 1,
+  "jobId": "7f1c...",
+  "createdAt": "2026-09-26T10:12:00Z",
+  "device": "Pixel 8",
+  "series": { "title": "Blue Lock", "sourceName": "MangaDex (EN)", "sourceId": "2499283573021220255", "url": "/manga/..." },
+  "chapter": { "name": "Chapter 214", "number": 214.0, "scanlator": "...", "url": "/chapter/..." },
+  "mihonPath": { "source": "MangaDex (EN)", "series": "Blue Lock", "chapter": "Team_Chapter 214" },
+  "file": { "name": "source.cbz", "size": 18234567, "sha256": "..." },
+  "options": { "mode": "translate", "pages": null, "translate": true, "sourceLang": "auto", "targetLang": "FR" }
+}

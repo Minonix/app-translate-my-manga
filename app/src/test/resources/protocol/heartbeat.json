@@ -1,0 +1,1 @@
+{ "protocol": 1, "pcName": "PC-BUREAU", "appVersion": "2.4.1", "updatedAt": "...", "slots": 4, "activeJobIds": ["7f1c...", "..."], "queue": { "active": 4, "waiting": 7, "failed": 1 } }

@@ -1,0 +1,15 @@
+{
+  "protocol": 1, "jobId": "7f1c...", "finishedAt": "...", "mode": "translate",
+  "file": { "name": "result.cbz", "size": 15234567, "sha256": "..." },
+  "localFolderName": "Blue Lock",
+  "chapterFileName": "Chapter 214.cbz",
+  "pages": 22, "engine": "Gemini",
+  "quality": {
+    "totalPages": 22,
+    "translatedBubbles": 146,
+    "untranslatedBubbles": 2,
+    "sfxKept": 31,
+    "verifiedAt": "2026-09-26T10:40:00Z",
+    "alerts": [ { "page": 8, "kind": "overflow", "label": "Texte débordant de sa bulle (1 bulle(s))", "repairable": true } ]
+  }
+}

@@ -1,0 +1,178 @@
+package com.tmm.mobile.transport
+
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.test.core.app.ApplicationProvider
+import com.tmm.mobile.data.AppPrefs
+import com.tmm.mobile.fake.FakeDrive
+import com.tmm.mobile.fake.FakePc
+import com.tmm.mobile.protocol.ChapterRef
+import com.tmm.mobile.protocol.FileRef
+import com.tmm.mobile.protocol.MihonPath
+import com.tmm.mobile.protocol.RequestJson
+import com.tmm.mobile.protocol.RequestOptions
+import com.tmm.mobile.protocol.SeriesRef
+import java.io.File
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import okhttp3.OkHttpClient
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+@RunWith(RobolectricTestRunner::class)
+class DriveTransportTest {
+    private lateinit var drive: FakeDrive
+    private lateinit var pc: FakePc
+    private lateinit var prefs: AppPrefs
+    private lateinit var transport: DriveTransport
+    private val tokenCalls = AtomicInteger(0)
+    private var clockIso = Instant.parse("2026-01-01T00:00:00Z")
+
+    @Before
+    fun setUp() {
+        drive = FakeDrive { clockIso.toString() }
+        drive.start()
+        pc = FakePc(drive) { clockIso.toString() }
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dataStore = PreferenceDataStoreFactory.create(
+            produceFile = { File(context.filesDir, "drive_transport_test_prefs.preferences_pb") },
+        )
+        prefs = AppPrefs(dataStore)
+        val api = DriveApi(
+            client = OkHttpClient(),
+            token = { forceRefresh -> tokenCalls.incrementAndGet(); if (forceRefresh) "refreshed-token" else "test-token" },
+            baseUrl = drive.baseUrl(),
+        )
+        transport = DriveTransport(api, prefs)
+    }
+
+    @After
+    fun tearDown() {
+        drive.shutdown()
+    }
+
+    @Test
+    fun ensureLayout_isIdempotent() = runTest {
+        val first = transport.ensureLayout()
+        assertTrue(first.created)
+        val rootId = prefs.driveRootId.first()
+        val jobsId = prefs.driveJobsId.first()
+        val pcId = prefs.drivePcId.first()
+        val commandsId = prefs.driveCommandsId.first()
+        assertTrue(rootId != null && jobsId != null && pcId != null && commandsId != null)
+
+        val second = transport.ensureLayout()
+        assertFalse(second.created)
+        assertEquals(rootId, prefs.driveRootId.first())
+        assertEquals(jobsId, prefs.driveJobsId.first())
+        assertEquals(pcId, prefs.drivePcId.first())
+        assertEquals(commandsId, prefs.driveCommandsId.first())
+    }
+
+    @Test
+    fun uploadSource_recoversFromInterruption() = runTest {
+        transport.ensureLayout()
+        val content = ByteArray(9 * 1024 * 1024) { (it % 256).toByte() }
+        val file = File.createTempFile("source", ".cbz").apply { writeBytes(content) }
+        drive.cutoffUploadAfterBytes = 8L * 1024 * 1024 + 1024
+
+        var sessionSeen: String? = null
+        val job = emptyJob("job-1")
+        val fileId = transport.uploadSource(
+            job = job,
+            file = file,
+            onSession = { sessionSeen = it },
+            onProgress = { _, _ -> },
+        )
+
+        assertTrue(sessionSeen != null)
+        val uploaded = drive.files.values.first { it.id == fileId }
+        assertEquals(content.size, uploaded.bytes.size)
+        assertTrue(content.contentEquals(uploaded.bytes))
+    }
+
+    @Test
+    fun poll_returnsStatusAndDetectsProtocolTooNew() = runTest {
+        transport.ensureLayout()
+        val jobsId = prefs.driveJobsId.first()!!
+        val folderId = testCreateFolder(drive, jobsId, "job-2")
+        val request = RequestJson(
+            jobId = "job-2",
+            createdAt = clockIso.toString(),
+            device = "TestDevice",
+            series = SeriesRef("Titre", "MangaSource", null, null),
+            chapter = ChapterRef("Chapitre 1", 1.0, null, null),
+            mihonPath = MihonPath("MangaSource", "Titre", "Chapitre 1"),
+            file = FileRef("source.cbz", 100L, "abc"),
+            options = RequestOptions(mode = "translate"),
+        )
+        transport.writeRequest(folderId, request)
+
+        clockIso = clockIso.plusSeconds(10)
+        pc.accept("job-2")
+
+        val result = transport.poll(null)
+        assertEquals(1, result.statuses.size)
+        assertEquals("processing", result.statuses.first().state)
+        assertFalse(result.protocolTooNew)
+        assertTrue(result.cursor != null)
+    }
+
+    private fun emptyJob(jobId: String) = com.tmm.mobile.data.db.JobEntity(
+        jobId = jobId,
+        mode = "translate",
+        pages = null,
+        translate = true,
+        mihonPath = "MangaSource/Titre/Chapitre 1",
+        sourceDir = "",
+        seriesDir = "",
+        chapterDir = "",
+        seriesKey = null,
+        chapterKey = null,
+        phoneState = "uploading",
+        failedStep = null,
+        errorMessage = null,
+        driveFolderId = null,
+        uploadSessionUrl = null,
+        cachePath = null,
+        sha256 = null,
+        sizeBytes = null,
+        transferredBytes = 0L,
+        transferTotal = 0L,
+        pcState = null,
+        pcStage = null,
+        pcPage = null,
+        pcPages = null,
+        pcEngine = null,
+        pcQueuePosition = null,
+        pcErrorCode = null,
+        pcErrorMessage = null,
+        pcErrorPage = null,
+        statusUpdatedAt = null,
+        resultJson = null,
+        resultFileId = null,
+        createdAt = 0L,
+        updatedAt = 0L,
+        finishedAt = null,
+        installedAt = null,
+        installedPath = null,
+        receivedWrittenAt = null,
+        cancelWrittenAt = null,
+        driveDeletedAt = null,
+    )
+}
+
+private fun testCreateFolder(drive: FakeDrive, jobsId: String, jobId: String): String {
+    // ponytail: raccourci de test - cree directement le dossier de job dans le faux Drive plutot
+    // que de repasser par DriveApi, puisque seul l'effet (dossier present) importe ici.
+    val folder = com.tmm.mobile.fake.FakeFile(name = jobId, parents = mutableListOf(jobsId), mimeType = "application/vnd.google-apps.folder", modifiedTime = Instant.now().toString())
+    drive.files[folder.id] = folder
+    return folder.id
+}

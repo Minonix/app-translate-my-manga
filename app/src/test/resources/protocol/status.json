@@ -1,0 +1,10 @@
+{
+  "protocol": 1, "jobId": "7f1c...", "updatedAt": "...",
+  "mode": "translate",
+  "state": "translating",
+  "stage": "lettering",
+  "page": 14, "pages": 22,
+  "engine": "Gemini",
+  "queuePosition": null,
+  "error": null
+}
