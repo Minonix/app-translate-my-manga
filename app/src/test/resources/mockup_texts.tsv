@@ -203,4 +203,65 @@ Series.dc.html	2 chapitres ajoutés à la file en vérification.	PLU	series_toas
 Series.dc.html	1 chapitre ajouté à la file en retraduction.	PLU	series_toast_retranslated	1	[1]
 Series.dc.html	2 chapitres ajoutés à la file en retraduction.	PLU	series_toast_retranslated	2	[2]
 Series.dc.html	Voir la file	STR	library_toast_action
+Sync.dc.html	Transferts	STR	sync_title
+Sync.dc.html	Les fichiers qui voyagent entre ce téléphone et le PC	STR	sync_subtitle
+Sync.dc.html	Comment ça marche	STR	sync_how_it_works_cd
+Sync.dc.html	Téléphone	STR	series_legend_phone
+Sync.dc.html	Google Drive	STR	sync_cloud_label
+Sync.dc.html	PC-BUREAU	DEMO
+Sync.dc.html	à envoyer au PC	STR	sync_up_label
+Sync.dc.html	à récupérer	STR	sync_down_label
+Sync.dc.html	Tout passe par votre Google Drive : le PC peut être éteint, les fichiers l'y attendent. Rien n'est traduit ici, la traduction se suit dans	STR	sync_explain_text
+Sync.dc.html	File	STR	sync_explain_queue_link
+Sync.dc.html	En cours maintenant	STR	sync_now_title
+Sync.dc.html	Aucun transfert en cours	STR	sync_no_live
+Sync.dc.html	Blue Lock · Ch. 214	DEMO
+Sync.dc.html	envoi 38 %	DEMO
+Sync.dc.html	12 chapitres vers Drive	DEMO
+Sync.dc.html	À envoyer au PC	STR	sync_up_section_title
+Sync.dc.html	12 chapitres	FMT	sync_up_title_fmt		[12]
+Sync.dc.html	Tout est parti	STR	sync_up_title_done
+Sync.dc.html	Téléchargés dans Mihon, absents du PC	STR	sync_up_section_subtitle
+Sync.dc.html	Kagurabachi	DEMO
+Sync.dc.html	Ch. 52 à 54	DEMO
+Sync.dc.html	41 Mo	DEMO
+Sync.dc.html	Blue Lock	DEMO
+Sync.dc.html	Ch. 214	DEMO
+Sync.dc.html	13 Mo	DEMO
+Sync.dc.html	Sakamoto Days	DEMO
+Sync.dc.html	Ch. 1 à 12	DEMO
+Sync.dc.html	126 Mo	DEMO
+Sync.dc.html	+3 autres séries (8 ch.)	FMT	sync_more_series_fmt		[3, 8]
+Sync.dc.html	Traduire dès l'arrivée sur le PC	STR	sync_auto_translate_title
+Sync.dc.html	Ils entreront directement dans la file de traduction	STR	sync_auto_translate_hint_on
+Sync.dc.html	Ils seront seulement copiés sur le PC	STR	sync_auto_translate_hint_off
+Sync.dc.html	Envoyer 12 chapitres	FMT	sync_up_button_fmt		[12]
+Sync.dc.html	Envoi en cours...	STR	sync_up_button_busy
+Sync.dc.html	12 chapitres déposés sur Drive	FMT	sync_up_done_fmt		[12]
+Sync.dc.html	Suivre	STR	sync_up_follow_action
+Sync.dc.html	À récupérer	STR	sync_down_section_title
+Sync.dc.html	8 chapitres traduits	FMT	sync_down_title_fmt		[8]
+Sync.dc.html	Tout est dans Mihon	STR	sync_down_title_done
+Sync.dc.html	Traduits par le PC, pas encore dans Mihon	STR	sync_down_section_subtitle
+Sync.dc.html	Frieren	DEMO
+Sync.dc.html	Ch. 140	DEMO
+Sync.dc.html	14 Mo	DEMO
+Sync.dc.html	One Piece	DEMO
+Sync.dc.html	Ch. 1121 à 1122	DEMO
+Sync.dc.html	31 Mo	DEMO
+Sync.dc.html	Ch. 212	DEMO
+Sync.dc.html	12 Mo	DEMO
+Sync.dc.html	FR	STR	series_stat_fr_tag
+Sync.dc.html	Rangé	STR	sync_down_status_stored
+Sync.dc.html	Rangés dans Mihon/local/<série>, lisibles comme une série locale.	STR	sync_down_info_text
+Sync.dc.html	Télécharger 8 chapitres ici	FMT	sync_down_button_fmt		[8]
+Sync.dc.html	Téléchargement 1/3...	FMT	sync_down_button_busy_fmt		[1, 3]
+Sync.dc.html	Récupéré	STR	sync_down_button_done
+Sync.dc.html	Ces listes viennent du scan de Mihon	STR	sync_scan_source_info
+Sync.dc.html	Rescanner	STR	sync_rescan_button
+Sync.dc.html	Analyse de 104 séries...	FMT	sync_scan_scanning_fmt		[104]
+Sync.dc.html	Mihon/downloads · scanné il y a 4 min	FMT	sync_scan_last_fmt		["il y a 4 min"]
+Sync.dc.html	Mihon/downloads · scanné à l’instant	FMT	sync_scan_last_fmt		["à l’instant"]
+Sync.dc.html	2 chapitres manquants partout	PLU	sync_missing_count	2	[2]
+
 

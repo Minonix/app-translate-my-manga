@@ -43,7 +43,10 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
     - `SeriesState`, `SeriesEvent`, `SeriesScreen`, `SeriesViewModel` (patron 5.20) : conformité stricte avec `Series.dc.html` (carte de série, couverture en relief demi-teinte, compteurs de localisation, bandeau d'alerte trou de suite, liste des chapitres avec indicateurs 3 colonnes téléphone/PC/FR, dépliage des puces de statistiques de traduction, barre d'actions multi-chapitres et feuille d'actions pour toute la série).
     - `TmmCheckbox` étendu d'un paramètre `enabled = true` pour verrouiller les chapitres Busy ou Gap.
     - Ressources de chaînes et pluriels ajoutés dans `strings.xml` ; `Series.dc.html` couvert dans `mockup_texts.tsv` et retiré des exclusions de `MockupTextCoverageTest`.
-    - Tests validés : `SeriesScreenBehaviorTest` (8 tests comportementaux couvrant sélection, tout ce qui reste à faire, alerte trou, stats, toasts, feuille de confirmation), `SeriesScreenshotTest` (4 captures Roborazzi : défaut, feuille toute la série, confirmation retraduction, toast). 100% de succès sur la suite complète.
+  - [x] E4.4 : écran Sync (Transferts)
+    - `SyncState`, `SyncEvent`, `SyncScreen`, `SyncViewModel` (patron 5.20) : conformité stricte avec `Sync.dc.html` (schéma de transit Téléphone ↔ Google Drive ↔ PC avec voies animées de billes, totaux à envoyer / à récupérer, liste des transferts en direct `liveTransfers`, bloc À envoyer avec top séries + case à cocher traduction automatique + bouton d'envoi et bandeau de succès Drive, bloc À récupérer avec liste des séries traduites + statut Rangé, carte de scan Mihon avec bouton Rescanner et animation de rotation, carte d'alerte des chapitres manquants).
+    - Ressources de chaînes et pluriels ajoutés dans `strings.xml` ; `Sync.dc.html` couvert dans `mockup_texts.tsv` et retiré des exclusions de `MockupTextCoverageTest`.
+    - Tests validés : `SyncScreenBehaviorTest` (5 tests comportementaux couvrant initialisation, bascule traduction auto, envoi vers PC, récupération vers Mihon, ré-analyse), `SyncScreenshotTest` (4 captures Roborazzi : défaut, live vide, envoi terminé, téléchargement terminé). 100% de succès.
 - [ ] E5 : Room, DataStore, TmmDatabase & DAO
 - [ ] E6 : Accès SAF, parsing Mihon, CBZ & installation
 - [ ] E7 : FakeDrive, FakePc & transport REST OkHttp

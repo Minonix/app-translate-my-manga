@@ -174,4 +174,47 @@
         <item quantity="one">%1$d chapitre ajouté à la file en retraduction.</item>
         <item quantity="other">%1$d chapitres ajoutés à la file en retraduction.</item>
     </plurals>
+
+    <!-- Sync.dc.html (E4.4) -->
+    <string name="sync_title">Transferts</string>
+    <string name="sync_subtitle">Les fichiers qui voyagent entre ce téléphone et le PC</string>
+    <string name="sync_how_it_works_cd">Comment ça marche</string>
+    <string name="sync_cloud_label">Google Drive</string>
+    <string name="sync_up_label">à envoyer au PC</string>
+    <string name="sync_down_label">à récupérer</string>
+    <string name="sync_explain_text">Tout passe par votre Google Drive : le PC peut être éteint, les fichiers l\'y attendent. Rien n\'est traduit ici, la traduction se suit dans</string>
+    <string name="sync_explain_queue_link">File</string>
+    <string name="sync_now_title">En cours maintenant</string>
+    <string name="sync_no_live">Aucun transfert en cours</string>
+    <string name="sync_up_section_title">À envoyer au PC</string>
+    <string name="sync_up_section_subtitle">Téléchargés dans Mihon, absents du PC</string>
+    <string name="sync_auto_translate_title">Traduire dès l\'arrivée sur le PC</string>
+    <string name="sync_auto_translate_hint_on">Ils entreront directement dans la file de traduction</string>
+    <string name="sync_auto_translate_hint_off">Ils seront seulement copiés sur le PC</string>
+    <string name="sync_up_button_busy">Envoi en cours...</string>
+    <string name="sync_up_title_done">Tout est parti</string>
+    <string name="sync_up_follow_action">Suivre</string>
+    <string name="sync_down_section_title">À récupérer</string>
+    <string name="sync_down_section_subtitle">Traduits par le PC, pas encore dans Mihon</string>
+    <string name="sync_down_info_text">Rangés dans Mihon/local/&lt;série&gt;, lisibles comme une série locale.</string>
+    <string name="sync_down_title_done">Tout est dans Mihon</string>
+    <string name="sync_down_button_done">Récupéré</string>
+    <string name="sync_down_status_stored">Rangé</string>
+    <string name="sync_scan_source_info">Ces listes viennent du scan de Mihon</string>
+    <string name="sync_rescan_button">Rescanner</string>
+
+    <string name="sync_up_title_fmt">%1$d chapitres</string>
+    <string name="sync_up_button_fmt">Envoyer %1$d chapitres</string>
+    <string name="sync_up_done_fmt">%1$d chapitres déposés sur Drive</string>
+    <string name="sync_down_title_fmt">%1$d chapitres traduits</string>
+    <string name="sync_down_button_fmt">Télécharger %1$d chapitres ici</string>
+    <string name="sync_down_button_busy_fmt">Téléchargement %1$d/%2$d...</string>
+    <string name="sync_scan_scanning_fmt">Analyse de %1$d séries...</string>
+    <string name="sync_scan_last_fmt">Mihon/downloads · scanné %1$s</string>
+    <string name="sync_more_series_fmt">+%1$d autres séries (%2$d ch.)</string>
+
+    <plurals name="sync_missing_count">
+        <item quantity="one">%1$d chapitre manquant partout</item>
+        <item quantity="other">%1$d chapitres manquants partout</item>
+    </plurals>
 </resources>

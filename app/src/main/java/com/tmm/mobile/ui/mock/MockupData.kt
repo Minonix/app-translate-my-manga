@@ -10,6 +10,10 @@ import com.tmm.mobile.ui.screens.main.PcTone
 import com.tmm.mobile.ui.screens.series.SeriesChapter
 import com.tmm.mobile.ui.screens.series.SeriesChapterStats
 import com.tmm.mobile.ui.screens.series.SeriesState
+import com.tmm.mobile.ui.screens.transfers.LiveTransferItem
+import com.tmm.mobile.ui.screens.transfers.SyncFetchItem
+import com.tmm.mobile.ui.screens.transfers.SyncSeriesItem
+import com.tmm.mobile.ui.screens.transfers.SyncState
 import com.tmm.mobile.ui.theme.TmmColors
 
 /**
@@ -117,5 +121,69 @@ object MockupData {
         ),
         selected = setOf(214, 212, 210),
         expandedStats = setOf(212),
+    )
+
+    /** Sync.dc.html, etat initial (Transferts). */
+    val sync = SyncState(
+        pcName = "PC-BUREAU",
+        upCount = 12,
+        downCount = 8,
+        liveTransfers = listOf(
+            LiveTransferItem(
+                title = "Blue Lock · Ch. 214",
+                info = "envoi 38 %",
+                progress = 0.38f,
+                isUpload = true,
+            ),
+        ),
+        upSeries = listOf(
+            SyncSeriesItem(
+                title = "Kagurabachi",
+                chapters = "Ch. 52 à 54",
+                color = TmmColors.CCFD8C6,
+                size = "41 Mo",
+            ),
+            SyncSeriesItem(
+                title = "Blue Lock",
+                chapters = "Ch. 214",
+                color = TmmColors.CD8D2E4,
+                size = "13 Mo",
+            ),
+            SyncSeriesItem(
+                title = "Sakamoto Days",
+                chapters = "Ch. 1 à 12",
+                color = TmmColors.CC9D3DE,
+                size = "126 Mo",
+            ),
+        ),
+        otherSeriesCount = 3,
+        otherChaptersCount = 8,
+        autoTranslate = true,
+        downSeries = listOf(
+            SyncFetchItem(
+                title = "Frieren",
+                chapters = "Ch. 140",
+                color = TmmColors.CE2C6BB,
+                size = "14 Mo",
+                isDone = false,
+            ),
+            SyncFetchItem(
+                title = "One Piece",
+                chapters = "Ch. 1121 à 1122",
+                color = TmmColors.CE6DCC0,
+                size = "31 Mo",
+                isDone = false,
+            ),
+            SyncFetchItem(
+                title = "Blue Lock",
+                chapters = "Ch. 212",
+                color = TmmColors.CD8D2E4,
+                size = "12 Mo",
+                isDone = false,
+            ),
+        ),
+        scanning = false,
+        scannedAgo = "il y a 4 min",
+        missingCount = 2,
     )
 }
