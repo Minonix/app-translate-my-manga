@@ -99,6 +99,9 @@ Plus :
 | PLAN_GEMINI.md 9.2 E2.5, glyphe 訳 de `ic_launcher_foreground.xml` | Vectoriser le glyphe 訳 (U+8A33) depuis Bricolage Grotesque | Foreground vide conservé, fond `#C8391F` seul | Vérifié via `fontTools` (cmap) : la police variable Bricolage Grotesque ne contient que 597 glyphes latins/étendus, pas de glyphe CJK U+8A33. Fallback documenté du plan lui-même appliqué plutôt que fabriquer un tracé inventé |
 | PLAN_GEMINI.md 4.9, `TmmDialog` | Aucune maquette dédiée à une boîte de dialogue centrée | Variante minimale réutilisant le mécanisme de voile de `TmmSheet` (pop/fade au lieu d'un slide) | Composant requis par le plan mais sans référence visuelle directe dans les 13 maquettes ; cohérence avec le langage visuel plutôt qu'invention arbitraire |
 | PLAN_GEMINI.md 4.9, chaînes fixes des composants (OfflineBanner, TmmBottomBar, RefreshButton) | `strings.xml` pour les libellés fixes | Chaînes codées en dur dans les composables, comme en E2 | Cohérence avec le choix déjà fait en E2 ; l'extraction vers `strings.xml` sera traitée globalement plus tard si nécessaire (YAGNI tant qu'aucune i18n n'est requise) |
+| PLAN_GEMINI.md 5.20, patron `XxxRoute`/navigation | Câblage `NavController` par écran | `MainScreen` expose des lambdas simples (`onOpenSettings`, etc.) sans `MainEvent` de navigation ni `MainRoute` | Câblage réel du `NavHost` explicitement une responsabilité E10 par le plan lui-même |
+| PLAN_GEMINI.md 4.9, `ProgressBar` (E3) | Remplissage unique `TmmColors.accent` | Paramètre `fillColor` optionnel ajouté (défaut inchangé) | Main.dc.html colore chaque barre de job selon son type (ink/info/accent) ; extension rétrocompatible plutôt qu'un second composant dupliqué |
+| PLAN_GEMINI.md 4.9, `TmmActionButton` (E3) | Bouton d'action réutilisable | Non réutilisé pour la grille d'actions rapides de Main ; `QuickActionCard` dédié écrit | API incompatible : `TmmActionButton` est pleine largeur avec désactivation par compteur, la grille de Main a besoin de tuiles à hauteur fixe toujours actives |
 
 ### 6.3 Textes ajoutés (absents des maquettes)
 | Ressource | Texte | Écran | Référence du plan |
@@ -128,6 +131,7 @@ Aucun blocage constaté en E0. Les outils requis (JDK 26, SDK Android 36/37, bui
 - **Impact** : impossible d'honorer la règle « les tests doivent passer avant chaque commit » (PLAN_GEMINI.md, règle R5) pour E2 dans cet environnement précis, quel que soit le JDK utilisé. Le code d'E2 (thème, icônes, tests de garde) est écrit et cru correct, mais n'a pas pu être compilé ni exécuté pour confirmation.
 - **Décision** : blocage remonté à l'utilisateur (deux fois : avant et après l'essai d'un autre JDK, qui n'a pas résolu le problème) plutôt que contourné unilatéralement. En attente d'arbitrage.
 - **E3** : blocage toujours présent, sans nouvelle piste testée depuis E2. Sur autorisation explicite de l'utilisateur, le développement continue en écrivant le code et les tests avec soin (relecture manuelle systématique, plusieurs erreurs déjà corrigées ainsi — voir section 9) plutôt que de s'arrêter.
+- **E4.1** : blocage toujours présent, même décision (continuer avec relecture manuelle). Deux violations de la règle 4.10 (chaînes du toast, libellés de type de job) et une régression sémantique (icône réglages avec le rôle `selectable` au lieu de `clickable`) trouvées et corrigées par cette relecture avant commit.
 
 ## 8. Fichiers
 `[Module app non créé, structure initiale prévue en E1]`
@@ -136,6 +140,7 @@ Aucun blocage constaté en E0. Les outils requis (JDK 26, SDK Android 36/37, bui
 - E1 : `SmokeTest` écrit et exécuté avec succès (session antérieure).
 - E2 : 4 tests de garde écrits (`NoRawColorTest`, `NoMaterialIconsTest`, `PaletteCoverageTest`, `IconCoverageTest`) — voir BLOQUÉ-1 (section 7) : non exécutables dans cet environnement, correction non confirmée par exécution réelle.
 - E3 : `ComponentsScreenshotTest` (1 capture Roborazzi par composant, 18 composants) et `ComponentsBehaviorTest` (rôle Switch de `TmmSwitch`, fermeture de `TmmSheet` par clic sur le voile, `liveRegion` + auto-dismiss temporisé de `TmmToast`, désactivation et changement de `contentDescription` de `RefreshButton` pendant le compte à rebours) — voir BLOQUÉ-1 (section 7) : non exécutables dans cet environnement, correction non confirmée par exécution réelle.
+- E4.1 : `MainScreenshotTest` (Roborazzi, états en ligne/hors ligne), `MainScreenBehaviorTest` (cycle Envoyer/Récupérer Idle→Busy→Done, formulation des toasts `MainToast.Sent`/`Received`, notice hors ligne), `MockupTextCoverageTest` (couverture `mockup_texts.tsv` ↔ `strings.xml`, écrans E4.2+ en liste d'exclusion décroissante) — voir BLOQUÉ-1 (section 7) : non exécutables dans cet environnement, correction non confirmée par exécution réelle. Import `onRoot` manquant dans `ComponentsScreenshotTest` (E3) corrigé au passage.
 - Captures : aucune capture Roborazzi réelle générée (BLOQUÉ-1 empêche l'exécution des tests qui les produiraient).
 
 ## 10. Actions pour l'utilisateur

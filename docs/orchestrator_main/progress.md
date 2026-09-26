@@ -20,6 +20,16 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
   - Toujours bloqué par BLOQUÉ-1 : code écrit et relu manuellement (plusieurs erreurs d'alias de couleur et d'import déjà corrigées ainsi), non compilé ni exécuté
   - Écart noté : `TmmDialog` n'a pas de maquette dédiée (aucune boîte de dialogue centrée dans les 13 .dc.html) — variante minimale construite par cohérence avec `TmmSheet`
 - [ ] E4 : Écrans en données factices, navigation & Roborazzi
+  - [x] E4.1 : écran Main (commit à suivre) — tests non exécutés dans cet environnement, voir BLOQUÉ-1
+    - `MainState`/`MainEvent`/`MainScreen`/`MainViewModel` (patron section 5.20) ; navigation exposée en lambdas simples (`onOpenSettings`, `onOpenSync`, `onOpenQueue`, `onOpenNewTranslation`, `onOpenSeries`), câblage réel `TmmRoot`/`NavHost` différé à E10
+    - Toasts modélisés en `MainToast` (sealed interface `Sent`/`Received`) plutôt qu'en texte pré-formaté dans le ViewModel, pour respecter la règle 4.10 (`stringResource` non appelable hors Composable)
+    - `ProgressBar` (composant E3) étendu d'un paramètre `fillColor` optionnel rétrocompatible, pour les barres colorées par type de job (au lieu d'un nouveau composant dupliqué)
+    - Grille d'actions rapides : `QuickActionCard` dédié plutôt que réutilisation de `TmmActionButton` (API incompatible : hauteur fixe en grille vs pleine largeur, pas de logique de désactivation par compteur)
+    - Nouvelle dépendance `androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0` (absente du projet jusqu'ici), version vérifiée par recherche web plutôt que devinée (règle CLAUDE.md)
+    - `app/src/test/resources/mockup_texts.tsv` créé (règle 4.10/353-360) avec les lignes de Main.dc.html ; écrans E4.2+ à ajouter au fur et à mesure
+    - `MockupTextCoverageTest` : vérifie que chaque écran déjà livré a ses lignes dans le TSV et que chaque ressource STR/FMT/PLU déclarée existe dans `strings.xml` ; liste d'écrans en attente qui se réduit à chaque commit E4.x, vide à E4.13
+    - Tests écrits : `MainScreenshotTest` (Roborazzi, états en ligne/hors ligne), `MainScreenBehaviorTest` (cycle Envoyer/Récupérer Idle→Busy→Done, formulation des toasts, notice hors ligne)
+    - Toujours bloqué par BLOQUÉ-1 : code relu manuellement (API de chaque composant vérifiée par lecture directe), non compilé ni exécuté
 - [ ] E5 : Room, DataStore, TmmDatabase & DAO
 - [ ] E6 : Accès SAF, parsing Mihon, CBZ & installation
 - [ ] E7 : FakeDrive, FakePc & transport REST OkHttp

@@ -1,0 +1,53 @@
+fichier	texte exact	type	ressource	quantité	arguments
+Main.dc.html	Réglages	STR	home_settings_cd
+Main.dc.html	Accueil	STR	home_title
+Main.dc.html	Vérifié il y a 4 min	FMT	home_last_check_fmt		["il y a 4 min"]
+Main.dc.html	PC en ligne	STR	home_pc_online
+Main.dc.html	PC vu il y a 3 h	FMT	home_pc_seen_fmt		["3 h"]
+Main.dc.html	PC hors ligne	STR	home_pc_offline
+Main.dc.html	PC hors ligne depuis 2 jours.	STR	home_offline_bold
+Main.dc.html	Vos envois attendent sur Google Drive et partiront dès qu'il se rallume.	STR	home_offline_rest
+Main.dc.html	Décalage entre Mihon et le PC	STR	home_todo_section_cd
+Main.dc.html	À faire · Mihon ↔ PC	STR	home_todo_section_label
+Main.dc.html	Détails	STR	home_details
+Main.dc.html	chapitres à envoyer au PC	STR	home_send_label
+Main.dc.html	5 séries · environ 180 Mo	DEMO
+Main.dc.html	Envoyer	STR	home_send_button
+Main.dc.html	Envoi en cours	STR	home_send_in_progress_cd
+Main.dc.html	En file	STR	home_send_done
+Main.dc.html	traductions à récupérer	STR	home_get_label
+Main.dc.html	4 séries · vers Mihon/local	DEMO
+Main.dc.html	Récupérer	STR	home_get_button
+Main.dc.html	0 / 8	FMT	home_get_progress_fmt		[0, 8]
+Main.dc.html	8 / 8	FMT	home_get_progress_fmt		[8, 8]
+Main.dc.html	Sur le PC	STR	home_status_on_pc
+Main.dc.html	Dans Mihon	STR	home_status_in_mihon
+Main.dc.html	Sur le PC en ce moment	STR	home_now_on_pc_title
+Main.dc.html	File (7)	FMT	home_queue_link_fmt		[7]
+Main.dc.html	4 chapitres en parallèle sur PC-BUREAU	FMT	home_parallel_status_fmt		[4, "PC-BUREAU"]
+Main.dc.html	+3 ensuite	FMT	home_next_fmt		[3]
+Main.dc.html	Traduction	STR	home_job_type_translation
+Main.dc.html	Vérification	STR	home_job_type_verification
+Main.dc.html	Retraduction	STR	home_job_type_retranslation
+Main.dc.html	Solo Leveling · 201	DEMO
+Main.dc.html	Kagurabachi · 52	DEMO
+Main.dc.html	One Piece · 1119	DEMO
+Main.dc.html	Blue Lock · 205	DEMO
+Main.dc.html	Nouvelle traduction	STR	home_new_translation_title
+Main.dc.html	Choisir des chapitres	STR	home_new_translation_subtitle
+Main.dc.html	Scanner Mihon	STR	home_scan_mihon_title
+Main.dc.html	Dernier scan il y a 4 min	DEMO
+Main.dc.html	Derniers chapitres traduits	STR	home_recent_title
+Main.dc.html	Tout voir	STR	home_see_all
+Main.dc.html	Frieren	DEMO
+Main.dc.html	Ch. 140	DEMO
+Main.dc.html	Kagurabachi	DEMO
+Main.dc.html	Ch. 51 à 54	DEMO
+Main.dc.html	Blue Lock	DEMO
+Main.dc.html	Ch. 212	DEMO
+Main.dc.html	One Piece	DEMO
+Main.dc.html	Ch. 1120	DEMO
+Main.dc.html	FR	DEMO
+Main.dc.html	12 chapitres partent vers le PC via Google Drive.	FMT	home_toast_sent_fmt		[12]
+Main.dc.html	8 chapitres traduits rangés dans Mihon/local.	FMT	home_toast_received_fmt		[8]
+Main.dc.html	Voir	STR	home_toast_action

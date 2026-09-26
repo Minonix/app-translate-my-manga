@@ -23,7 +23,7 @@ import com.tmm.mobile.ui.theme.TmmTheme
  * `track`, remplissage `accent`, croissance animee depuis 0 sauf mouvement reduit.
  */
 @Composable
-fun ProgressBar(fraction: Float, modifier: Modifier = Modifier) {
+fun ProgressBar(fraction: Float, modifier: Modifier = Modifier, fillColor: androidx.compose.ui.graphics.Color = TmmColors.accent) {
     val reducedMotion = LocalReducedMotion.current
     val target = fraction.coerceIn(0f, 1f)
     val animated by animateFloatAsState(
@@ -43,7 +43,7 @@ fun ProgressBar(fraction: Float, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth(animated)
                 .fillMaxHeight()
-                .background(TmmColors.accent),
+                .background(fillColor),
         )
     }
 }

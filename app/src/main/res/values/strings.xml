@@ -1,4 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TMM Mobile</string>
+
+    <!-- ui/components/RefreshButton.kt (partagé, corrigé en E4.1 : 4.10 impose une ressource) -->
+    <string name="common_refresh_cd">Rafraîchir</string>
+    <string name="common_refresh_cooldown_cd_fmt">Rafraîchir, disponible dans %1$d secondes</string>
+
+    <!-- Main.dc.html (E4.1) -->
+    <string name="home_settings_cd">Réglages</string>
+    <string name="home_title">Accueil</string>
+    <string name="home_last_check_fmt">Vérifié %1$s</string>
+    <string name="home_pc_online">PC en ligne</string>
+    <string name="home_pc_seen_fmt">PC vu il y a %1$s</string>
+    <string name="home_pc_offline">PC hors ligne</string>
+    <string name="home_offline_bold">PC hors ligne depuis 2 jours.</string>
+    <string name="home_offline_rest">Vos envois attendent sur Google Drive et partiront dès qu\'il se rallume.</string>
+    <string name="home_todo_section_label">À faire · Mihon ↔ PC</string>
+    <string name="home_todo_section_cd">Décalage entre Mihon et le PC</string>
+    <string name="home_details">Détails</string>
+    <string name="home_send_label">chapitres à envoyer au PC</string>
+    <string name="home_send_button">Envoyer</string>
+    <string name="home_send_in_progress_cd">Envoi en cours</string>
+    <string name="home_send_done">En file</string>
+    <string name="home_get_label">traductions à récupérer</string>
+    <string name="home_get_button">Récupérer</string>
+    <string name="home_get_progress_fmt">%1$d / %2$d</string>
+    <string name="home_status_on_pc">Sur le PC</string>
+    <string name="home_status_in_mihon">Dans Mihon</string>
+    <string name="home_now_on_pc_title">Sur le PC en ce moment</string>
+    <string name="home_queue_link_fmt">File (%1$d)</string>
+    <string name="home_parallel_status_fmt">%1$d chapitres en parallèle sur %2$s</string>
+    <string name="home_next_fmt">+%1$d ensuite</string>
+    <string name="home_job_type_translation">Traduction</string>
+    <string name="home_job_type_verification">Vérification</string>
+    <string name="home_job_type_retranslation">Retraduction</string>
+    <string name="home_new_translation_title">Nouvelle traduction</string>
+    <string name="home_new_translation_subtitle">Choisir des chapitres</string>
+    <string name="home_scan_mihon_title">Scanner Mihon</string>
+    <string name="home_recent_title">Derniers chapitres traduits</string>
+    <string name="home_see_all">Tout voir</string>
+    <string name="home_toast_sent_fmt">%1$d chapitres partent vers le PC via Google Drive.</string>
+    <string name="home_toast_received_fmt">%1$d chapitres traduits rangés dans Mihon/local.</string>
+    <string name="home_toast_action">Voir</string>
 </resources>
