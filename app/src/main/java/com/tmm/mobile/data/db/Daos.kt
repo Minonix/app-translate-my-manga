@@ -25,6 +25,9 @@ interface SeriesDao {
 
     @Delete
     suspend fun delete(series: SeriesEntity)
+
+    @Query("DELETE FROM series")
+    suspend fun clear()
 }
 
 @Dao
@@ -37,6 +40,9 @@ interface CategoryDao {
 
     @Delete
     suspend fun delete(category: CategoryEntity)
+
+    @Query("DELETE FROM category")
+    suspend fun clear()
 }
 
 @Dao
@@ -49,6 +55,9 @@ interface SeriesCategoryDao {
 
     @Query("DELETE FROM series_category WHERE seriesKey = :seriesKey")
     suspend fun deleteForSeries(seriesKey: String)
+
+    @Query("DELETE FROM series_category")
+    suspend fun clear()
 }
 
 @Dao
@@ -64,6 +73,9 @@ interface ChapterDao {
 
     @Delete
     suspend fun delete(chapter: ChapterEntity)
+
+    @Query("DELETE FROM chapter")
+    suspend fun clear()
 }
 
 @Dao
@@ -73,6 +85,9 @@ interface DownloadedChapterDao {
 
     @Query("SELECT * FROM downloaded_chapter")
     fun observeAll(): Flow<List<DownloadedChapterEntity>>
+
+    @Upsert
+    suspend fun upsert(chapter: DownloadedChapterEntity)
 
     @Upsert
     suspend fun upsertAll(chapters: List<DownloadedChapterEntity>)
@@ -86,6 +101,12 @@ interface ScannedSeriesDirDao {
     @Query("SELECT * FROM scanned_series_dir")
     fun observeAll(): Flow<List<ScannedSeriesDirEntity>>
 
+    @Query("SELECT * FROM scanned_series_dir WHERE sourceDir = :sourceDir AND seriesDir = :seriesDir")
+    suspend fun get(sourceDir: String, seriesDir: String): ScannedSeriesDirEntity?
+
+    @Upsert
+    suspend fun upsert(dir: ScannedSeriesDirEntity)
+
     @Upsert
     suspend fun upsertAll(dirs: List<ScannedSeriesDirEntity>)
 }
@@ -94,6 +115,9 @@ interface ScannedSeriesDirDao {
 interface LocalFrChapterDao {
     @Query("SELECT * FROM local_fr_chapter")
     fun observeAll(): Flow<List<LocalFrChapterEntity>>
+
+    @Query("SELECT * FROM local_fr_chapter WHERE localPath = :localPath")
+    suspend fun get(localPath: String): LocalFrChapterEntity?
 
     @Upsert
     suspend fun upsertAll(chapters: List<LocalFrChapterEntity>)
