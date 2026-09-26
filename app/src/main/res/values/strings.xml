@@ -342,4 +342,44 @@
     <string name="settings_toast_choose_account">Choix du compte Google</string>
     <string name="settings_toast_folder_picker">Sélecteur de dossier Android</string>
     <string name="settings_toast_logs_ready">Journaux prêts à partager</string>
+
+    <!-- TranslationSettings.dc.html (E4.9) -->
+    <string name="trans_settings_back_cd">Retour aux réglages</string>
+    <string name="trans_settings_title">Traduction sur le PC</string>
+    <string name="trans_settings_subtitle">Les mêmes réglages que dans TMM-Win</string>
+    <string name="trans_settings_sync_sending_title">Envoi au PC...</string>
+    <string name="trans_settings_sync_sending_hint">Via Google Drive, quelques secondes</string>
+    <string name="trans_settings_sync_applied_title">Appliqué sur PC-BUREAU</string>
+    <string name="trans_settings_sync_synced_title">Synchronisé avec PC-BUREAU</string>
+    <string name="trans_settings_sync_synced_hint">Pris en compte tout de suite, sans redémarrage</string>
+    <string name="trans_settings_group_languages">Langues</string>
+    <string name="trans_settings_source_language">Langue source</string>
+    <string name="trans_settings_target_language">Langue cible</string>
+    <string name="trans_settings_group_engine">Moteur</string>
+    <string name="trans_settings_engine">Moteur de traduction</string>
+    <string name="trans_settings_auto_failover">Secours LLM local</string>
+    <string name="trans_settings_auto_failover_desc">Si le moteur échoue ou atteint son quota, bascule sur Ollama</string>
+    <string name="trans_settings_group_after_translation">Après traduction</string>
+    <string name="trans_settings_auto_verify">Vérifier automatiquement</string>
+    <string name="trans_settings_auto_verify_desc">Relance une vérification après chaque chapitre traduit</string>
+    <string name="trans_settings_group_performance">Performance</string>
+    <string name="trans_settings_chapter_concurrency">Chapitres simultanés</string>
+    <string name="trans_settings_page_concurrency">Pages simultanées</string>
+    <string name="trans_settings_pile_size">Pages par envoi au moteur</string>
+    <string name="trans_settings_use_gpu">Utiliser la carte graphique</string>
+    <string name="trans_settings_gpu_on_desc">DirectML / CUDA</string>
+    <string name="trans_settings_gpu_off_desc">Processeur uniquement, plus lent</string>
+    <string name="trans_settings_adv_expand">Vision avancée (5 réglages)</string>
+    <string name="trans_settings_adv_collapse">Masquer la vision avancée</string>
+    <string name="trans_settings_detector">Détecteur de bulles</string>
+    <string name="trans_settings_ocr">OCR</string>
+    <string name="trans_settings_inpainter">Effacement du texte</string>
+    <string name="trans_settings_inpainting_size">Taille d’effacement</string>
+    <string name="trans_settings_font">Police par défaut</string>
+    <string name="trans_settings_security_note">Les clés API et le dossier de sortie restent sur le PC. Un changement s\'applique aux prochaines pages, sans redémarrer ni interrompre les chapitres en cours.</string>
+    <string name="trans_settings_single_chapter">Un à la fois</string>
+    <string name="trans_settings_parallel_chapters_fmt">%1$d en parallèle</string>
+    <string name="trans_settings_recommended">Recommandé</string>
+    <string name="trans_settings_per_chapter">par chapitre</string>
+    <string name="trans_settings_more_context">Plus de contexte si élevé</string>
 </resources>

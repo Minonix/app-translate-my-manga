@@ -435,6 +435,78 @@ Settings.dc.html	7 derniers jours · 240 Ko	DEMO
 Settings.dc.html	Exporter	STR	settings_action_export
 Settings.dc.html	Journaux prêts à partager	STR	settings_toast_logs_ready
 Settings.dc.html	TMM Mobile 1.0.0 · protocole v1	STR	settings_footer_app_version
+TranslationSettings.dc.html	Retour aux réglages	STR	trans_settings_back_cd
+TranslationSettings.dc.html	Traduction sur le PC	STR	trans_settings_title
+TranslationSettings.dc.html	Les mêmes réglages que dans TMM-Win	STR	trans_settings_subtitle
+TranslationSettings.dc.html	Envoi au PC...	STR	trans_settings_sync_sending_title
+TranslationSettings.dc.html	Via Google Drive, quelques secondes	STR	trans_settings_sync_sending_hint
+TranslationSettings.dc.html	Appliqué sur PC-BUREAU	STR	trans_settings_sync_applied_title
+TranslationSettings.dc.html	Synchronisé avec PC-BUREAU	STR	trans_settings_sync_synced_title
+TranslationSettings.dc.html	Pris en compte tout de suite, sans redémarrage	STR	trans_settings_sync_synced_hint
+TranslationSettings.dc.html	Langues	STR	trans_settings_group_languages
+TranslationSettings.dc.html	Langue source	STR	trans_settings_source_language
+TranslationSettings.dc.html	Langue cible	STR	trans_settings_target_language
+TranslationSettings.dc.html	Moteur	STR	trans_settings_group_engine
+TranslationSettings.dc.html	Moteur de traduction	STR	trans_settings_engine
+TranslationSettings.dc.html	Secours LLM local	STR	trans_settings_auto_failover
+TranslationSettings.dc.html	Si le moteur échoue ou atteint son quota, bascule sur Ollama	STR	trans_settings_auto_failover_desc
+TranslationSettings.dc.html	Après traduction	STR	trans_settings_group_after_translation
+TranslationSettings.dc.html	Vérifier automatiquement	STR	trans_settings_auto_verify
+TranslationSettings.dc.html	Relance une vérification après chaque chapitre traduit	STR	trans_settings_auto_verify_desc
+TranslationSettings.dc.html	Performance	STR	trans_settings_group_performance
+TranslationSettings.dc.html	Chapitres simultanés	STR	trans_settings_chapter_concurrency
+TranslationSettings.dc.html	Pages simultanées	STR	trans_settings_page_concurrency
+TranslationSettings.dc.html	Pages par envoi au moteur	STR	trans_settings_pile_size
+TranslationSettings.dc.html	Utiliser la carte graphique	STR	trans_settings_use_gpu
+TranslationSettings.dc.html	DirectML / CUDA	STR	trans_settings_gpu_on_desc
+TranslationSettings.dc.html	Processeur uniquement, plus lent	STR	trans_settings_gpu_off_desc
+TranslationSettings.dc.html	Vision avancée (5 réglages)	STR	trans_settings_adv_expand
+TranslationSettings.dc.html	Masquer la vision avancée	STR	trans_settings_adv_collapse
+TranslationSettings.dc.html	Détecteur de bulles	STR	trans_settings_detector
+TranslationSettings.dc.html	OCR	STR	trans_settings_ocr
+TranslationSettings.dc.html	Effacement du texte	STR	trans_settings_inpainter
+TranslationSettings.dc.html	Taille d’effacement	STR	trans_settings_inpainting_size
+TranslationSettings.dc.html	Police par défaut	STR	trans_settings_font
+TranslationSettings.dc.html	Les clés API et le dossier de sortie restent sur le PC. Un changement s'applique aux prochaines pages, sans redémarrer ni interrompre les chapitres en cours.	STR	trans_settings_security_note
+TranslationSettings.dc.html	Un à la fois	STR	trans_settings_single_chapter
+TranslationSettings.dc.html	4 en parallèle	FMT	trans_settings_parallel_chapters_fmt		[4]
+TranslationSettings.dc.html	Recommandé	STR	trans_settings_recommended
+TranslationSettings.dc.html	par chapitre	STR	trans_settings_per_chapter
+TranslationSettings.dc.html	Plus de contexte si élevé	STR	trans_settings_more_context
+TranslationSettings.dc.html	Détection automatique	DEMO
+TranslationSettings.dc.html	Japonais · Manga	DEMO
+TranslationSettings.dc.html	Coréen · Webtoon	DEMO
+TranslationSettings.dc.html	Chinois simplifié	DEMO
+TranslationSettings.dc.html	Français	DEMO
+TranslationSettings.dc.html	Anglais	DEMO
+TranslationSettings.dc.html	Espagnol	DEMO
+TranslationSettings.dc.html	Allemand	DEMO
+TranslationSettings.dc.html	Google Gemini 2.5 Flash · Recommandé	DEMO
+TranslationSettings.dc.html	OpenAI GPT-4.1 mini	DEMO
+TranslationSettings.dc.html	Anthropic Claude Sonnet 5	DEMO
+TranslationSettings.dc.html	DeepL API	DEMO
+TranslationSettings.dc.html	Groq GPT-OSS 120B	DEMO
+TranslationSettings.dc.html	OpenRouter · Hy-MT2	DEMO
+TranslationSettings.dc.html	Tencent TokenHub · Hy-MT2 Plus	DEMO
+TranslationSettings.dc.html	Hors ligne · Sugoi / M2M100	DEMO
+TranslationSettings.dc.html	LLM local · Ollama sur le PC	DEMO
+TranslationSettings.dc.html	Comic-Text-Detector · Automatique	DEMO
+TranslationSettings.dc.html	CTD explicite	DEMO
+TranslationSettings.dc.html	PaddleOCR Detector	DEMO
+TranslationSettings.dc.html	Automatique · Manga-OCR + PaddleOCR	DEMO
+TranslationSettings.dc.html	Manga-OCR	DEMO
+TranslationSettings.dc.html	48px multi-langues	DEMO
+TranslationSettings.dc.html	32px standard	DEMO
+TranslationSettings.dc.html	LaMa Large	DEMO
+TranslationSettings.dc.html	LaMa MPE	DEMO
+TranslationSettings.dc.html	Stable Diffusion	DEMO
+TranslationSettings.dc.html	Aucun effacement	DEMO
+TranslationSettings.dc.html	1024 px · Plus rapide	DEMO
+TranslationSettings.dc.html	1280 px · Recommandé	DEMO
+TranslationSettings.dc.html	1800 px · HD	DEMO
+TranslationSettings.dc.html	2048 px · Maximum	DEMO
+TranslationSettings.dc.html	Anime Ace	DEMO
+TranslationSettings.dc.html	Manga Temple	DEMO
 
 
 
