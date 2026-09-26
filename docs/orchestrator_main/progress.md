@@ -75,6 +75,10 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
     - `EmptyState`, `EmptyEvent`, `EmptyScreen`, `EmptyViewModel` (patron 5.20) : conformité stricte avec `Empty.dc.html` (en-tête avec glyphe rouge 訳 et pastille statut PC, carte à bordure pointillée avec vignette en demi-teinte et bouton 'Scanner Mihon' avec rotation animée et libellés dynamiques, carte Pas encore de sauvegarde Mihon avec lien cliquable vers le catalogue, carte File vide).
     - Ressources de chaînes ajoutées dans `strings.xml` ; `Empty.dc.html` couvert dans `mockup_texts.tsv` et retiré des exclusions de `MockupTextCoverageTest`.
     - Tests validés : `EmptyScreenBehaviorTest` (4 tests comportementaux couvrant affichage initial, ouverture du catalogue, transition vers l'état occupé lors du scan, affichage du libellé de réessai), `EmptyScreenshotTest` (3 captures Roborazzi : défaut, occupé, terminé). 100% de succès (144 tests unitaires au total).
+  - [x] E4.12 : écran Offline (Hors ligne)
+    - `OfflineState`, `OfflineEvent`, `OfflineScreen`, `OfflineViewModel` (patron 5.20) : conformité stricte avec `Offline.dc.html` (bannière dynamique selon la cause réseau ou token expiré avec bouton 'Reconnecter' / 'Ouverture...', en-tête avec pastille 'État du PC inconnu', carte 'En attente d'envoi' avec décompte pluriel, liste des chapitres et motifs d'attente horodatés avec icône d'horloge, section 'Toujours disponible' avec les 3 vignettes en demi-teinte).
+    - Ressources de chaînes et pluriel ajoutés dans `strings.xml` ; `Offline.dc.html` couvert dans `mockup_texts.tsv` et retiré des exclusions de `MockupTextCoverageTest`.
+    - Tests validés : `OfflineScreenBehaviorTest` (4 tests comportementaux couvrant affichage initial réseau, affichage et bouton de reconnexion pour la cause token, transition vers l'état de reconnexion, libellé du bouton pendant l'ouverture), `OfflineScreenshotTest` (3 captures Roborazzi : réseau, token, reconnexion). 100% de succès.
 - [ ] E5 : Room, DataStore, TmmDatabase & DAO
 - [ ] E6 : Accès SAF, parsing Mihon, CBZ & installation
 - [ ] E7 : FakeDrive, FakePc & transport REST OkHttp

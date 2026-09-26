@@ -20,6 +20,7 @@ import com.tmm.mobile.ui.screens.queue.QueueTab
 import com.tmm.mobile.ui.screens.queue.WaitingJob
 import com.tmm.mobile.ui.screens.catalog.CatalogState
 import com.tmm.mobile.ui.screens.empty.EmptyState
+import com.tmm.mobile.ui.screens.offline.OfflineState
 import com.tmm.mobile.ui.screens.newtranslation.NewTranslationState
 import com.tmm.mobile.ui.screens.onboarding.OnboardingState
 import com.tmm.mobile.ui.screens.settings.SettingsState
@@ -369,4 +370,6 @@ object MockupData {
     val onboarding = OnboardingState()
 
     val empty = EmptyState()
+
+    val offline = OfflineState()
 }

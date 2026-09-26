@@ -555,3 +555,20 @@ Empty.dc.html	Sans elle, pas de catégories. Activez-la dans Mihon : Plus, Param
 Empty.dc.html	J'ai une sauvegarde, la lire	STR	empty_read_backup_link
 Empty.dc.html	File vide	STR	empty_queue_empty_title
 Empty.dc.html	Rien ne se traduit sur le PC.	STR	empty_queue_empty_desc
+Offline.dc.html	Pas de connexion.	STR	offline_banner_network_title
+Offline.dc.html	Les envois partiront dès le retour du réseau.	STR	offline_banner_network_desc
+Offline.dc.html	Accès à Google Drive expiré	STR	offline_banner_token_title
+Offline.dc.html	Reconnecter	STR	offline_btn_reconnect
+Offline.dc.html	Ouverture...	STR	offline_btn_opening
+Offline.dc.html	訳	STR	app_name_glyph
+Offline.dc.html	TMM Mobile	STR	empty_app_name
+Offline.dc.html	État du PC inconnu	STR	offline_pc_unknown
+Offline.dc.html	Accueil	STR	empty_title
+Offline.dc.html	En attente d'envoi	STR	offline_pending_title
+Offline.dc.html	3 chapitres	PLU	offline_pending_count	3	[3]
+Offline.dc.html	Kagurabachi · Ch. 52 à 53	DEMO
+Offline.dc.html	Blue Lock · Ch. 214	DEMO
+Offline.dc.html	Attend le réseau	STR	offline_why_network
+Offline.dc.html	Attend la reconnexion à Drive	STR	offline_why_token
+Offline.dc.html	Toujours disponible	STR	offline_available_title
+Offline.dc.html	La bibliothèque et les chapitres déjà rangés dans Mihon restent lisibles.	STR	offline_available_desc

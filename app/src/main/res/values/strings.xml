@@ -424,4 +424,22 @@
     <string name="empty_read_backup_link">J\'ai une sauvegarde, la lire</string>
     <string name="empty_queue_empty_title">File vide</string>
     <string name="empty_queue_empty_desc">Rien ne se traduit sur le PC.</string>
+
+    <!-- Offline.dc.html (E4.12) -->
+    <string name="offline_banner_network_title">Pas de connexion.</string>
+    <string name="offline_banner_network_desc">Les envois partiront dès le retour du réseau.</string>
+    <string name="offline_banner_token_title">Accès à Google Drive expiré</string>
+    <string name="offline_btn_reconnect">Reconnecter</string>
+    <string name="offline_btn_opening">Ouverture...</string>
+    <string name="offline_pc_unknown">État du PC inconnu</string>
+    <string name="offline_pending_title">En attente d\'envoi</string>
+    <plurals name="offline_pending_count">
+        <item quantity="one">%1$d chapitre</item>
+        <item quantity="many">%1$d chapitres</item>
+        <item quantity="other">%1$d chapitres</item>
+    </plurals>
+    <string name="offline_why_network">Attend le réseau</string>
+    <string name="offline_why_token">Attend la reconnexion à Drive</string>
+    <string name="offline_available_title">Toujours disponible</string>
+    <string name="offline_available_desc">La bibliothèque et les chapitres déjà rangés dans Mihon restent lisibles.</string>
 </resources>
