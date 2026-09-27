@@ -68,7 +68,12 @@ class Startup(
             known.lastModified != newest.lastModified
         if (!changed) return
 
-        val backup = fs.openInput(newest.docId).use { BackupReader.read(it) }
+        // Sauvegarde illisible : on garde le cache Room existant plutot que de planter au demarrage.
+        val backup = try {
+            fs.openInput(newest.docId).use { BackupReader.read(it) }
+        } catch (e: Exception) {
+            return
+        }
         BackupImporter(db).import(backup)
         db.backupImportDao().upsert(
             BackupImportEntity(

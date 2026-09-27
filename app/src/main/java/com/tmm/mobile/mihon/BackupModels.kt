@@ -20,11 +20,11 @@ data class MihonBackupManga(
     @ProtoNumber(2) val url: String,
     @ProtoNumber(3) val title: String = "",
     @ProtoNumber(5) val author: String? = null,
-    @ProtoNumber(7) val status: Int = 0,
+    @ProtoNumber(8) val status: Int = 0,
     @ProtoNumber(9) val thumbnailUrl: String? = null,
-    @ProtoNumber(10) val dateAdded: Long = 0,
-    @ProtoNumber(12) val chapters: List<MihonBackupChapter> = emptyList(),
-    @ProtoNumber(13) val categories: List<Long> = emptyList(),
+    @ProtoNumber(13) val dateAdded: Long = 0,
+    @ProtoNumber(16) val chapters: List<MihonBackupChapter> = emptyList(),
+    @ProtoNumber(17) val categories: List<Long> = emptyList(),
     @ProtoNumber(100) val favorite: Boolean = true,
 )
 
@@ -36,7 +36,7 @@ data class MihonBackupChapter(
     @ProtoNumber(4) val read: Boolean = false,
     @ProtoNumber(7) val dateFetch: Long = 0,
     @ProtoNumber(8) val dateUpload: Long = 0,
-    @ProtoNumber(9) val chapterNumber: Float = -1f,
+    @ProtoNumber(9) val chapterNumber: Float = 0f,
 )
 
 @Serializable

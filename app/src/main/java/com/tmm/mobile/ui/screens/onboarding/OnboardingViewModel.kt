@@ -211,7 +211,17 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
         val newest = autobackupId?.let { id ->
             mihonFs.children(id).filter { !it.isDirectory && it.name.endsWith(".tachibk") }.maxByOrNull { it.lastModified }
         }
-        if (newest == null) {
+        // Sauvegarde illisible (format Mihon inattendu, fichier tronque) : on continue comme sans
+        // sauvegarde plutot que de laisser l'exception tuer l'app a l'etape 3.
+        val backup = newest?.let {
+            try {
+                withContext(Dispatchers.IO) { mihonFs.openInput(it.docId).use { input -> BackupReader.read(input) } }
+            } catch (e: Exception) {
+                AppLog.d(TAG, "lecture de ${it.name} a echoue : ${e.message}")
+                null
+            }
+        }
+        if (newest == null || backup == null) {
             _state.update {
                 it.copy(hasBackup = false, readProgress = 1f, seriesCount = 0, categoriesCount = 0, downloadedCount = 0, isReadDone = true, toSendCount = 0)
             }
@@ -219,7 +229,6 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
         }
         _state.update { it.copy(hasBackup = true, backupFileName = "autobackup/${newest.name}") }
 
-        val backup = withContext(Dispatchers.IO) { mihonFs.openInput(newest.docId).use { BackupReader.read(it) } }
         BackupImporter(container.db).import(backup)
         mihonFs.findChild(docId, "downloads")?.let { DownloadScanner(mihonFs, container.db).scanDownloads(it.docId) }
 
