@@ -1,7 +1,9 @@
 package com.tmm.mobile.workers
 
 import android.content.Context
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkManager
@@ -21,12 +23,14 @@ import com.tmm.mobile.fake.FakePc
 import com.tmm.mobile.transport.DriveApi
 import com.tmm.mobile.transport.DriveTransport
 import com.tmm.mobile.transport.JobTransport
-import java.io.File
 import java.time.Instant
-import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -37,6 +41,18 @@ import okhttp3.OkHttpClient
 // un Clock pilotable) et le branche sur TmmApp.container (lateinit var substituable, cf AppContainer.kt).
 class TestClock(var millis: Long = 1_700_000_000_000L) : Clock {
     override fun nowMillis(): Long = millis
+}
+
+// DataStore en memoire pour les tests de ViewModel : le DataStore fichier (teste par AppPrefsTest)
+// se bloquait par intermittence quand les collecteurs du ViewModel reprenaient en ligne sur ses
+// threads internes (Main de test Unconfined), ce qui n'arrive pas avec le vrai Main.
+private class MemoryDataStore : DataStore<Preferences> {
+    private val state = MutableStateFlow(emptyPreferences())
+    private val mutex = Mutex()
+    override val data: Flow<Preferences> = state
+
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+        mutex.withLock { transform(state.value).toPreferences().also { state.value = it } }
 }
 
 class WorkerTestEnvironment {
@@ -77,10 +93,7 @@ class WorkerTestEnvironment {
         watchdog.start()
         drive.start()
         pc = FakePc(drive) { nowIso() }
-        val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(context.filesDir, "worker_test_prefs_${UUID.randomUUID()}.preferences_pb") },
-        )
-        prefs = AppPrefs(dataStore)
+        prefs = AppPrefs(MemoryDataStore())
         val api = DriveApi(client = OkHttpClient(), token = { _ -> "test-token" }, baseUrl = drive.baseUrl())
         transport = DriveTransport(api, prefs)
         // ensureLayout() une fois pour toutes : SendJobWorker/InstallJobWorker/OutboxWorker
