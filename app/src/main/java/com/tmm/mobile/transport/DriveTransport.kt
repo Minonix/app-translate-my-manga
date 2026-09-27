@@ -33,8 +33,10 @@ class DriveTransport(
         var created = false
         var rootId = prefs.driveRootId.first()
         if (rootId == null) {
-            rootId = driveApi.findChild("root", "TranslateMyManga", folder = true)?.id
-                ?: driveApi.createFolder("root", "TranslateMyManga").also { created = true }
+            val appId = driveApi.findChild("root", "App", folder = true)?.id
+                ?: driveApi.createFolder("root", "App")
+            rootId = driveApi.findChild(appId, "TranslateMyManga", folder = true)?.id
+                ?: driveApi.createFolder(appId, "TranslateMyManga").also { created = true }
             prefs.setDriveRootId(rootId)
         }
         var jobsId = prefs.driveJobsId.first()

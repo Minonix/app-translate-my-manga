@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -34,7 +35,7 @@ fun TmmTheme(content: @Composable () -> Unit) {
         LocalReducedMotion provides reducedMotion,
         LocalTextStyle provides TmmType.sans(15),
     ) {
-        Box(modifier = Modifier.fillMaxSize().background(TmmColors.paper)) {
+        Box(modifier = Modifier.fillMaxSize().background(TmmColors.paper).safeDrawingPadding()) {
             content()
         }
     }

@@ -46,6 +46,37 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
     private var fs: MihonFs? = null
     private var rootDocId: String? = null
 
+    // Le picker SAF (etape 2) et le consentement Google (etape 1) sont des Activity externes ;
+    // Android peut tuer le process pendant qu'elles sont au premier plan, ce qui recree ce
+    // ViewModel a l'etat par defaut (isGoogleConnected=false) et boucle sur "se reconnecter".
+    // On relit les memes signaux persistes que Startup.run() pour ne pas rejouer une etape acquise.
+    init {
+        viewModelScope.launch {
+            val email = container.prefs.googleEmail.first()
+            if (email != null) {
+                _state.update { it.copy(isGoogleConnected = true, googleAccount = email, step = maxOf(it.step, 2)) }
+            }
+            val treeUriString = container.prefs.mihonTreeUri.first()
+            if (treeUriString != null) {
+                val treeUri = Uri.parse(treeUriString)
+                val hasPermission = container.context.contentResolver.persistedUriPermissions.any {
+                    it.uri == treeUri && it.isReadPermission && it.isWritePermission
+                }
+                if (hasPermission) {
+                    try {
+                        val tree = MihonTree(container.context.contentResolver, treeUri)
+                        val rootId = DocumentsContract.getTreeDocumentId(treeUri)
+                        val displayPath = treeUri.lastPathSegment?.substringAfterLast(':')?.let { "/$it" } ?: treeUri.toString()
+                        withContext(Dispatchers.IO) { tree.children(rootId) }
+                        attachMihonTree(tree, rootId, displayPath)
+                    } catch (e: Exception) {
+                        AppLog.d(TAG, "restauration du dossier Mihon a echoue : ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
     fun onEvent(event: OnboardingEvent) {
         when (event) {
             OnboardingEvent.PrimaryAction -> handlePrimaryAction()
