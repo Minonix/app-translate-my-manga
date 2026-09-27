@@ -19,7 +19,6 @@ import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
-import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,7 +80,11 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     val state: StateFlow<MainState> = combine(derived, ephemeral) { base, eph ->
         base.copy(sendState = eph.sendState, getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MockupData.main)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainState(
+        pcTone = PcTone.Offline, toSendCount = 0, toSendSummary = "", toGetCount = 0, toGetSummary = "",
+        queueCount = 0, queueParallelCount = 0, queueMachineName = "PC", queueNextCount = 0,
+        queueJobs = emptyList(), lastScanLabel = "", recentChapters = emptyList(),
+    ))
 
     fun onEvent(event: MainEvent) {
         when (event) {

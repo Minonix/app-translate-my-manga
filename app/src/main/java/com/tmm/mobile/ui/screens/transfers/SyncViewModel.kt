@@ -25,7 +25,6 @@ import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.ResultJson
-import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmColors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -89,7 +88,10 @@ class SyncViewModel(private val container: AppContainer) : ViewModel() {
 
     val state: StateFlow<SyncState> = combine(raw9, _scanning, _sendState, _fetchState) { raw, scanning, sendState, fetchState ->
         buildState(raw, scanning).copy(sendState = sendState, fetchState = fetchState)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MockupData.sync)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SyncState(
+        pcName = "PC", upCount = 0, downCount = 0, otherSeriesCount = 0, otherChaptersCount = 0,
+        scannedAgo = "", missingCount = 0,
+    ))
 
     fun onEvent(event: SyncEvent) {
         when (event) {

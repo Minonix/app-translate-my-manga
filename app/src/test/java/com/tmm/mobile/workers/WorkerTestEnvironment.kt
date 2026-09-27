@@ -27,6 +27,9 @@ import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import okhttp3.OkHttpClient
 
 // PLAN_GEMINI.md 5.12 (E8) : environnement de test partage par les tests de workers/JobRepository/
@@ -55,6 +58,9 @@ class WorkerTestEnvironment {
     private fun nowIso() = Instant.ofEpochMilli(clock.millis).toString()
 
     fun setUp() {
+        // viewModelScope tourne sur Dispatchers.Main, c'est-a-dire le Looper principal Robolectric,
+        // qui n'avance pas pendant runTest : sans ceci, vm.state.first {} attend indefiniment.
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         drive.start()
         pc = FakePc(drive) { nowIso() }
         val dataStore = PreferenceDataStoreFactory.create(
@@ -75,6 +81,7 @@ class WorkerTestEnvironment {
     }
 
     fun tearDown() {
+        Dispatchers.resetMain()
         drive.shutdown()
         db.close()
     }

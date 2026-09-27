@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 // SyncBanner (SENDING pendant l'envoi, APPLIED/WAITING_PC selon awaitConfirmation()). Sans
 // settings_json (readOnly), l'ecran reste en lecture seule (7.9).
 class TranslationSettingsViewModel(private val container: AppContainer) : ViewModel() {
-    private val _state = MutableStateFlow(TranslationSettingsState())
+    private val _state = MutableStateFlow(TranslationSettingsState(pcName = "PC", isReadOnly = true))
     val state: StateFlow<TranslationSettingsState> = _state.asStateFlow()
 
     private var confirmJob: Job? = null

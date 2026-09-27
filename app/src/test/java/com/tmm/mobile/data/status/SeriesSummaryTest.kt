@@ -88,7 +88,7 @@ class SeriesSummaryTest {
     }
 
     @Test fun filters_toTranslate_and_notDownloaded() {
-        val busy = deriveSeriesSummary("s1", listOf(chapter(1f, ChapterStatus.TRANSLATING, latestJobPhoneState = "SENT")), emptySet())
+        val busy = deriveSeriesSummary("s1", listOf(chapter(1f, ChapterStatus.TRANSLATING, latestJobPhoneState = "SENT", downloaded = true)), emptySet())
         val absent = deriveSeriesSummary("s2", listOf(chapter(1f, ChapterStatus.CATALOG_ONLY)), emptySet())
         assertEquals(true, busy.matchesToTranslateFilter())
         assertEquals(false, busy.matchesNotDownloadedFilter())

@@ -32,7 +32,13 @@ private val BACKUP_DATE_FMT = DateTimeFormatter.ofPattern("dd/MM")
 // (5.18) - jamais d'ecriture directe de settings_json. Compte Google/dossier Mihon/retention/wifi_only
 // sont des reglages locaux (AppPrefs), pas des SettingsCommand.
 class SettingsViewModel(private val container: AppContainer) : ViewModel() {
-    private val _state = MutableStateFlow(SettingsState())
+    private val _state = MutableStateFlow(
+        // Etat neutre avant la lecture des prefs : les defauts de SettingsState sont ceux de la maquette.
+        SettingsState(
+            pcName = "PC", pcVersionProtocol = "PC", isPcOnline = false, pcLastSignalText = "Aucun signal reçu",
+            googleAccount = "", mihonFolder = "", lastBackupInfo = "", pcTranslationSummary = "", logsInfo = "",
+        ),
+    )
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     private var toastJob: Job? = null

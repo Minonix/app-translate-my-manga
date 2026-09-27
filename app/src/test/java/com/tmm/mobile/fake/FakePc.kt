@@ -19,8 +19,9 @@ import com.tmm.mobile.protocol.StatusJson
  */
 class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
 
-    private fun jobsId() = drive.childOf("root", "jobs")!!.id
-    private fun pcId() = drive.childOf("root", "pc")!!.id
+    private fun appRootId() = drive.childOf("root", "TranslateMyManga")!!.id
+    private fun jobsId() = drive.childOf(appRootId(), "jobs")!!.id
+    private fun pcId() = drive.childOf(appRootId(), "pc")!!.id
 
     private fun jobFolderId(jobId: String) = drive.childOf(jobsId(), jobId)?.id
         ?: error("dossier de job introuvable : $jobId")

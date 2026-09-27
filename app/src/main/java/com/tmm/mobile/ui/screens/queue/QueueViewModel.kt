@@ -14,7 +14,6 @@ import com.tmm.mobile.data.status.isFailed
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
-import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
 import java.time.ZoneId
@@ -63,7 +62,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
     private val _ui = MutableStateFlow(QueueUi())
 
     val state: StateFlow<QueueState> = combine(raw, _ui) { r, ui -> buildState(r, ui) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MockupData.queue)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), QueueState(slotsCount = 0, pcName = "PC"))
 
     fun onEvent(event: QueueEvent) {
         when (event) {

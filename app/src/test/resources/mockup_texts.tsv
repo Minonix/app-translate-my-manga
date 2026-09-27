@@ -440,8 +440,8 @@ TranslationSettings.dc.html	Traduction sur le PC	STR	trans_settings_title
 TranslationSettings.dc.html	Les mêmes réglages que dans TMM-Win	STR	trans_settings_subtitle
 TranslationSettings.dc.html	Envoi au PC...	STR	trans_settings_sync_sending_title
 TranslationSettings.dc.html	Via Google Drive, quelques secondes	STR	trans_settings_sync_sending_hint
-TranslationSettings.dc.html	Appliqué sur PC-BUREAU	STR	trans_settings_sync_applied_title
-TranslationSettings.dc.html	Synchronisé avec PC-BUREAU	STR	trans_settings_sync_synced_title
+TranslationSettings.dc.html	Appliqué sur PC-BUREAU	FMT	trans_settings_sync_applied_title_fmt		["PC-BUREAU"]
+TranslationSettings.dc.html	Synchronisé avec PC-BUREAU	FMT	trans_settings_sync_synced_title_fmt		["PC-BUREAU"]
 TranslationSettings.dc.html	Pris en compte tout de suite, sans redémarrage	STR	trans_settings_sync_synced_hint
 TranslationSettings.dc.html	Langues	STR	trans_settings_group_languages
 TranslationSettings.dc.html	Langue source	STR	trans_settings_source_language
