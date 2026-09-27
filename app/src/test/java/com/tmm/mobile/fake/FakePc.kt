@@ -19,7 +19,10 @@ import com.tmm.mobile.protocol.StatusJson
  */
 class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
 
-    private fun appRootId() = drive.childOf("root", "TranslateMyManga")!!.id
+    private fun appRootId(): String {
+        val appId = drive.childOf("root", "App")!!.id
+        return drive.childOf(appId, "TranslateMyManga")!!.id
+    }
     private fun jobsId() = drive.childOf(appRootId(), "jobs")!!.id
     private fun pcId() = drive.childOf(appRootId(), "pc")!!.id
 
