@@ -1,11 +1,13 @@
 package com.tmm.mobile.fake
 
+import com.tmm.mobile.protocol.FileRef
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.JobError
 import com.tmm.mobile.protocol.PcIndex
 import com.tmm.mobile.protocol.PcIndexChapter
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
+import com.tmm.mobile.protocol.Quality
 import com.tmm.mobile.protocol.QueueCounts
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.ResultJson
@@ -44,21 +46,29 @@ class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
         writeStatus(jobId, StatusJson(jobId = jobId, updatedAt = nowIso(), mode = request.options.mode, state = "processing", stage = "ocr", engine = engine))
     }
 
-    fun finish(jobId: String, resultBytes: ByteArray, pages: Int = 1) {
+    // fileRef non nul simule un resultat "avec fichier" (translate) : ecrit alors result.cbz avec
+    // le nom Drive attendu par InstallJobWorker.downloadResult (recherche par fileId, pas par nom).
+    fun finish(jobId: String, resultBytes: ByteArray, pages: Int = 1, fileRef: FileRef? = null, quality: Quality? = null): String? {
         val request = readRequest(jobId)
         val folderId = jobFolderId(jobId)
-        val cbz = FakeFile(name = "result.cbz", parents = mutableListOf(folderId), mimeType = "application/vnd.comicbook+zip", modifiedTime = nowIso(), bytes = resultBytes)
-        drive.files[cbz.id] = cbz
+        var resultFileId: String? = null
+        if (fileRef != null) {
+            val cbz = FakeFile(name = "result.cbz", parents = mutableListOf(folderId), mimeType = "application/vnd.comicbook+zip", modifiedTime = nowIso(), bytes = resultBytes)
+            drive.files[cbz.id] = cbz
+            resultFileId = cbz.id
+        }
         val result = ResultJson(
             jobId = jobId,
             finishedAt = nowIso(),
             mode = request.options.mode,
-            file = null,
+            file = fileRef,
             localFolderName = request.mihonPath.series,
             chapterFileName = request.mihonPath.chapter,
             pages = pages,
+            quality = quality,
         )
         writeJson(folderId, "result.json", ProtocolJson.encodeToString(ResultJson.serializer(), result).toByteArray())
+        return resultFileId
     }
 
     fun fail(jobId: String, code: String, message: String) {

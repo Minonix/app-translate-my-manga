@@ -16,6 +16,13 @@ import java.io.File
 interface JobTransport {
     suspend fun ensureLayout(): LayoutInfo
     suspend fun accountEmail(): String?
+
+    // uploadSource() et writeRequest() creent chacun le dossier du job s'ils recoivent un
+    // jobFolderId nul (createFolder n'est pas idempotent, contrairement a ensureLayout) : pour un
+    // job qui appelle les deux (mode translate), ensureJobFolder() doit etre appele une seule fois
+    // en amont pour eviter deux dossiers Drive distincts portant le meme nom.
+    suspend fun ensureJobFolder(jobId: String): String
+
     suspend fun uploadSource(
         job: JobEntity,
         file: File,

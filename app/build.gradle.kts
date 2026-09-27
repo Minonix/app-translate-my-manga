@@ -113,6 +113,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.protobuf)
     implementation(libs.okhttp)
     implementation(libs.play.services.auth)
+    implementation(libs.work.runtime.ktx)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
@@ -127,4 +128,8 @@ dependencies {
     testImplementation(libs.roborazzi.junit.rule)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    // ponytail: work-testing est publie pour androidTest, mais c'est un jar JVM ordinaire
+    // (TestListenableWorkerBuilder, WorkManagerTestInitHelper) qui fonctionne tel quel sous
+    // Robolectric en testImplementation, comme le reste de la suite de tests de ce module.
+    testImplementation(libs.work.testing)
 }

@@ -66,6 +66,12 @@ class DriveTransport(
 
     override suspend fun accountEmail(): String? = driveApi.about()
 
+    override suspend fun ensureJobFolder(jobId: String): String {
+        val jobsId = requireNotNull(prefs.driveJobsId.first()) { "ensureLayout() non appele" }
+        return driveApi.findChild(jobsId, jobId, folder = true)?.id
+            ?: driveApi.createFolder(jobsId, jobId)
+    }
+
     override suspend fun uploadSource(
         job: JobEntity,
         file: File,

@@ -17,6 +17,9 @@ interface SeriesDao {
     @Query("SELECT * FROM series WHERE seriesKey = :seriesKey")
     fun observe(seriesKey: String): Flow<SeriesEntity?>
 
+    @Query("SELECT * FROM series WHERE seriesKey = :seriesKey")
+    suspend fun get(seriesKey: String): SeriesEntity?
+
     @Upsert
     suspend fun upsert(series: SeriesEntity)
 
@@ -68,6 +71,9 @@ interface ChapterDao {
     @Query("SELECT * FROM chapter")
     fun observeAll(): Flow<List<ChapterEntity>>
 
+    @Query("SELECT * FROM chapter WHERE chapterKey = :chapterKey")
+    suspend fun get(chapterKey: String): ChapterEntity?
+
     @Upsert
     suspend fun upsertAll(chapters: List<ChapterEntity>)
 
@@ -85,6 +91,9 @@ interface DownloadedChapterDao {
 
     @Query("SELECT * FROM downloaded_chapter")
     fun observeAll(): Flow<List<DownloadedChapterEntity>>
+
+    @Query("SELECT * FROM downloaded_chapter WHERE mihonPath = :mihonPath")
+    suspend fun get(mihonPath: String): DownloadedChapterEntity?
 
     @Upsert
     suspend fun upsert(chapter: DownloadedChapterEntity)
@@ -136,6 +145,12 @@ interface JobDao {
 
     @Query("SELECT * FROM job WHERE mihonPath = :mihonPath ORDER BY createdAt DESC")
     fun observeForMihonPath(mihonPath: String): Flow<List<JobEntity>>
+
+    @Query("SELECT * FROM job WHERE mihonPath = :mihonPath ORDER BY createdAt DESC")
+    suspend fun getAllForMihonPath(mihonPath: String): List<JobEntity>
+
+    @Query("SELECT * FROM job WHERE jobId IN (:jobIds)")
+    suspend fun getAll(jobIds: List<String>): List<JobEntity>
 
     @Query("SELECT * FROM job WHERE jobId = :jobId")
     suspend fun get(jobId: String): JobEntity?

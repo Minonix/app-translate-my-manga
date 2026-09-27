@@ -14,6 +14,20 @@ fun JobEntity.isActive(): Boolean = phoneState in ACTIVE_PHONE_STATES && pcState
 fun JobEntity.isFailed(): Boolean = phoneState == "FAILED" || pcState == "failed"
 fun JobEntity.isCancelled(): Boolean = pcState == "cancelled"
 
+// PLAN_GEMINI.md 5.4 : table exacte des transitions autorisees ("toute autre est un bug").
+// null = creation (JobRepository.createJobs). INSTALLED/FAILED/CANCEL_REQUESTED sont terminaux
+// (un retry() cree un nouveau job, il ne fait pas rejouer l'ancien).
+private val PHONE_STATE_TRANSITIONS: Map<String?, Set<String>> = mapOf(
+    null to setOf("PREPARING"),
+    "PREPARING" to setOf("UPLOADING", "SENT", "CANCEL_REQUESTED", "FAILED"),
+    "UPLOADING" to setOf("SENT", "CANCEL_REQUESTED", "FAILED"),
+    "SENT" to setOf("RESULT_READY", "INSTALLED", "CANCEL_REQUESTED"),
+    "RESULT_READY" to setOf("DOWNLOADING"),
+    "DOWNLOADING" to setOf("INSTALLED", "FAILED"),
+)
+
+fun isAllowedPhoneStateTransition(from: String?, to: String): Boolean = to in (PHONE_STATE_TRANSITIONS[from] ?: emptySet())
+
 data class ChapterFacts(
     val downloaded: Boolean,
     val inCatalog: Boolean,
