@@ -1,6 +1,6 @@
 # Progress - TMM Mobile
 
-Dernière mise à jour : 2026-09-27 (E10)
+Dernière mise à jour : 2026-09-27 (fin du plan, E11 + clôture)
 
 Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn counts, gates) ne correspondaient à aucun code réel. Repris directement, sans mise en scène, à partir de l'état réel du dépôt (`git log`).
 
@@ -168,4 +168,4 @@ Note : les entrées précédentes de ce fichier (multi-agents fictifs, spawn cou
     - `AndroidManifest.xml` relu : seule `MainActivity` est `exported="true"` (nécessaire pour le lanceur), permissions limitées à celles utilisées (réseau, service de premier plan).
     - `.gitignore` déjà correct depuis E0 (`*.jks`, `*.keystore`, `keystore.properties` ignorés — R12).
   - Non fait, faute de pouvoir compiler : correction des éventuelles erreurs `lintDebug` réelles (seule une revue manuelle a été possible), génération effective des APK debug/release, captures Roborazzi de non-régression finale (section 8 du plan). Le rapport `docs/RAPPORT_GEMINI.md` mentionné par le plan (R14) n'existe pas dans ce dépôt — ce fichier `progress.md` en tient lieu depuis le début de cette suite de sessions (voir note en tête de fichier) et documente les mêmes informations (versions vérifiées, BLOQUÉ-n, écarts).
-- [ ] Suite de tests E2E & durcissement adversarial
+- [x] Suite de tests E2E & durcissement adversarial — ~~ligne héritée du montage multi-agents fictif d'avant cette suite de sessions~~ : vérifié que `docs/PLAN_GEMINI.md` (référence unique, R3 interdit de le modifier) s'arrête à E11 et ne définit aucune étape « E2E »/« durcissement adversarial » distincte. La liste minimale de classes de test de la section 8 du plan y tient lieu de critère de complétude : les 25 classes génériques et les 11 `<Écran>ViewModelTest` (un par écran ayant son propre ViewModel — Vide/Offline sont des états de l'écran Accueil, pas des écrans séparés, donc sans ViewModel dédié) sont toutes présentes dans `app/src/test/java` (vérifié par recherche exhaustive nom par nom). Rien à ajouter sans sortir du périmètre R1/R10 (« tu exécutes, tu ne conçois pas » / pas de fonctionnalité en plus).
