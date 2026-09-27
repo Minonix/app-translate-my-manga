@@ -17,8 +17,8 @@ import java.time.Instant
 import kotlinx.coroutines.flow.first
 
 // PLAN_GEMINI.md 5.12/CdC 7.3.10 : ecrit cancel.json/received.json pour les jobs qui les doivent
-// encore, applique la retention Drive. La confirmation des SettingsCommand (pending_commands_json)
-// est deferree a E9/SettingsSync : on ne les touche pas ici.
+// encore, applique la retention Drive, et envoie les SettingsCommand en attente (5.18/SettingsSync ;
+// la confirmation elle-meme est pilotee par l'ecran Reglages via SettingsSync.awaitConfirmation()).
 class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -31,6 +31,8 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         return try {
             val now = Instant.now().toString()
             val retention = prefs.retention.first()
+
+            container.settingsSync.sendPendingCommands()
 
             for (job in db.jobDao().observeAll().first()) {
                 if (job.phoneState == "CANCEL_REQUESTED" && job.cancelWrittenAt == null) {

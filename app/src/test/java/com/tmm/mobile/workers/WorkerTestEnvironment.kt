@@ -13,6 +13,7 @@ import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.AppPrefs
 import com.tmm.mobile.data.JobRepository
 import com.tmm.mobile.data.RefreshCoordinator
+import com.tmm.mobile.data.SettingsSync
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.fake.FakeDrive
@@ -93,5 +94,6 @@ class FakeAppContainer(
     override val refreshCoordinator: RefreshCoordinator by lazy {
         RefreshCoordinator(db, prefs, transport, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
     }
+    override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, transport, workManager) }
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
 }
