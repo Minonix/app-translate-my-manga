@@ -24,6 +24,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val GOOGLE_EMAIL = stringPreferencesKey("google_email")
         val AUTH_EXPIRED = booleanPreferencesKey("auth_expired")
+        val DRIVE_APP_ID = stringPreferencesKey("drive_app_id")
         val DRIVE_ROOT_ID = stringPreferencesKey("drive_root_id")
         val DRIVE_JOBS_ID = stringPreferencesKey("drive_jobs_id")
         val DRIVE_PC_ID = stringPreferencesKey("drive_pc_id")
@@ -51,6 +52,9 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
 
     val authExpired: Flow<Boolean> = dataStore.data.map { it[Keys.AUTH_EXPIRED] ?: false }
     suspend fun setAuthExpired(value: Boolean) = set(Keys.AUTH_EXPIRED, value)
+
+    val driveAppId: Flow<String?> = dataStore.data.map { it[Keys.DRIVE_APP_ID] }
+    suspend fun setDriveAppId(value: String?) = setOrRemove(Keys.DRIVE_APP_ID, value)
 
     val driveRootId: Flow<String?> = dataStore.data.map { it[Keys.DRIVE_ROOT_ID] }
     suspend fun setDriveRootId(value: String?) = setOrRemove(Keys.DRIVE_ROOT_ID, value)

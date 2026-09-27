@@ -31,13 +31,16 @@ class DriveTransport(
 
     override suspend fun ensureLayout(): LayoutInfo {
         var created = false
+        var appId = prefs.driveAppId.first()
+        if (appId == null) {
+            appId = driveApi.findChild("root", "App", folder = true)?.id
+                ?: driveApi.createFolder("root", "App").also { created = true }
+            prefs.setDriveAppId(appId)
+        }
         var rootId = prefs.driveRootId.first()
         if (rootId == null) {
-            // DIAGNOSTIC TEMPORAIRE : retour a la version sans dossier "App" pour isoler la cause
-            // des NPE deterministes en CI (RefreshCoordinatorTest/SettingsSyncTest/DriveTransportTest/
-            // JobFlowTest/SendJobWorkerTest) apparues avec le commit 77bc0c6.
-            rootId = driveApi.findChild("root", "TranslateMyManga", folder = true)?.id
-                ?: driveApi.createFolder("root", "TranslateMyManga").also { created = true }
+            rootId = driveApi.findChild(appId, "TranslateMyManga", folder = true)?.id
+                ?: driveApi.createFolder(appId, "TranslateMyManga").also { created = true }
             prefs.setDriveRootId(rootId)
         }
         var jobsId = prefs.driveJobsId.first()
