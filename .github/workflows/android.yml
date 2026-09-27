@@ -4,7 +4,6 @@ on:
   push:
     branches: [main, feat/v1-android]
     tags: ["v*"]
-  pull_request:
   workflow_dispatch:
 
 jobs:

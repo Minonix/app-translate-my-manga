@@ -3,6 +3,7 @@ package com.tmm.mobile.transport
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.google.android.gms.auth.api.identity.ClearTokenRequest
 import com.google.android.gms.auth.api.identity.AuthorizationClient
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.AuthorizationResult
@@ -41,7 +42,7 @@ class GoogleAuth(context: Context) {
     suspend fun clearToken(token: String) {
         try {
             suspendCancellableCoroutine<Unit> { cont ->
-                client.clearToken(token)
+                client.clearToken(ClearTokenRequest.builder().setToken(token).build())
                     .addOnSuccessListener { cont.resume(Unit) }
                     .addOnFailureListener { cont.resumeWithException(it) }
             }

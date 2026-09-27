@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.screens.translationsettings
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle

@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.compose.viewModelFactory
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewmodel.initializer
 import androidx.navigation.NavController
 import com.tmm.mobile.TmmApp
@@ -70,7 +70,7 @@ fun MainRoute(nav: NavController) {
         // ponytail: NewTranslationViewModel reste provisoire (mock, pas de vraie creation de job) -
         // brancher container.jobRepository quand cet ecran sera traite (hors perimetre Accueil).
         val newTranslationVm: NewTranslationViewModel = viewModel(
-            factory = viewModelFactory { initializer { NewTranslationViewModel() } },
+            factory = viewModelFactory { initializer { NewTranslationViewModel(container) } },
         )
         val newTranslationState by newTranslationVm.state.collectAsStateWithLifecycle()
         NewTranslationScreen(

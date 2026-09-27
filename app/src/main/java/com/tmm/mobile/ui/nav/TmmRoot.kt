@@ -52,7 +52,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
-private val tabRouteOf = listOf(HomeScreenRoute::class, LibraryScreenRoute::class, TransfersScreenRoute::class, QueueScreenRoute::class, CatalogScreenRoute::class)
+private val tabRouteOf = listOf(HomeRoute::class, LibraryRoute::class, TransfersRoute::class, QueueRoute::class, CatalogRoute::class)
 private val tabItems = listOf(
     TmmIconId.Home to "Accueil",
     TmmIconId.Grid to "Bibliothèque",

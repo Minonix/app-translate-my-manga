@@ -247,7 +247,7 @@ private fun ChapterJoinRow.toSeriesChapter(quality: ChapterQualityEntity?): Seri
     val number = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
     val untranslatedPages = quality?.alerts?.map { it.page }?.distinct()?.size ?: 0
     val pagesTranslated = (quality?.totalPages ?: 0) - untranslatedPages
-    val (kind, label, color): Triple<StatusTone, String, Color> = when (status) {
+    val (kind, label, color) = when (status) {
         ChapterStatus.TO_SEND -> Triple(StatusTone.Send, "Sur le téléphone · à envoyer", TmmColors.dangerText)
         ChapterStatus.QUEUED -> Triple(StatusTone.Busy, "En file sur le PC", TmmColors.ink)
         ChapterStatus.TRANSLATING -> {
