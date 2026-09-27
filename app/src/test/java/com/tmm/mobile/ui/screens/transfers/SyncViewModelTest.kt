@@ -70,7 +70,7 @@ class SyncViewModelTest {
         env.db.jobDao().upsert(resultReadyJob("frieren", "140"))
 
         val vm = SyncViewModel(env.container)
-        val state = vm.state.first { it.downCount == 1 }
+        val state = vm.state.first { it.downCount == 1 && it.downSeries.isNotEmpty() }
 
         assertEquals(1, state.downCount)
         assertEquals("Frieren", state.downSeries.first().title)
@@ -96,7 +96,7 @@ class SyncViewModelTest {
         env.db.jobDao().upsert(resultReadyJob("frieren", "140"))
 
         val vm = SyncViewModel(env.container)
-        vm.state.first { it.downCount == 1 }
+        vm.state.first { it.downCount == 1 && it.downSeries.isNotEmpty() }
 
         vm.onEvent(SyncEvent.GetDown)
         val state = vm.state.first { it.fetchState is FetchState.Done }

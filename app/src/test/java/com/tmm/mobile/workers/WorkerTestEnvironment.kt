@@ -24,10 +24,11 @@ import com.tmm.mobile.transport.JobTransport
 import java.io.File
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import okhttp3.OkHttpClient
@@ -55,12 +56,16 @@ class WorkerTestEnvironment {
     lateinit var container: FakeAppContainer
         private set
 
+    private val mainThread = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+
     private fun nowIso() = Instant.ofEpochMilli(clock.millis).toString()
 
     fun setUp() {
         // viewModelScope tourne sur Dispatchers.Main, c'est-a-dire le Looper principal Robolectric,
-        // qui n'avance pas pendant runTest : sans ceci, vm.state.first {} attend indefiniment.
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        // qui n'avance pas pendant runTest : sans ceci, vm.state.first {} attend indefiniment. Un vrai
+        // thread unique (comme le Main en prod) plutot qu'un TestDispatcher : les emissions Room et
+        // DataStore arrivent d'autres threads et s'entrelacaient avec l'ordonnanceur de test.
+        Dispatchers.setMain(mainThread)
         drive.start()
         pc = FakePc(drive) { nowIso() }
         val dataStore = PreferenceDataStoreFactory.create(
@@ -82,6 +87,7 @@ class WorkerTestEnvironment {
 
     fun tearDown() {
         Dispatchers.resetMain()
+        mainThread.close()
         drive.shutdown()
         db.close()
     }

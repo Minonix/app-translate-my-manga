@@ -51,7 +51,7 @@ class SettingsViewModelTest {
         val now = env.clock.millis
         val heartbeat = Heartbeat(
             pcName = "PC-BUREAU", appVersion = "1.2.0",
-            updatedAt = Instant.ofEpochMilli(now - 30_000L).toString(),
+            updatedAt = Instant.ofEpochMilli(now - 2 * 60_000L).toString(),
             slots = 2, queue = QueueCounts(active = 0, waiting = 0, failed = 0),
         )
         env.prefs.setHeartbeatJson(ProtocolJson.encodeToString(Heartbeat.serializer(), heartbeat))
@@ -70,7 +70,7 @@ class SettingsViewModelTest {
         )
 
         val vm = SettingsViewModel(env.container)
-        val state = vm.state.first { it.pcName == "PC-BUREAU" }
+        val state = vm.state.first { it.pcName == "PC-BUREAU" && it.isPcOnline && it.wifiOnly && it.driveRetention == DriveRetention.Days30 && it.googleAccount.isNotEmpty() }
 
         assertEquals("PC-BUREAU", state.pcName)
         assertTrue(state.pcVersionProtocol.contains("1.2.0"))
@@ -108,7 +108,7 @@ class SettingsViewModelTest {
 
         val expected = DriveRetention.Never.next()
         assertEquals(expected, vm.state.value.driveRetention)
-        val persisted = env.prefs.retention.first()
+        val persisted = env.prefs.retention.first { it != Retention.NEVER }
         assertEquals(
             when (expected) {
                 DriveRetention.Never -> Retention.NEVER
@@ -126,6 +126,6 @@ class SettingsViewModelTest {
         vm.onEvent(SettingsEvent.SetWifiOnly(true))
 
         assertTrue(vm.state.value.wifiOnly)
-        assertTrue(env.prefs.wifiOnly.first())
+        assertTrue(env.prefs.wifiOnly.first { it })
     }
 }

@@ -65,7 +65,7 @@ class CatalogViewModelTest {
         )
 
         val vm = CatalogViewModel(env.container)
-        val state = vm.state.first { it.totalSeries == 2 }
+        val state = vm.state.first { it.totalSeries == 2 && it.absentSeries == 1 && it.categories.firstOrNull()?.count == 1 }
 
         assertEquals(2, state.totalSeries)
         assertEquals(1, state.absentSeries)

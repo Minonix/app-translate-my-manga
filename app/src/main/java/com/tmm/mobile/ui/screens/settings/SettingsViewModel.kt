@@ -57,8 +57,12 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     private suspend fun observeHeartbeat() {
         container.prefs.heartbeatJson.collect { json ->
             val heartbeat = json?.let { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }
-            _state.update { it.copy(pcName = pcNameOf(heartbeat), pcVersionProtocol = pcVersionOf(heartbeat)) }
-            _state.update { it.copy(isPcOnline = isOnline(heartbeat), pcLastSignalText = lastSignalTextOf(heartbeat)) }
+            _state.update {
+                it.copy(
+                    pcName = pcNameOf(heartbeat), pcVersionProtocol = pcVersionOf(heartbeat),
+                    isPcOnline = isOnline(heartbeat), pcLastSignalText = lastSignalTextOf(heartbeat),
+                )
+            }
         }
     }
 
