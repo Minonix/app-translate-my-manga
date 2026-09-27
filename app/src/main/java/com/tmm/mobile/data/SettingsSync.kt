@@ -1,6 +1,7 @@
 package com.tmm.mobile.data
 
 import androidx.work.WorkManager
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.SettingsCommand
@@ -10,6 +11,7 @@ import com.tmm.mobile.transport.JobTransport
 import com.tmm.mobile.workers.enqueueOutbox
 import java.time.Instant
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
@@ -77,7 +79,15 @@ class SettingsSync(
     suspend fun awaitConfirmation(cmdId: String): SyncBanner {
         repeat(CONFIRM_MAX_ATTEMPTS) {
             val target = readPending().find { it.command.cmdId == cmdId } ?: return SyncBanner.APPLIED
-            val settings = transport.readSettings()
+            // Reseau ou session Drive en echec : tentative perdue, pas de crash (appele depuis viewModelScope).
+            val settings = try {
+                transport.readSettings()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("SettingsSync", "lecture settings.json impossible : ${e.message}")
+                null
+            }
             if (settings != null && isConfirmed(settings, target.command)) {
                 removeConfirmed(settings)
                 return SyncBanner.APPLIED
