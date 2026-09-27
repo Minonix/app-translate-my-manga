@@ -60,15 +60,10 @@ class WorkerTestEnvironment {
     private val watchdog = Thread {
         try {
             Thread.sleep(45_000)
-            val dump = Thread.getAllStackTraces().entries.joinToString("
-
-") { (t, stack) ->
-                "THREAD ${t.name} ${t.state}
-" + stack.take(40).joinToString("
-") { "    at $it" }
+            val dump = Thread.getAllStackTraces().entries.joinToString("\n\n") { (t, stack) ->
+                "THREAD ${t.name} ${t.state}\n" + stack.take(40).joinToString("\n") { "    at $it" }
             }
-            System.err.println("=== WATCHDOG DUMP ===
-$dump")
+            System.err.println("=== WATCHDOG DUMP ===\n$dump")
         } catch (_: InterruptedException) {
         }
     }.apply { isDaemon = true }
