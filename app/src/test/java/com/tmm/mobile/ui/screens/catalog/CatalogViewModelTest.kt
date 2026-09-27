@@ -70,7 +70,7 @@ class CatalogViewModelTest {
         assertEquals(2, state.totalSeries)
         assertEquals(1, state.absentSeries)
         assertEquals(1, state.totalCategories)
-        assertEquals(listOf("En cours"), state.categories.map { it.name })
+        assertEquals(listOf("En cours", "Sans catégorie"), state.categories.map { it.name })
         assertEquals(1, state.categories.first { it.name == "En cours" }.count)
         assertEquals(CatalogImportStep.Idle, state.importStep)
     }

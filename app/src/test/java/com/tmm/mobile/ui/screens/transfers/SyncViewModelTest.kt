@@ -67,10 +67,11 @@ class SyncViewModelTest {
 
     @Test
     fun state_countsResultReadyJobsAsToFetch() = runTest {
+        env.db.seriesDao().upsertAll(listOf(series("frieren", "Frieren")))
         env.db.jobDao().upsert(resultReadyJob("frieren", "140"))
 
         val vm = SyncViewModel(env.container)
-        val state = vm.state.first { it.downCount == 1 && it.downSeries.isNotEmpty() }
+        val state = vm.state.first { it.downCount == 1 && it.downSeries.firstOrNull()?.title == "Frieren" }
 
         assertEquals(1, state.downCount)
         assertEquals("Frieren", state.downSeries.first().title)

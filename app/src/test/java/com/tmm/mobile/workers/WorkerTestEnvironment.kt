@@ -24,11 +24,10 @@ import com.tmm.mobile.transport.JobTransport
 import java.io.File
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import okhttp3.OkHttpClient
@@ -56,16 +55,31 @@ class WorkerTestEnvironment {
     lateinit var container: FakeAppContainer
         private set
 
-    private val mainThread = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    // Diagnostic : un test bloque plus de 45 s ecrit l'etat de tous les threads sur stderr
+    // (visible dans le rapport de test de la CI), avant le timeout de 60 s de runTest.
+    private val watchdog = Thread {
+        try {
+            Thread.sleep(45_000)
+            val dump = Thread.getAllStackTraces().entries.joinToString("
+
+") { (t, stack) ->
+                "THREAD ${t.name} ${t.state}
+" + stack.take(40).joinToString("
+") { "    at $it" }
+            }
+            System.err.println("=== WATCHDOG DUMP ===
+$dump")
+        } catch (_: InterruptedException) {
+        }
+    }.apply { isDaemon = true }
 
     private fun nowIso() = Instant.ofEpochMilli(clock.millis).toString()
 
     fun setUp() {
         // viewModelScope tourne sur Dispatchers.Main, c'est-a-dire le Looper principal Robolectric,
-        // qui n'avance pas pendant runTest : sans ceci, vm.state.first {} attend indefiniment. Un vrai
-        // thread unique (comme le Main en prod) plutot qu'un TestDispatcher : les emissions Room et
-        // DataStore arrivent d'autres threads et s'entrelacaient avec l'ordonnanceur de test.
-        Dispatchers.setMain(mainThread)
+        // qui n'avance pas pendant runTest : sans ceci, vm.state.first {} attend indefiniment.
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        watchdog.start()
         drive.start()
         pc = FakePc(drive) { nowIso() }
         val dataStore = PreferenceDataStoreFactory.create(
@@ -86,8 +100,8 @@ class WorkerTestEnvironment {
     }
 
     fun tearDown() {
+        watchdog.interrupt()
         Dispatchers.resetMain()
-        mainThread.close()
         drive.shutdown()
         db.close()
     }

@@ -3,6 +3,7 @@ package com.tmm.mobile.ui.screens.main
 import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
+import com.tmm.mobile.data.db.LocalFrChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
@@ -60,6 +61,13 @@ class MainViewModelTest {
                 mihonPath = "Mihon/one-piece/1120", sourceDir = "Mihon", seriesDir = "one-piece", chapterDir = "1120",
                 documentUri = "doc://1120", isCbz = true, sizeBytes = 10_000_000L, lastModified = 0L, pageCount = 18,
                 seriesKey = "one-piece", chapterKey = "one-piece/1120", number = 1120f,
+            ),
+        )
+        // Installation recue : le chapitre FR local existe (sinon deriveStatus retombe sur TO_SEND).
+        env.db.localFrChapterDao().upsert(
+            LocalFrChapterEntity(
+                localPath = "content://fr/1120", folderName = "One Piece", fileName = "1120.cbz",
+                documentUri = "content://fr/1120", lastModified = 0L, jobId = "job-1", mihonPath = "Mihon/one-piece/1120",
             ),
         )
         env.db.jobDao().upsert(

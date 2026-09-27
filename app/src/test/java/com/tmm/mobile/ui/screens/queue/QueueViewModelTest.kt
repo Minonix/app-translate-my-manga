@@ -93,6 +93,7 @@ class QueueViewModelTest {
         assertEquals("job-4", withFailure.failedJobs.first().jobId)
 
         // Un retry() cree un job plus recent sur le meme mihonPath -> l'echec disparait de la liste.
+        env.clock.millis += 1_000L // horloge figee : le nouveau job doit etre strictement plus recent
         vm.onEvent(QueueEvent.RetryFailedJob("job-4"))
         val afterRetry = vm.state.first { it.failedJobs.isEmpty() }
         assertTrue(afterRetry.failedJobs.isEmpty())
@@ -107,9 +108,10 @@ class QueueViewModelTest {
         vm.state.first { it.waitingJobs.size == 1 }
 
         vm.onEvent(QueueEvent.RemoveWaitingJob("job-5"))
-        val state = vm.state.first { it.waitingJobs.isEmpty() }
 
-        assertTrue(state.waitingJobs.isEmpty())
-        assertEquals("CANCEL_REQUESTED", env.db.jobDao().get("job-5")?.phoneState)
+        // PLAN_GEMINI.md 5.x : SENT -> CANCEL_REQUESTED, le job reste en attente jusqu'a la
+        // confirmation du PC (CANCEL_REQUESTED compte comme actif).
+        val job = env.db.jobDao().observeAll().first { jobs -> jobs.single().phoneState == "CANCEL_REQUESTED" }.single()
+        assertEquals("CANCEL_REQUESTED", job.phoneState)
     }
 }
