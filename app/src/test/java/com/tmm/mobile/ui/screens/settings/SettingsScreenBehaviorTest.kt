@@ -34,17 +34,26 @@ class SettingsScreenBehaviorTest {
     private var catalogNavigated = false
     private var onboardingNavigated = false
     private var translationSettingsNavigated = false
+    private val events = mutableListOf<SettingsEvent>()
 
     private fun setState(initial: SettingsState = MockupData.settings): () -> SettingsState {
         var state by mutableStateOf(initial)
-        val vm = SettingsViewModel()
         composeRule.setContent {
             TmmTheme {
                 SettingsScreen(
                     state = state,
+                    // Le ViewModel reel (E10) ecrit dans AppPrefs et lance les selecteurs Android depuis
+                    // SettingsRoute : ici on teste l'ecran seul, avec la meme logique d'etat.
                     onEvent = { event ->
-                        vm.onEvent(event)
-                        state = vm.state.value
+                        events += event
+                        state = when (event) {
+                            SettingsEvent.ChangeGoogleAccount -> state.copy(toast = SettingsToast.ChooseAccount)
+                            SettingsEvent.CycleDriveRetention -> state.copy(driveRetention = state.driveRetention.next())
+                            is SettingsEvent.SetWifiOnly -> state.copy(wifiOnly = event.enabled)
+                            SettingsEvent.ToggleWifiOnly -> state.copy(wifiOnly = !state.wifiOnly)
+                            SettingsEvent.DismissToast -> state.copy(toast = null)
+                            SettingsEvent.ChangeMihonFolder, SettingsEvent.ExportLogs -> state
+                        }
                     },
                     onNavigateBack = { backNavigated = true },
                     onNavigateCatalog = { catalogNavigated = true },
@@ -105,16 +114,15 @@ class SettingsScreenBehaviorTest {
     }
 
     @Test
-    fun changeMihonFolder_showsToast() {
-        val getState = setState()
+    fun changeMihonFolder_emitsEvent() {
+        setState()
         // There are two "Changer" buttons: index 0 is Account, index 1 is Mihon folder
         // We find the Mihon row action button
         composeRule.onNodeWithText("Dossier Mihon").assertExists()
         composeRule.onNodeWithText("/Documents/Mihon").assertExists()
         // Click second "Changer"
         composeRule.onAllNodes(androidx.compose.ui.test.hasText("Changer"))[1].performClick()
-        assertEquals(SettingsToast.FolderPicker, getState().toast)
-        composeRule.onNodeWithText("Sélecteur de dossier Android").assertExists()
+        assertTrue(events.contains(SettingsEvent.ChangeMihonFolder))
     }
 
     @Test
@@ -149,10 +157,9 @@ class SettingsScreenBehaviorTest {
     }
 
     @Test
-    fun exportLogs_showsToast() {
-        val getState = setState()
+    fun exportLogs_emitsEvent() {
+        setState()
         composeRule.onNodeWithText("Exporter").performScrollTo().performClick()
-        assertEquals(SettingsToast.LogsReady, getState().toast)
-        composeRule.onNodeWithText("Journaux prêts à partager").assertExists()
+        assertTrue(events.contains(SettingsEvent.ExportLogs))
     }
 }

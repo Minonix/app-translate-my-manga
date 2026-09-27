@@ -49,12 +49,4 @@ class QueueScreenshotTest {
             onEvent = {},
         )
     }
-
-    @Test
-    fun queueScreen_fail_retried() = capture("QueueScreen_fail_retried") {
-        QueueScreen(
-            state = MockupData.queue.copy(activeTab = QueueTab.Fail, isRetried = true),
-            onEvent = {},
-        )
-    }
 }

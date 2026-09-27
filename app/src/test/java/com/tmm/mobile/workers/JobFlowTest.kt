@@ -1,5 +1,6 @@
 package com.tmm.mobile.workers
 
+import com.tmm.mobile.data.flatten
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Data
 import androidx.work.ListenableWorker.Result

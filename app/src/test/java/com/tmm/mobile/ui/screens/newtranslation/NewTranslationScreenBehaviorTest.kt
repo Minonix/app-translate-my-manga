@@ -34,21 +34,49 @@ class NewTranslationScreenBehaviorTest {
 
     private fun setState(initial: NewTranslationState): () -> NewTranslationState {
         var state by mutableStateOf(initial)
-        val vm = NewTranslationViewModel(initial)
         composeRule.setContent {
             TmmTheme {
                 NewTranslationScreen(
                     state = state,
-                    onEvent = { event ->
-                        vm.onEvent(event)
-                        state = vm.state.value
-                    },
+                    onEvent = { event -> state = reduce(state, event) },
                     onClose = { closed = true },
                     onOpenQueue = { queueOpened = true },
                 )
             }
         }
         return { state }
+    }
+
+    // Le ViewModel reel (E10) lit Room : ici on teste l'ecran seul, avec la meme logique de
+    // selection que NewTranslationViewModel.onEvent (cf SeriesScreenBehaviorTest).
+    private fun reduce(state: NewTranslationState, event: NewTranslationEvent): NewTranslationState = when (event) {
+        is NewTranslationEvent.UpdateQuery -> state.copy(searchQuery = event.query)
+        is NewTranslationEvent.SelectSeries -> {
+            val series = state.seriesList.firstOrNull { it.seriesKey == event.seriesKey }
+            state.copy(
+                selectedSeriesKey = event.seriesKey,
+                selectedChapters = series?.chapters?.map { it.mihonPath }?.toSet() ?: emptySet(),
+                phase = NewTranslationPhase.Idle,
+            )
+        }
+        NewTranslationEvent.BackToSeries ->
+            state.copy(selectedSeriesKey = null, selectedChapters = emptySet(), phase = NewTranslationPhase.Idle)
+        is NewTranslationEvent.ToggleChapter -> state.copy(
+            selectedChapters = if (event.mihonPath in state.selectedChapters) {
+                state.selectedChapters - event.mihonPath
+            } else {
+                state.selectedChapters + event.mihonPath
+            },
+        )
+        NewTranslationEvent.ToggleAllChapters -> state.copy(
+            selectedChapters = if (state.isAllChaptersSelected) {
+                emptySet()
+            } else {
+                state.selectedSeries?.chapters?.map { it.mihonPath }?.toSet() ?: emptySet()
+            },
+        )
+        NewTranslationEvent.ToggleTranslateOnArrival -> state.copy(translateOnArrival = !state.translateOnArrival)
+        NewTranslationEvent.Send -> state.copy(phase = NewTranslationPhase.Done)
     }
 
     @Test
@@ -89,8 +117,8 @@ class NewTranslationScreenBehaviorTest {
         val series = MockupData.newTranslation.seriesList.first()
         val getState = setState(
             MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
             )
         )
 
@@ -115,8 +143,8 @@ class NewTranslationScreenBehaviorTest {
         val series = MockupData.newTranslation.seriesList.first()
         val getState = setState(
             MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
             )
         )
 
@@ -133,8 +161,8 @@ class NewTranslationScreenBehaviorTest {
         val series = MockupData.newTranslation.seriesList.first()
         val getState = setState(
             MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
             )
         )
 
@@ -151,8 +179,8 @@ class NewTranslationScreenBehaviorTest {
         val series = MockupData.newTranslation.seriesList.first()
         val getState = setState(
             MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
             )
         )
 

@@ -39,8 +39,8 @@ class NewTranslationScreenshotTest {
         val series = MockupData.newTranslation.seriesList.first()
         NewTranslationScreen(
             state = MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
             ),
             onEvent = {},
         )
@@ -51,8 +51,8 @@ class NewTranslationScreenshotTest {
         val series = MockupData.newTranslation.seriesList.first()
         NewTranslationScreen(
             state = MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
                 phase = NewTranslationPhase.Done,
             ),
             onEvent = {},

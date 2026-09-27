@@ -74,6 +74,7 @@ class MainViewModelTest {
                 statusUpdatedAt = null, resultJson = null, resultFileId = null,
                 createdAt = 1_700_000_000_000L, updatedAt = 1_700_000_000_000L, finishedAt = "2026-01-01T00:00:00Z",
                 installedAt = 1_700_000_000_000L, installedPath = null, receivedWrittenAt = null,
+                cancelWrittenAt = null, driveDeletedAt = null,
             ),
         )
 

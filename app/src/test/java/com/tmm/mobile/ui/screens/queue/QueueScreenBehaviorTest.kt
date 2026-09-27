@@ -13,7 +13,6 @@ import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,16 +29,23 @@ class QueueScreenBehaviorTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val events = mutableListOf<QueueEvent>()
+
     private fun setState(initial: QueueState): () -> QueueState {
         var state by mutableStateOf(initial)
-        val vm = QueueViewModel(initial)
         composeRule.setContent {
             TmmTheme {
                 QueueScreen(
                     state = state,
+                    // Le ViewModel reel (E10) passe par JobRepository pour retirer/verifier/reessayer :
+                    // ici on teste l'ecran seul (onglet et focus locaux, le reste est emis).
                     onEvent = { event ->
-                        vm.onEvent(event)
-                        state = vm.state.value
+                        events += event
+                        state = when (event) {
+                            is QueueEvent.SelectTab -> state.copy(activeTab = event.tab)
+                            is QueueEvent.FocusJob -> state.copy(focusedJobIndex = event.index)
+                            else -> state
+                        }
                     },
                     onOpenNewTranslation = {},
                     onOpenTranslationSettings = {},
@@ -88,33 +94,26 @@ class QueueScreenBehaviorTest {
     }
 
     @Test
-    fun removeWaitingJob_removesItemFromQueue() {
-        val getState = setState(MockupData.queue)
-        val initialWaitingCount = getState().waitingJobs.size
+    fun removeWaitingJob_emitsRemoveEvent() {
+        setState(MockupData.queue)
 
         composeRule.onNodeWithContentDescription("Retirer Kagurabachi · Ch. 53 de la file").performScrollTo().performClick()
-        assertEquals(initialWaitingCount - 1, getState().waitingJobs.size)
-        assertFalse(getState().waitingJobs.any { it.id == "k53" })
+        assertTrue(events.contains(QueueEvent.RemoveWaitingJob("k53")))
     }
 
     @Test
-    fun verifyPage_addsJobToQueue() {
-        val getState = setState(MockupData.queue.copy(activeTab = QueueTab.Done))
+    fun verifyPage_emitsVerifyEvent() {
+        setState(MockupData.queue.copy(activeTab = QueueTab.Done))
 
         composeRule.onAllNodesWithText("Vérifier la page")[0].performScrollTo().performClick()
-        composeRule.onNodeWithText("Dans la file").assertExists()
-        assertTrue(getState().waitingJobs.any { it.title.contains("p. 7") })
+        assertTrue(events.any { it is QueueEvent.VerifyPage })
     }
 
     @Test
-    fun retryFailedJob_marksRetriedAndAddsToQueue() {
-        val getState = setState(MockupData.queue.copy(activeTab = QueueTab.Fail))
+    fun retryFailedJob_emitsRetryEvent() {
+        setState(MockupData.queue.copy(activeTab = QueueTab.Fail))
 
         composeRule.onNodeWithText("Réessayer à partir de la page 9").performScrollTo().performClick()
-        assertTrue(getState().isRetried)
-        assertEquals(0, getState().failCount)
-        composeRule.onNodeWithText("Remis dans la file").assertExists()
-        composeRule.onNodeWithText("Aucun échec en cours.").assertExists()
-        assertTrue(getState().waitingJobs.any { it.id == "f139" })
+        assertTrue(events.contains(QueueEvent.RetryFailedJob("f139")))
     }
 }

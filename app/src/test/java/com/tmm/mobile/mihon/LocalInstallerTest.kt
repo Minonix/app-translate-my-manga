@@ -13,7 +13,7 @@ class LocalInstallerTest {
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     @Test fun install_writesRenamesAndVerifies() {
-        val root = createTempDir()
+        val root = kotlin.io.path.createTempDirectory().toFile()
         val fs = FakeMihonFs(root)
         val content = byteArrayOf(1, 2, 3, 4)
         val installer = LocalInstaller(fs)
@@ -35,7 +35,7 @@ class LocalInstallerTest {
     }
 
     @Test fun install_failsOnSizeMismatch_leavesNoPartialFile() {
-        val root = createTempDir()
+        val root = kotlin.io.path.createTempDirectory().toFile()
         val fs = FakeMihonFs(root)
         val content = byteArrayOf(1, 2, 3)
         val installer = LocalInstaller(fs)
@@ -56,7 +56,7 @@ class LocalInstallerTest {
     }
 
     @Test fun install_replacesExistingChapterFile() {
-        val root = createTempDir()
+        val root = kotlin.io.path.createTempDirectory().toFile()
         val fs = FakeMihonFs(root)
         val folder = File(root, "OnePiece").apply { mkdirs() }
         File(folder, "ch1.cbz").writeBytes(byteArrayOf(9, 9))

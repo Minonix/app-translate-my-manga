@@ -30,17 +30,18 @@ class CatalogScreenBehaviorTest {
 
     private var selectedCategory: String? = null
     private var libraryOpened = false
+    private val events = mutableListOf<CatalogEvent>()
 
     private fun setState(initial: CatalogState): () -> CatalogState {
         var state by mutableStateOf(initial)
-        val vm = CatalogViewModel(initial)
         composeRule.setContent {
             TmmTheme {
                 CatalogScreen(
                     state = state,
+                    // Le ViewModel reel (E10) relit la sauvegarde Mihon via SAF : ici on teste l'ecran seul.
                     onEvent = { event ->
-                        vm.onEvent(event)
-                        state = vm.state.value
+                        events += event
+                        if (event is CatalogEvent.SetImportStep) state = state.copy(importStep = event.step)
                     },
                     onOpenLibrary = { libraryOpened = true },
                     onOpenCategory = { selectedCategory = it },
@@ -65,16 +66,11 @@ class CatalogScreenBehaviorTest {
     }
 
     @Test
-    fun reimport_updatesWhenAndCounts() {
-        val getState = setState(MockupData.catalog)
+    fun reimport_emitsReimportEvent() {
+        setState(MockupData.catalog)
 
         composeRule.onNodeWithText("Relire la dernière sauvegarde").performScrollTo().performClick()
-        assertEquals("à l'instant", getState().importedWhen)
-        assertEquals(143, getState().totalSeries)
-        assertEquals(37, getState().absentSeries)
-        composeRule.onNodeWithText("Importée à l'instant · depuis Mihon/autobackup").assertExists()
-        composeRule.onNodeWithText("143").assertExists()
-        composeRule.onNodeWithText("37").assertExists()
+        assertEquals(listOf<CatalogEvent>(CatalogEvent.Reimport), events)
     }
 
     @Test

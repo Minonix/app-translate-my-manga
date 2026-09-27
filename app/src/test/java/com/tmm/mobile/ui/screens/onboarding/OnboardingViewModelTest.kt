@@ -32,7 +32,7 @@ class OnboardingViewModelTest {
     @Before
     fun setUp() {
         env.setUp()
-        root = createTempDir()
+        root = kotlin.io.path.createTempDirectory().toFile()
     }
 
     @After

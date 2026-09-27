@@ -26,7 +26,7 @@ class DownloadScannerTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), TmmDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        root = createTempDir()
+        root = kotlin.io.path.createTempDirectory().toFile()
     }
 
     @After
