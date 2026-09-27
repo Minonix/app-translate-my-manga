@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
@@ -101,11 +102,13 @@ fun TranslationSettingsScreen(
             }
 
             // Corps défilant
+            val enabled = !state.isReadOnly
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 0.dp),
+                    .padding(horizontal = 20.dp, vertical = 0.dp)
+                    .alpha(if (enabled) 1f else 0.45f),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 // Titre
@@ -124,7 +127,7 @@ fun TranslationSettingsScreen(
                 }
 
                 // Carte d'état de synchronisation avec le PC
-                SyncStatusCard(status = state.syncStatus)
+                SyncStatusCard(status = state.syncStatus, isReadOnly = state.isReadOnly, pcName = state.pcName)
 
                 // Groupe 1 : Langues
                 SettingsGroup(title = stringResource(R.string.trans_settings_group_languages)) {
@@ -132,12 +135,14 @@ fun TranslationSettingsScreen(
                         label = stringResource(R.string.trans_settings_source_language),
                         value = state.sourceLanguage.displaySummary,
                         onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.SourceLanguage)) },
+                        enabled = enabled,
                     )
                     PickRow(
                         label = stringResource(R.string.trans_settings_target_language),
                         value = state.targetLanguage.displaySummary,
                         onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.TargetLanguage)) },
                         showDivider = false,
+                        enabled = enabled,
                     )
                 }
 
@@ -147,6 +152,7 @@ fun TranslationSettingsScreen(
                         label = stringResource(R.string.trans_settings_engine),
                         value = state.translationProvider.displaySummary,
                         onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.TranslationProvider)) },
+                        enabled = enabled,
                     )
                     ToggleRow(
                         label = stringResource(R.string.trans_settings_auto_failover),
@@ -154,6 +160,7 @@ fun TranslationSettingsScreen(
                         checked = state.autoFailoverToLocalLlm,
                         onCheckedChange = { onEvent(TranslationSettingsEvent.SetAutoFailover(it)) },
                         showDivider = false,
+                        enabled = enabled,
                     )
                 }
 
@@ -165,6 +172,7 @@ fun TranslationSettingsScreen(
                         checked = state.autoVerifyAfterTranslate,
                         onCheckedChange = { onEvent(TranslationSettingsEvent.SetAutoVerify(it)) },
                         showDivider = false,
+                        enabled = enabled,
                     )
                 }
 
@@ -181,6 +189,7 @@ fun TranslationSettingsScreen(
                         options = listOf(1, 2, 3, 4),
                         selected = state.chapterConcurrency,
                         onSelect = { onEvent(TranslationSettingsEvent.SetChapterConcurrency(it)) },
+                        enabled = enabled,
                     )
 
                     val pageHint = if (state.concurrency == 2) {
@@ -194,6 +203,7 @@ fun TranslationSettingsScreen(
                         options = listOf(1, 2, 3, 4),
                         selected = state.concurrency,
                         onSelect = { onEvent(TranslationSettingsEvent.SetConcurrency(it)) },
+                        enabled = enabled,
                     )
 
                     val pileHint = if (state.pileSize == 3) {
@@ -207,6 +217,7 @@ fun TranslationSettingsScreen(
                         options = listOf(1, 2, 3),
                         selected = state.pileSize,
                         onSelect = { onEvent(TranslationSettingsEvent.SetPileSize(it)) },
+                        enabled = enabled,
                     )
 
                     ToggleRow(
@@ -219,6 +230,7 @@ fun TranslationSettingsScreen(
                         checked = state.useGpu,
                         onCheckedChange = { onEvent(TranslationSettingsEvent.SetUseGpu(it)) },
                         showDivider = false,
+                        enabled = enabled,
                     )
                 }
 
@@ -272,26 +284,31 @@ fun TranslationSettingsScreen(
                             label = stringResource(R.string.trans_settings_detector),
                             value = state.detector.displaySummary,
                             onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.BubbleDetector)) },
+                            enabled = enabled,
                         )
                         PickRow(
                             label = stringResource(R.string.trans_settings_ocr),
                             value = state.preferredOcr.displaySummary,
                             onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.PreferredOcr)) },
+                            enabled = enabled,
                         )
                         PickRow(
                             label = stringResource(R.string.trans_settings_inpainter),
                             value = state.inpainter.displaySummary,
                             onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.Inpainter)) },
+                            enabled = enabled,
                         )
                         PickRow(
                             label = stringResource(R.string.trans_settings_inpainting_size),
                             value = state.inpaintingSize.displaySummary,
                             onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.InpaintingSize)) },
+                            enabled = enabled,
                         )
                         PickRow(
                             label = stringResource(R.string.trans_settings_font),
                             value = state.font.displaySummary,
                             onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.Font)) },
+                            enabled = enabled,
                             showDivider = false,
                         )
                     }
@@ -344,18 +361,27 @@ fun TranslationSettingsScreen(
 }
 
 @Composable
-private fun SyncStatusCard(status: TranslationSyncStatus) {
+private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, pcName: String) {
     val sending = status == TranslationSyncStatus.Sending
-    val badgeBg = if (sending) TmmColors.C2B4C7E else TmmColors.C2F7D4F
-    val title = when (status) {
-        TranslationSyncStatus.Sending -> stringResource(R.string.trans_settings_sync_sending_title)
-        TranslationSyncStatus.Applied -> stringResource(R.string.trans_settings_sync_applied_title)
-        TranslationSyncStatus.Synced -> stringResource(R.string.trans_settings_sync_synced_title)
+    val waiting = status == TranslationSyncStatus.WaitingPc || isReadOnly
+    // PLAN_GEMINI.md 5.18/7.9 : fond #8A5A00 (ajouté) pour WAITING_PC (timeout 60s ou lecture seule).
+    val badgeBg = when {
+        waiting -> TmmColors.C8A5A00
+        sending -> TmmColors.C2B4C7E
+        else -> TmmColors.C2F7D4F
     }
-    val hint = if (sending) {
-        stringResource(R.string.trans_settings_sync_sending_hint)
-    } else {
-        stringResource(R.string.trans_settings_sync_synced_hint)
+    val title = when {
+        isReadOnly -> stringResource(R.string.trans_settings_sync_waiting_title)
+        status == TranslationSyncStatus.Sending -> stringResource(R.string.trans_settings_sync_sending_title)
+        status == TranslationSyncStatus.Applied -> stringResource(R.string.trans_settings_sync_applied_title_fmt, pcName)
+        status == TranslationSyncStatus.WaitingPc -> stringResource(R.string.trans_settings_sync_waiting_title)
+        else -> stringResource(R.string.trans_settings_sync_synced_title_fmt, pcName)
+    }
+    val hint = when {
+        isReadOnly -> stringResource(R.string.trans_settings_sync_readonly_hint)
+        sending -> stringResource(R.string.trans_settings_sync_sending_hint)
+        status == TranslationSyncStatus.WaitingPc -> stringResource(R.string.trans_settings_sync_waiting_hint)
+        else -> stringResource(R.string.trans_settings_sync_synced_hint)
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "spin")
@@ -449,12 +475,13 @@ private fun PickRow(
     value: String,
     onClick: () -> Unit,
     showDivider: Boolean = true,
+    enabled: Boolean = true,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+                .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -506,6 +533,7 @@ private fun ToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     showDivider: Boolean = true,
+    enabled: Boolean = true,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -536,6 +564,7 @@ private fun ToggleRow(
             TmmSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
+                enabled = enabled,
             )
         }
 
@@ -557,6 +586,7 @@ private fun SegmentedRow(
     options: List<Int>,
     selected: Int,
     onSelect: (Int) -> Unit,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = Modifier
@@ -600,6 +630,7 @@ private fun SegmentedRow(
                         .background(if (isOn) TmmColors.ink else androidx.compose.ui.graphics.Color.Transparent)
                         .selectable(
                             selected = isOn,
+                            enabled = enabled,
                             role = Role.RadioButton,
                             onClick = { onSelect(opt) },
                         ),

@@ -13,7 +13,7 @@
     <string name="home_pc_online">PC en ligne</string>
     <string name="home_pc_seen_fmt">PC vu il y a %1$s</string>
     <string name="home_pc_offline">PC hors ligne</string>
-    <string name="home_offline_bold">PC hors ligne depuis 2 jours.</string>
+    <string name="home_offline_bold">PC hors ligne %1$s.</string>
     <string name="home_offline_rest">Vos envois attendent sur Google Drive et partiront dès qu\'il se rallume.</string>
     <string name="home_todo_section_label">À faire · Mihon ↔ PC</string>
     <string name="home_todo_section_cd">Décalage entre Mihon et le PC</string>
@@ -85,6 +85,10 @@
     <plurals name="library_series_count">
         <item quantity="one">%1$d série</item>
         <item quantity="other">%1$d séries</item>
+    </plurals>
+    <plurals name="library_categories_count">
+        <item quantity="one">%1$d catégorie</item>
+        <item quantity="other">%1$d catégories</item>
     </plurals>
     <plurals name="library_series_selected">
         <item quantity="one">%1$d série sélectionnée</item>
@@ -297,7 +301,7 @@
     <string name="new_trans_chapters_subtitle">Téléchargés dans Mihon, absents du PC</string>
     <string name="new_trans_check_all">Tout cocher</string>
     <string name="new_trans_uncheck_all">Tout décocher</string>
-    <string name="new_trans_chapter_item_fmt">Ch. %1$d</string>
+    <string name="new_trans_chapter_item_fmt">Ch. %1$s</string>
     <string name="new_trans_pages_count_fmt">%1$d pages</string>
     <string name="new_trans_translate_on_arrival_title">Traduire à l\'arrivée</string>
     <string name="new_trans_translate_hint_on">Retour automatique dans Mihon une fois traduit</string>
@@ -349,9 +353,13 @@
     <string name="trans_settings_subtitle">Les mêmes réglages que dans TMM-Win</string>
     <string name="trans_settings_sync_sending_title">Envoi au PC...</string>
     <string name="trans_settings_sync_sending_hint">Via Google Drive, quelques secondes</string>
-    <string name="trans_settings_sync_applied_title">Appliqué sur PC-BUREAU</string>
-    <string name="trans_settings_sync_synced_title">Synchronisé avec PC-BUREAU</string>
+    <string name="trans_settings_sync_applied_title_fmt">Appliqué sur %1$s</string>
+    <string name="trans_settings_sync_synced_title_fmt">Synchronisé avec %1$s</string>
     <string name="trans_settings_sync_synced_hint">Pris en compte tout de suite, sans redémarrage</string>
+    <!-- PLAN_GEMINI.md 5.18/7.9 : bandeau WAITING_PC (ajouté) -->
+    <string name="trans_settings_sync_waiting_title">En attente du PC</string>
+    <string name="trans_settings_sync_waiting_hint">Sera appliqué au prochain démarrage du PC</string>
+    <string name="trans_settings_sync_readonly_hint">Les réglages s\'afficheront au premier signal du PC</string>
     <string name="trans_settings_group_languages">Langues</string>
     <string name="trans_settings_source_language">Langue source</string>
     <string name="trans_settings_target_language">Langue cible</string>
@@ -402,7 +410,11 @@
     <string name="onb_step3_series_label">séries</string>
     <string name="onb_step3_categories_label">catégories</string>
     <string name="onb_step3_downloaded_label">téléchargées</string>
-    <string name="onb_step3_todo_notice">12 chapitres téléchargés dans Mihon ne sont pas encore sur le PC. Vous pourrez les envoyer depuis l\'accueil.</string>
+    <plurals name="onb_step3_todo_notice">
+        <item quantity="one">%1$d chapitre téléchargé dans Mihon n\'est pas encore sur le PC. Vous pourrez l\'envoyer depuis l\'accueil.</item>
+        <item quantity="other">%1$d chapitres téléchargés dans Mihon ne sont pas encore sur le PC. Vous pourrez les envoyer depuis l\'accueil.</item>
+    </plurals>
+    <string name="onboarding_folder_missing">Dossier introuvable</string>
     <string name="onb_btn_connect_google">Se connecter avec Google</string>
     <string name="onb_btn_connecting">Connexion...</string>
     <string name="onb_btn_continue">Continuer</string>
@@ -449,6 +461,7 @@
     <string name="perm_expected_label">Dossier attendu</string>
     <string name="perm_expected_desc">Il doit contenir downloads/, local/ et autobackup/.</string>
     <string name="perm_access_restored">Accès rétabli</string>
+    <string name="perm_error_no_downloads">Ce dossier ne contient pas downloads/.</string>
     <string name="perm_btn_pick">Choisir à nouveau le dossier</string>
     <string name="perm_btn_verifying">Vérification...</string>
     <string name="perm_btn_back_home">Revenir à l\'accueil</string>

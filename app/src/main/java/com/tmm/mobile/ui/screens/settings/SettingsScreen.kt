@@ -183,10 +183,7 @@ fun SettingsScreen(
                     )
 
                     TmmText(
-                        text = stringResource(
-                            R.string.settings_pc_last_signal_fmt,
-                            "il y a ${state.lastSignalSeconds} s",
-                        ),
+                        text = state.pcLastSignalText,
                         style = TmmType.sans(12),
                         color = TmmColors.CCFC8B8,
                     )

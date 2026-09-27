@@ -87,8 +87,14 @@ class MainScreenBehaviorTest {
 
     @Test
     fun offline_showsOfflineNotice() {
-        setState(MockupData.main.copy(pcTone = PcTone.Offline))
+        setState(MockupData.main.copy(pcTone = PcTone.Offline, offlineSinceLabel = "depuis 2 jours"))
         composeRule.onNodeWithText("PC hors ligne depuis 2 jours.").assertExists()
+    }
+
+    @Test
+    fun offline_withoutKnownHeartbeat_hidesOfflineNotice() {
+        setState(MockupData.main.copy(pcTone = PcTone.Offline, offlineSinceLabel = null))
+        composeRule.onNodeWithText("PC hors ligne depuis 2 jours.").assertDoesNotExist()
     }
 
     @Test

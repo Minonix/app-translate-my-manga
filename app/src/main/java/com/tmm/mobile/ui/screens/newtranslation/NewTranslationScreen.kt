@@ -246,7 +246,7 @@ private fun NewTranslationStep1(
                         .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(14.dp))
                         .background(TmmColors.surface)
                         .clickable(
-                            onClick = { onEvent(NewTranslationEvent.SelectSeries(series)) },
+                            onClick = { onEvent(NewTranslationEvent.SelectSeries(series.seriesKey)) },
                             role = Role.Button,
                         )
                         .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -342,30 +342,29 @@ private fun NewTranslationStep2(
                 .verticalScroll(rememberScrollState()),
         ) {
             series.chapters.forEachIndexed { i, chapter ->
-                val isChecked = state.selectedChapters.contains(chapter)
+                val isChecked = state.selectedChapters.contains(chapter.mihonPath)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .sizeIn(minHeight = 56.dp)
                         .background(if (isChecked) TmmColors.paperRaised else TmmColors.surface)
-                        .clickable(onClick = { onEvent(NewTranslationEvent.ToggleChapter(chapter)) })
+                        .clickable(onClick = { onEvent(NewTranslationEvent.ToggleChapter(chapter.mihonPath)) })
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     TmmCheckbox(
                         checked = isChecked,
-                        onCheckedChange = { onEvent(NewTranslationEvent.ToggleChapter(chapter)) },
+                        onCheckedChange = { onEvent(NewTranslationEvent.ToggleChapter(chapter.mihonPath)) },
                     )
                     TmmText(
-                        text = stringResource(R.string.new_trans_chapter_item_fmt, chapter),
+                        text = stringResource(R.string.new_trans_chapter_item_fmt, chapter.numberLabel),
                         style = TmmType.mono(14),
                         color = TmmColors.ink,
                         modifier = Modifier.weight(1f),
                     )
-                    val pageCount = 18 + (chapter % 7)
                     TmmText(
-                        text = stringResource(R.string.new_trans_pages_count_fmt, pageCount),
+                        text = stringResource(R.string.new_trans_pages_count_fmt, chapter.pages),
                         style = TmmType.sans(12),
                         color = TmmColors.textMuted,
                     )
@@ -507,8 +506,8 @@ private fun NewTranslationStep2Preview() {
         val series = MockupData.newTranslation.seriesList.first()
         NewTranslationScreen(
             state = MockupData.newTranslation.copy(
-                selectedSeries = series,
-                selectedChapters = series.chapters.toSet(),
+                selectedSeriesKey = series.seriesKey,
+                selectedChapters = series.chapters.map { it.mihonPath }.toSet(),
             ),
             onEvent = {},
         )

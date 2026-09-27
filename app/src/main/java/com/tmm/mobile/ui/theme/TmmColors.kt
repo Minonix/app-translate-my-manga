@@ -99,4 +99,9 @@ object TmmColors {
 
     fun fromHex(hex: String): Color =
         byHex[hex] ?: error("Couleur absente de la palette TmmColors : $hex")
+
+    /** Comme fromHex, mais retombe sur placeholderFor(seriesKey) pour une serie reelle (E10),
+     * dont le hex n'a pas de raison d'appartenir a la palette figee des maquettes. */
+    fun fromHexOrPlaceholder(hex: String, seriesKey: String): Color =
+        byHex[hex] ?: placeholderFor(seriesKey)
 }

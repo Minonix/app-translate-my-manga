@@ -24,6 +24,7 @@ data class MainRecentChapter(
     val color: Color,
     val inMihon: Boolean,
     val onPc: Boolean,
+    val seriesKey: String,
 )
 
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
@@ -35,7 +36,10 @@ sealed interface MainToast {
 data class MainState(
     val pcTone: PcTone = PcTone.Online,
     val pcSeenSinceLabel: String? = null,
-    val lastCheckLabel: String,
+    // PLAN_GEMINI.md 7.1 : masque si jamais rafraichi (last_refresh_at absent).
+    val lastCheckLabel: String? = null,
+    // PLAN_GEMINI.md 7.1 : bandeau "PC hors ligne depuis..." - masque sans heartbeat connu.
+    val offlineSinceLabel: String? = null,
     val toSendCount: Int,
     val toSendSummary: String,
     val sendState: BusyState = BusyState.Idle,

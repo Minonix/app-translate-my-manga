@@ -914,83 +914,10 @@ private fun QueueFailTabContent(
     state: QueueState,
     onEvent: (QueueEvent) -> Unit,
 ) {
-    val failed = state.failedJob
-    if (failed != null && !state.isRetried) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(TmmColors.surface)
-                .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp))
-                .border(
-                    width = 4.dp,
-                    color = TmmColors.accent,
-                    shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
-                )
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 32.dp, height = 44.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(failed.color)
-                        .halftone(),
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    TmmText(
-                        text = failed.title,
-                        style = TmmType.sans(14, weight = 600),
-                        color = TmmColors.ink,
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        TmmIcon(
-                            icon = TmmIconId.Warning,
-                            tint = TmmColors.dangerText,
-                            size = 14.dp,
-                        )
-                        TmmText(
-                            text = stringResource(R.string.queue_fail_message_fmt, failed.page, failed.message),
-                            style = TmmType.sans(12, weight = 600),
-                            color = TmmColors.dangerText,
-                        )
-                    }
-                    TmmText(
-                        text = failed.keptInfo,
-                        style = TmmType.sans(12),
-                        color = TmmColors.textMuted,
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(TmmColors.surface)
-                    .border(1.dp, TmmColors.C16161A, RoundedCornerShape(10.dp))
-                    .clickable(
-                        onClick = { onEvent(QueueEvent.RetryFailedJob) },
-                        role = Role.Button,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                TmmText(
-                    text = stringResource(R.string.queue_retry_button_fmt, failed.page),
-                    style = TmmType.sans(14, weight = 600),
-                    color = TmmColors.C16161A,
-                )
+    if (state.failedJobs.isNotEmpty()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            state.failedJobs.forEach { failed ->
+                QueueFailedJobCard(failed = failed, onRetry = { onEvent(QueueEvent.RetryFailedJob(failed.jobId)) })
             }
         }
     } else {
@@ -1015,6 +942,96 @@ private fun QueueFailTabContent(
                 text = stringResource(R.string.queue_no_failures),
                 style = TmmType.sans(13),
                 color = TmmColors.textMuted,
+            )
+        }
+    }
+}
+
+@Composable
+private fun QueueFailedJobCard(
+    failed: FailedJob,
+    onRetry: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(TmmColors.surface)
+            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp))
+            .border(
+                width = 4.dp,
+                color = TmmColors.accent,
+                shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 32.dp, height = 44.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(failed.color)
+                    .halftone(),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                TmmText(
+                    text = failed.title,
+                    style = TmmType.sans(14, weight = 600),
+                    color = TmmColors.ink,
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    TmmIcon(
+                        icon = TmmIconId.Warning,
+                        tint = TmmColors.dangerText,
+                        size = 14.dp,
+                    )
+                    val page = failed.page
+                    TmmText(
+                        text = if (page != null) {
+                            stringResource(R.string.queue_fail_message_fmt, page, failed.message)
+                        } else {
+                            stringResource(R.string.queue_fail_message_simple_fmt, failed.message)
+                        },
+                        style = TmmType.sans(12, weight = 600),
+                        color = TmmColors.dangerText,
+                    )
+                }
+                TmmText(
+                    text = failed.keptInfo,
+                    style = TmmType.sans(12),
+                    color = TmmColors.textMuted,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(TmmColors.surface)
+                .border(1.dp, TmmColors.C16161A, RoundedCornerShape(10.dp))
+                .clickable(
+                    onClick = onRetry,
+                    role = Role.Button,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            TmmText(
+                text = failed.page?.let { stringResource(R.string.queue_retry_button_fmt, it) }
+                    ?: stringResource(R.string.queue_retry_button_simple),
+                style = TmmType.sans(14, weight = 600),
+                color = TmmColors.C16161A,
             )
         }
     }

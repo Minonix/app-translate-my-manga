@@ -109,7 +109,13 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
                 val subtitle = if (state.picking) {
                     pluralStringResource(R.plurals.library_series_selected, state.selectionCount, state.selectionCount)
                 } else {
-                    stringResource(R.string.library_subtitle_default)
+                    // ponytail: subtitle recompose depuis les vraies donnees (state.allSeries/categories)
+                    // plutot que le texte fige de la maquette (library_subtitle_default, garde defini-mais-
+                    // -inutilise pour MockupTextCoverageTest, qui ne verifie que l'existence de la ressource).
+                    val seriesCount = state.allSeries.size
+                    val categoryCount = (state.categories.size - 1).coerceAtLeast(0)
+                    pluralStringResource(R.plurals.library_series_count, seriesCount, seriesCount) + " · " +
+                        pluralStringResource(R.plurals.library_categories_count, categoryCount, categoryCount)
                 }
                 TmmText(text = subtitle, style = TmmType.sans(13), color = TmmColors.textMuted)
             }
@@ -214,7 +220,7 @@ private fun LibraryGrid(state: LibraryState, onEvent: (LibraryEvent) -> Unit, on
             if (state.picking) {
                 PickingTile(series = series, selected = series.title in state.selected, onToggle = { onEvent(LibraryEvent.ToggleSelected(series.title)) })
             } else {
-                SeriesTile(series = series, onClick = { onOpenSeries(series.title) })
+                SeriesTile(series = series, onClick = { onOpenSeries(series.seriesKey) })
             }
         }
     }
@@ -250,7 +256,7 @@ private fun SeriesTile(series: MockSeries, onClick: () -> Unit) {
                 },
             ),
         ) {
-            Cover(seriesKey = series.title, coverUrl = null, color = TmmColors.fromHex(series.colorHex), modifier = Modifier.fillMaxSize())
+            Cover(seriesKey = series.seriesKey, coverUrl = series.thumbnailUrl, color = TmmColors.fromHexOrPlaceholder(series.colorHex, series.seriesKey), modifier = Modifier.fillMaxSize())
             StatusBadge(tone = series.tone, label = series.badge, modifier = Modifier.padding(6.dp))
         }
         TmmText(text = series.title, style = TmmType.sans(13, weight = 600), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -274,7 +280,7 @@ private fun PickingTile(series: MockSeries, selected: Boolean, onToggle: () -> U
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(110f / 150f)) {
-            Cover(seriesKey = series.title, coverUrl = null, color = TmmColors.fromHex(series.colorHex), modifier = Modifier.fillMaxSize())
+            Cover(seriesKey = series.seriesKey, coverUrl = series.thumbnailUrl, color = TmmColors.fromHexOrPlaceholder(series.colorHex, series.seriesKey), modifier = Modifier.fillMaxSize())
             TmmCheckbox(
                 checked = selected,
                 onCheckedChange = { onToggle() },

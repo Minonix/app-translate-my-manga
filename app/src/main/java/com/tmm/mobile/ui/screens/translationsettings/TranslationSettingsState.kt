@@ -89,9 +89,12 @@ enum class TranslationSyncStatus {
     Synced,
     Sending,
     Applied,
+    // PLAN_GEMINI.md 5.18/7.9 : pas de confirmation du PC sous 60s (fond #8A5A00, ajouté).
+    WaitingPc,
 }
 
 data class TranslationSettingsState(
+    val pcName: String = "PC-BUREAU",
     val sourceLanguage: SourceLanguage = SourceLanguage.Auto,
     val targetLanguage: TargetLanguage = TargetLanguage.French,
     val translationProvider: TranslationProvider = TranslationProvider.Gemini,
@@ -109,6 +112,8 @@ data class TranslationSettingsState(
     val isAdvancedExpanded: Boolean = false,
     val activeSheet: ActiveSheet? = null,
     val syncStatus: TranslationSyncStatus = TranslationSyncStatus.Synced,
+    // PLAN_GEMINI.md 7.9 : aucun settings_json recu -> controles desactives, alpha 0.45.
+    val isReadOnly: Boolean = false,
 )
 
 sealed interface TranslationSettingsEvent {

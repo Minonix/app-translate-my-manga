@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
@@ -162,6 +163,10 @@ fun OnboardingScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (state.step < 3) {
+                // PLAN_GEMINI.md E6.7 : "Continuer" actif seulement si downloads/ existe (les
+                // autres sous-dossiers sont informatifs).
+                val canContinueStep2 = state.step != 2 || !state.isMihonSelected ||
+                    state.subfolders.firstOrNull { it.name == "downloads/" }?.found != false
                 val btnLabel = when {
                     state.step == 1 && state.isWorking -> stringResource(R.string.onb_btn_connecting)
                     state.step == 1 && state.isGoogleConnected -> stringResource(R.string.onb_btn_continue)
@@ -188,10 +193,10 @@ fun OnboardingScreen(
                         .fillMaxWidth()
                         .height(54.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(btnBg)
+                        .background(if (canContinueStep2) btnBg else TmmColors.textMuted)
                         .clickable(
                             role = Role.Button,
-                            enabled = !state.isWorking,
+                            enabled = !state.isWorking && canContinueStep2,
                             onClickLabel = btnLabel,
                             onClick = { onEvent(OnboardingEvent.PrimaryAction) },
                         ),
@@ -470,14 +475,16 @@ private fun Step2Content(state: OnboardingState) {
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(TmmColors.C2F7D4F),
+                                .background(if (sub.found) TmmColors.C2F7D4F else TmmColors.textMuted),
                             contentAlignment = Alignment.Center,
                         ) {
-                            TmmIcon(
-                                icon = TmmIconId.CheckSimple,
-                                size = 12.dp,
-                                tint = TmmColors.surface,
-                            )
+                            if (sub.found) {
+                                TmmIcon(
+                                    icon = TmmIconId.CheckSimple,
+                                    size = 12.dp,
+                                    tint = TmmColors.surface,
+                                )
+                            }
                         }
 
                         Column(
@@ -490,7 +497,7 @@ private fun Step2Content(state: OnboardingState) {
                                 color = TmmColors.ink,
                             )
                             TmmText(
-                                text = sub.role,
+                                text = if (sub.found) sub.role else stringResource(R.string.onboarding_folder_missing),
                                 style = TmmType.sans(12),
                                 color = TmmColors.textMuted,
                             )
@@ -529,7 +536,7 @@ private fun Step3Content(state: OnboardingState) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             TmmText(
-                text = state.backupFileName,
+                text = if (state.hasBackup) state.backupFileName else stringResource(R.string.empty_no_backup_title),
                 style = TmmType.mono(12),
                 color = TmmColors.CCFC8B8,
             )
@@ -606,8 +613,8 @@ private fun Step3Content(state: OnboardingState) {
             }
         }
 
-        // Alerte chapitres à synchroniser
-        if (state.isReadDone) {
+        // Alerte chapitres à synchroniser (PLAN_GEMINI.md 7.10 : masquee si toSendCount == 0)
+        if (state.isReadDone && state.toSendCount > 0) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -624,7 +631,7 @@ private fun Step3Content(state: OnboardingState) {
                     tint = TmmColors.accent,
                 )
                 TmmText(
-                    text = stringResource(R.string.onb_step3_todo_notice),
+                    text = pluralStringResource(R.plurals.onb_step3_todo_notice, state.toSendCount, state.toSendCount),
                     style = TmmType.sans(13, lineHeight = 19f),
                     color = TmmColors.ink,
                 )

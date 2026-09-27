@@ -152,6 +152,28 @@ fun PermissionScreen(
                                 color = TmmColors.success,
                             )
                         }
+                    } else if (state.errorMessage != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(TmmColors.dangerBg)
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TmmIcon(
+                                icon = TmmIconId.FolderDenied,
+                                tint = TmmColors.accent,
+                                size = 18.dp,
+                                strokeWidth = 2.4f,
+                            )
+                            TmmText(
+                                text = stringResource(R.string.perm_error_no_downloads),
+                                style = TmmType.sans(14, weight = 600),
+                                color = TmmColors.accent,
+                            )
+                        }
                     }
                 }
             }

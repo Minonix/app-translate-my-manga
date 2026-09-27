@@ -51,6 +51,8 @@ data class SyncState(
     val scanning: Boolean = false,
     val scannedAgo: String = "il y a 4 min",
     val missingCount: Int = 2,
+    // PLAN_GEMINI.md 7.4 : tap sur la carte manquants -> Fiche serie de la premiere serie concernee.
+    val missingSeriesKey: String? = null,
 )
 
 sealed interface SyncEvent {

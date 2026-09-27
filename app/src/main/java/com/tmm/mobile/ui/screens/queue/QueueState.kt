@@ -41,6 +41,8 @@ data class DoneJobAlert(
 )
 
 data class DoneJob(
+    // Identifiant reel (JobEntity.mihonPath) necessaire pour rejouer VerifyPage via JobRepository.
+    val mihonPath: String,
     val title: String,
     val whenText: String,
     val stateText: String,
@@ -56,9 +58,11 @@ data class DoneJob(
 )
 
 data class FailedJob(
+    // Identifiant reel (JobEntity.jobId) necessaire pour JobRepository.retry(jobId).
+    val jobId: String,
     val title: String,
     val color: Color,
-    val page: Int,
+    val page: Int?,
     val message: String,
     val keptInfo: String,
 )
@@ -72,12 +76,13 @@ data class QueueState(
     val activeJobs: List<ActiveJob> = emptyList(),
     val waitingJobs: List<WaitingJob> = emptyList(),
     val doneJobs: List<DoneJob> = emptyList(),
-    val failedJob: FailedJob? = null,
-    val isRetried: Boolean = false,
+    // PLAN_GEMINI.md 7.5 : "une carte par job" en echec - liste reactive (un retry() cree un nouveau
+    // job donc l'ancien FAILED disparait naturellement de la liste, plus besoin d'un flag isRetried).
+    val failedJobs: List<FailedJob> = emptyList(),
 ) {
     val activeCount: Int get() = activeJobs.size + waitingJobs.size
     val doneCount: Int get() = doneJobs.size
-    val failCount: Int get() = if (failedJob != null && !isRetried) 1 else 0
+    val failCount: Int get() = failedJobs.size
 }
 
 sealed interface QueueEvent {
@@ -86,5 +91,5 @@ sealed interface QueueEvent {
     data class RemoveWaitingJob(val id: String) : QueueEvent
     data class ToggleDoneJobDetails(val index: Int) : QueueEvent
     data class VerifyPage(val doneIndex: Int, val page: Int) : QueueEvent
-    data object RetryFailedJob : QueueEvent
+    data class RetryFailedJob(val jobId: String) : QueueEvent
 }

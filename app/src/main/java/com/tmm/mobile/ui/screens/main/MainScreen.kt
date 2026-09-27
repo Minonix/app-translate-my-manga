@@ -52,7 +52,7 @@ fun MainScreen(
     onOpenSync: () -> Unit = {},
     onOpenQueue: () -> Unit = {},
     onOpenNewTranslation: () -> Unit = {},
-    onOpenSeries: (Int) -> Unit = {},
+    onOpenSeries: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.background(TmmColors.paper)) {
@@ -64,7 +64,7 @@ fun MainScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             MainHeader(state = state, onEvent = onEvent, onOpenSettings = onOpenSettings)
-            if (state.isOffline) OfflineNotice()
+            if (state.isOffline && state.offlineSinceLabel != null) OfflineNotice(state.offlineSinceLabel)
             TodoSection(state = state, onEvent = onEvent, onOpenQueue = onOpenQueue)
             OnPcNowSection(state = state, onOpenQueue = onOpenQueue)
             QuickActionsGrid(onOpenNewTranslation = onOpenNewTranslation, onOpenSync = onOpenSync, lastScanLabel = state.lastScanLabel)
@@ -127,11 +127,13 @@ private fun MainHeader(state: MainState, onEvent: (MainEvent) -> Unit, onOpenSet
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 TmmText(text = stringResource(R.string.home_title), style = TmmType.display(36, weight = 800))
-                TmmText(
-                    text = stringResource(R.string.home_last_check_fmt, state.lastCheckLabel),
-                    style = TmmType.sans(13),
-                    color = TmmColors.textMuted,
-                )
+                state.lastCheckLabel?.let { label ->
+                    TmmText(
+                        text = stringResource(R.string.home_last_check_fmt, label),
+                        style = TmmType.sans(13),
+                        color = TmmColors.textMuted,
+                    )
+                }
             }
             RefreshButton(onRefresh = { onEvent(MainEvent.Refresh) }, onSpinComplete = { onEvent(MainEvent.RefreshFinished) })
         }
@@ -165,7 +167,7 @@ private fun PcStatusPill(state: MainState) {
 }
 
 @Composable
-private fun OfflineNotice() {
+private fun OfflineNotice(sinceLabel: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,7 +178,7 @@ private fun OfflineNotice() {
     ) {
         TmmIcon(TmmIconId.Cloud, size = 18.dp, tint = TmmColors.info)
         Column {
-            TmmText(text = stringResource(R.string.home_offline_bold), style = TmmType.sans(13, weight = 600), color = TmmColors.info)
+            TmmText(text = stringResource(R.string.home_offline_bold, sinceLabel), style = TmmType.sans(13, weight = 600), color = TmmColors.info)
             TmmText(text = stringResource(R.string.home_offline_rest), style = TmmType.sans(13, lineHeight = 19f), color = TmmColors.info)
         }
     }
@@ -448,7 +450,7 @@ private fun QuickActionCard(
 }
 
 @Composable
-private fun RecentChaptersSection(state: MainState, onOpenSync: () -> Unit, onOpenSeries: (Int) -> Unit) {
+private fun RecentChaptersSection(state: MainState, onOpenSync: () -> Unit, onOpenSeries: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             TmmText(text = stringResource(R.string.home_recent_title), style = TmmType.display(19, weight = 800))
@@ -458,8 +460,8 @@ private fun RecentChaptersSection(state: MainState, onOpenSync: () -> Unit, onOp
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            state.recentChapters.forEachIndexed { index, chapter ->
-                RecentChapterCard(chapter, onClick = { onOpenSeries(index) })
+            state.recentChapters.forEach { chapter ->
+                RecentChapterCard(chapter, onClick = { onOpenSeries(chapter.seriesKey) })
             }
         }
     }

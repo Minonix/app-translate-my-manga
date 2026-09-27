@@ -30,20 +30,29 @@ class OnboardingScreenBehaviorTest {
 
     private fun setupScreen(initial: OnboardingState = MockupData.onboarding): Pair<() -> OnboardingState, (OnboardingState) -> Unit> {
         var state by mutableStateOf(initial)
-        val vm = OnboardingViewModel(initial)
         composeRule.setContent {
             TmmTheme {
                 OnboardingScreen(
                     state = state,
-                    onEvent = { event ->
-                        vm.onEvent(event)
-                        state = vm.state.value
-                    },
+                    onEvent = { event -> state = reduce(state, event) },
                     onFinishOnboarding = { finishCalled = true },
                 )
             }
         }
         return Pair({ state }, { state = it })
+    }
+
+    // Reproduit uniquement les transitions d'etat pertinentes pour ces tests de rendu ; la vraie
+    // logique (Google/SAF/import) vit dans OnboardingViewModel et est couverte par OnboardingViewModelTest.
+    private fun reduce(state: OnboardingState, event: OnboardingEvent): OnboardingState = when (event) {
+        OnboardingEvent.PrimaryAction -> when {
+            state.step == 1 && !state.isGoogleConnected -> state.copy(isWorking = true)
+            state.step == 1 && state.isGoogleConnected -> state.copy(step = 2)
+            state.step == 2 && !state.isMihonSelected -> state.copy(isWorking = true)
+            state.step == 2 && state.isMihonSelected -> state.copy(step = 3)
+            else -> state
+        }
+        OnboardingEvent.PreviousStep -> state.copy(step = (state.step - 1).coerceAtLeast(1))
     }
 
     @Test

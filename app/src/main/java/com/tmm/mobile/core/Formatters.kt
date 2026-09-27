@@ -56,6 +56,15 @@ object Formatters {
         return if (numbers.size == 1 || min == max) "Ch. ${fmt(min)}" else "Ch. ${fmt(min)} à ${fmt(max)}"
     }
 
+    // ponytail: verifiedAt est un ISO-8601 (Instant) ecrit par le PC lors de la verification ;
+    // on ne montre que jour/mois (cf. maquette Series.dc.html "24/09"), pas l'annee ni l'heure.
+    fun verifiedDateFr(iso: String): String = runCatching {
+        val instant = java.time.Instant.parse(iso)
+        java.time.format.DateTimeFormatter.ofPattern("dd/MM", Locale.FRANCE)
+            .withZone(java.time.ZoneId.systemDefault())
+            .format(instant)
+    }.getOrDefault(iso)
+
     fun langLabelFr(code: String): String = when (code) {
         "auto" -> "détection auto"
         "JPN" -> "japonais"

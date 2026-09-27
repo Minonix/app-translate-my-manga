@@ -167,6 +167,11 @@ interface ChapterQualityDao {
     @Query("SELECT * FROM chapter_quality WHERE mihonPath = :mihonPath")
     fun observe(mihonPath: String): Flow<ChapterQualityEntity?>
 
+    // Ajoute pour la Fiche serie (E10) : statistiques par chapitre affichees en une fois pour
+    // toute une serie, sur le meme modele que les autres observeAll() de ce fichier.
+    @Query("SELECT * FROM chapter_quality")
+    fun observeAll(): Flow<List<ChapterQualityEntity>>
+
     @Upsert
     suspend fun upsert(quality: ChapterQualityEntity)
 }

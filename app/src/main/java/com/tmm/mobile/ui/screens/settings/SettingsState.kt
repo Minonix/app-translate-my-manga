@@ -22,7 +22,8 @@ data class SettingsState(
     val pcName: String = "PC-BUREAU",
     val pcVersionProtocol: String = "TMM-Win 2.4.1 · protocole v1",
     val isPcOnline: Boolean = true,
-    val lastSignalSeconds: Int = 12,
+    // PLAN_GEMINI.md 7.8 : ligne complete deja formatee (relativeFr ou "Aucun signal recu" sans heartbeat).
+    val pcLastSignalText: String = "Dernier signal il y a 12 s · le PC écrit sur Drive toutes les minutes",
     val googleAccount: String = "vous@gmail.com",
     val sharedFolder: String = "TranslateMyManga/",
     val driveRetention: DriveRetention = DriveRetention.Never,

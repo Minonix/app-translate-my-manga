@@ -46,6 +46,11 @@ data class MockSeries(
     val toGet: Int,
     val badge: String,
     val tone: StatusTone,
+    // Ajoutes pour le branchement reel (E10) : la selection/recherche/filtre de LibraryState
+    // restent indexes par `title` (inchange, cf. LibraryScreenBehaviorTest), seriesKey/thumbnailUrl
+    // ne servent qu'a la navigation et a l'affichage de la vignette pour les vraies series.
+    val seriesKey: String = title,
+    val thumbnailUrl: String? = null,
 )
 
 object MockupData {
@@ -91,10 +96,10 @@ object MockupData {
         ),
         lastScanLabel = "Dernier scan il y a 4 min",
         recentChapters = listOf(
-            MainRecentChapter("Frieren", "Ch. 140", TmmColors.CE2C6BB, inMihon = false, onPc = true),
-            MainRecentChapter("Kagurabachi", "Ch. 51 à 54", TmmColors.CCFD8C6, inMihon = true, onPc = false),
-            MainRecentChapter("Blue Lock", "Ch. 212", TmmColors.CD8D2E4, inMihon = false, onPc = true),
-            MainRecentChapter("One Piece", "Ch. 1120", TmmColors.CE6DCC0, inMihon = true, onPc = false),
+            MainRecentChapter("Frieren", "Ch. 140", TmmColors.CE2C6BB, inMihon = false, onPc = true, seriesKey = "frieren"),
+            MainRecentChapter("Kagurabachi", "Ch. 51 à 54", TmmColors.CCFD8C6, inMihon = true, onPc = false, seriesKey = "kagurabachi"),
+            MainRecentChapter("Blue Lock", "Ch. 212", TmmColors.CD8D2E4, inMihon = false, onPc = true, seriesKey = "blue-lock"),
+            MainRecentChapter("One Piece", "Ch. 1120", TmmColors.CE6DCC0, inMihon = true, onPc = false, seriesKey = "one-piece"),
         ),
     )
 
@@ -275,6 +280,7 @@ object MockupData {
         ),
         doneJobs = listOf(
             DoneJob(
+                mihonPath = "mihon/frieren/ch140",
                 title = "Frieren · Ch. 140",
                 whenText = "Aujourd’hui 14:02",
                 stateText = "À récupérer",
@@ -289,6 +295,7 @@ object MockupData {
                 isExpanded = false,
             ),
             DoneJob(
+                mihonPath = "mihon/blue-lock/ch212",
                 title = "Blue Lock · Ch. 212",
                 whenText = "Aujourd’hui 13:40",
                 stateText = "À récupérer",
@@ -306,6 +313,7 @@ object MockupData {
                 isExpanded = true,
             ),
             DoneJob(
+                mihonPath = "mihon/one-piece/ch1122",
                 title = "One Piece · Ch. 1122",
                 whenText = "Aujourd’hui 11:15",
                 stateText = "À récupérer",
@@ -320,6 +328,7 @@ object MockupData {
                 isExpanded = false,
             ),
             DoneJob(
+                mihonPath = "mihon/kagurabachi/ch51",
                 title = "Kagurabachi · Ch. 51",
                 whenText = "Hier 22:10",
                 stateText = "Dans Mihon",
@@ -336,6 +345,7 @@ object MockupData {
                 isExpanded = false,
             ),
             DoneJob(
+                mihonPath = "mihon/solo-leveling/ch200",
                 title = "Solo Leveling · Ch. 200",
                 whenText = "Hier 21:48",
                 stateText = "Dans Mihon",
@@ -350,14 +360,16 @@ object MockupData {
                 isExpanded = false,
             ),
         ),
-        failedJob = FailedJob(
-            title = "Frieren · Ch. 139",
-            color = TmmColors.CE2C6BB,
-            page = 9,
-            message = "moteur indisponible",
-            keptInfo = "Il y a 20 min · les pages 1 à 8 sont conservées",
+        failedJobs = listOf(
+            FailedJob(
+                jobId = "f139",
+                title = "Frieren · Ch. 139",
+                color = TmmColors.CE2C6BB,
+                page = 9,
+                message = "moteur indisponible",
+                keptInfo = "Il y a 20 min · les pages 1 à 8 sont conservées",
+            ),
         ),
-        isRetried = false,
     )
 
     val catalog = CatalogState()
