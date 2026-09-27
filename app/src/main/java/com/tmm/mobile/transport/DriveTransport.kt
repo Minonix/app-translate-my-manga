@@ -33,10 +33,11 @@ class DriveTransport(
         var created = false
         var rootId = prefs.driveRootId.first()
         if (rootId == null) {
-            val appId = driveApi.findChild("root", "App", folder = true)?.id
-                ?: driveApi.createFolder("root", "App")
-            rootId = driveApi.findChild(appId, "TranslateMyManga", folder = true)?.id
-                ?: driveApi.createFolder(appId, "TranslateMyManga").also { created = true }
+            // DIAGNOSTIC TEMPORAIRE : retour a la version sans dossier "App" pour isoler la cause
+            // des NPE deterministes en CI (RefreshCoordinatorTest/SettingsSyncTest/DriveTransportTest/
+            // JobFlowTest/SendJobWorkerTest) apparues avec le commit 77bc0c6.
+            rootId = driveApi.findChild("root", "TranslateMyManga", folder = true)?.id
+                ?: driveApi.createFolder("root", "TranslateMyManga").also { created = true }
             prefs.setDriveRootId(rootId)
         }
         var jobsId = prefs.driveJobsId.first()
