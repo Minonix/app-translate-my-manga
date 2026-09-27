@@ -52,6 +52,13 @@ android {
     }
 
     buildTypes {
+        // Meme cle pour debug (installation par cable depuis Android Studio) et release
+        // (APK GitHub) : les deux se mettent a jour l'une l'autre sans desinstaller.
+        debug {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
