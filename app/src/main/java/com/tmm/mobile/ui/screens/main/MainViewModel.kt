@@ -21,10 +21,12 @@ import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -76,7 +78,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     private val derived = combine(roomSnapshot, prefsSnapshot, db.seriesDao().observeAll()) { room, prefsSnap, series ->
         buildState(room, prefsSnap, series)
-    }
+    }.flowOn(Dispatchers.Default)
 
     val state: StateFlow<MainState> = combine(derived, ephemeral) { base, eph ->
         base.copy(sendState = eph.sendState, getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast)

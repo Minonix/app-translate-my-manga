@@ -19,9 +19,11 @@ import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.deriveStatus
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.ui.theme.TmmColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -59,11 +61,12 @@ class NewTranslationViewModel(private val container: AppContainer) : ViewModel()
         ) { downloaded, localFr, jobs, pcIndex -> DbDataB(downloaded, localFr, jobs, pcIndex) },
         ui,
     ) { a, b, u -> buildState(a, b, u) }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NewTranslationState())
 
-    // ponytail: cache mutable rafraichi a chaque emission combine, lu uniquement au moment du
-    // Send (viewModelScope est mono-thread) ; pas de synchronisation dediee necessaire ici.
-    private var downloadedByPath: Map<String, DownloadedChapterEntity> = emptyMap()
+    // ponytail: cache mutable rafraichi a chaque emission combine (thread Default), lu au Send ;
+    // @Volatile suffit, la reference est remplacee d'un bloc.
+    @Volatile private var downloadedByPath: Map<String, DownloadedChapterEntity> = emptyMap()
 
     fun onEvent(event: NewTranslationEvent) {
         when (event) {
@@ -103,11 +106,14 @@ class NewTranslationViewModel(private val container: AppContainer) : ViewModel()
     }
 
     private fun send() {
-        val current = state.value
-        if (!current.isStep2 || current.selectedCount == 0) return
+        // Selection lue dans `ui` (synchrone) : `state` est calcule hors thread principal et peut
+        // ne pas encore refleter le dernier chapitre coche/decoche.
+        val u = ui.value
+        if (u.selectedSeriesKey == null || u.selectedChapters.isEmpty()) return
+        val translate = u.translateOnArrivalOverride ?: state.value.translateOnArrival
         ui.update { it.copy(phase = NewTranslationPhase.Busy) }
         viewModelScope.launch {
-            val targets = current.selectedChapters.mapNotNull { path ->
+            val targets = u.selectedChapters.mapNotNull { path ->
                 val dl = downloadedByPath[path] ?: return@mapNotNull null
                 JobTarget(
                     mihonPath = MihonPath(dl.sourceDir, dl.seriesDir, dl.chapterDir),
@@ -116,7 +122,7 @@ class NewTranslationViewModel(private val container: AppContainer) : ViewModel()
                     chapter = dl.chapterKey?.let { db.chapterDao().get(it) },
                 )
             }
-            jobRepository.createJobs(mode = JobMode.TRANSLATE, targets = targets, translate = current.translateOnArrival)
+            jobRepository.createJobs(mode = JobMode.TRANSLATE, targets = targets, translate = translate)
             ui.update { it.copy(phase = NewTranslationPhase.Done) }
         }
     }
@@ -132,8 +138,9 @@ class NewTranslationViewModel(private val container: AppContainer) : ViewModel()
         val firstCategoryOrderBySeries = a.links.groupBy { it.seriesKey }
             .mapValues { (_, ls) -> ls.minOf { it.categoryOrder } }
 
+        val downloadedBySeries = b.downloaded.groupBy { it.seriesKey }
         val seriesList = a.series.mapNotNull { series ->
-            val toSend = b.downloaded.filter { it.seriesKey == series.seriesKey }.filter { dl ->
+            val toSend = downloadedBySeries[series.seriesKey].orEmpty().filter { dl ->
                 val facts = ChapterFacts(
                     downloaded = true,
                     inCatalog = dl.chapterKey != null,

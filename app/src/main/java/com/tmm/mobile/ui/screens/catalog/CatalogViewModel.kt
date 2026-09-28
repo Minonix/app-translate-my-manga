@@ -22,9 +22,11 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -60,7 +62,7 @@ class CatalogViewModel(private val container: AppContainer) : ViewModel() {
         importStep,
     ) { base, presence, step ->
         buildCatalogState(base, presence, step, container.clock.nowMillis())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CatalogState())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CatalogState())
 
     fun onEvent(event: CatalogEvent) {
         when (event) {

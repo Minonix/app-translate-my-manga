@@ -48,6 +48,18 @@ fun joinInputsFlow(db: TmmDatabase): Flow<ChapterJoinInputs> = combine(
 ) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }
 
 /**
+ * Index des entrees de jointure, construit une seule fois : la Bibliotheque rapproche ~1000
+ * series, et refiltrer toutes les listes par serie (O(series x chapitres)) gelait l'app.
+ */
+class ChapterJoinIndex(inputs: ChapterJoinInputs) {
+    internal val latestJobByPath = inputs.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { j -> j.createdAt } }
+    internal val localFrPaths = inputs.localFr.mapNotNull { it.mihonPath }.toSet()
+    internal val indexByPath = inputs.pcIndex.associateBy { it.mihonPath }
+    internal val chaptersBySeries = inputs.chapters.groupBy { it.seriesKey }
+    internal val downloadedBySeries = inputs.downloaded.groupBy { it.seriesKey }
+}
+
+/**
  * Rapproche les chapitres d'une serie (catalogue + telecharges non rattaches a un chapitre
  * catalogue) en ChapterJoinRow. `sourceName`/`seriesTitle` viennent de SeriesEntity.
  */
@@ -56,12 +68,17 @@ fun buildChapterJoinRows(
     sourceName: String,
     seriesTitle: String,
     inputs: ChapterJoinInputs,
+): List<ChapterJoinRow> = buildChapterJoinRows(seriesKey, sourceName, seriesTitle, ChapterJoinIndex(inputs))
+
+fun buildChapterJoinRows(
+    seriesKey: String,
+    sourceName: String,
+    seriesTitle: String,
+    index: ChapterJoinIndex,
 ): List<ChapterJoinRow> {
-    val latestJobByPath = inputs.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { j -> j.createdAt } }
-    val localFrPaths = inputs.localFr.mapNotNull { it.mihonPath }.toSet()
-    val indexByPath = inputs.pcIndex.associateBy { it.mihonPath }
-    val downloadedByChapterKey = inputs.downloaded.filter { it.seriesKey == seriesKey }.associateBy { it.chapterKey }
-    val downloadedOrphans = inputs.downloaded.filter { it.seriesKey == seriesKey && it.chapterKey == null }
+    val seriesDownloaded = index.downloadedBySeries[seriesKey].orEmpty()
+    val downloadedByChapterKey = seriesDownloaded.associateBy { it.chapterKey }
+    val downloadedOrphans = seriesDownloaded.filter { it.chapterKey == null }
 
     fun rowFor(chapter: ChapterEntity?, downloaded: DownloadedChapterEntity?): ChapterJoinRow {
         val mihonPath = if (downloaded != null) {
@@ -77,14 +94,14 @@ fun buildChapterJoinRows(
         val facts = ChapterFacts(
             downloaded = downloaded != null,
             inCatalog = chapter != null,
-            index = indexByPath[flat],
-            latestJob = latestJobByPath[flat],
-            localFr = flat in localFrPaths,
+            index = index.indexByPath[flat],
+            latestJob = index.latestJobByPath[flat],
+            localFr = flat in index.localFrPaths,
         )
         return ChapterJoinRow(seriesKey, chapter, downloaded, mihonPath, facts, deriveStatus(facts))
     }
 
-    val catalogRows = inputs.chapters.filter { it.seriesKey == seriesKey }
+    val catalogRows = index.chaptersBySeries[seriesKey].orEmpty()
         .map { chapter -> rowFor(chapter, downloadedByChapterKey[chapter.chapterKey]) }
     val orphanRows = downloadedOrphans.map { downloaded -> rowFor(null, downloaded) }
     return catalogRows + orphanRows

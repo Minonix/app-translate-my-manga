@@ -24,10 +24,12 @@ import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.theme.TmmColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -100,6 +102,7 @@ class SeriesViewModel(
         container.db.categoryDao().observeAll(),
         container.db.seriesCategoryDao().observeAll(),
     ) { c, categories, links -> buildSeriesData(c, categories, links) }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
 
     val state: StateFlow<SeriesState> = combine(ui, dataState) { u, d ->

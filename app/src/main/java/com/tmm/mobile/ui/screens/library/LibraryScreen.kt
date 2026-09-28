@@ -216,7 +216,9 @@ private fun LibraryGrid(state: LibraryState, onEvent: (LibraryEvent) -> Unit, on
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        items(visible, key = { it.title }) { series ->
+        // seriesKey et non title : deux series de sources differentes peuvent porter le meme titre,
+        // et une cle dupliquee fait planter LazyVerticalGrid.
+        items(visible, key = { it.seriesKey }) { series ->
             if (state.picking) {
                 PickingTile(series = series, selected = series.title in state.selected, onToggle = { onEvent(LibraryEvent.ToggleSelected(series.title)) })
             } else {

@@ -8,6 +8,7 @@ import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.db.CategoryEntity
 import com.tmm.mobile.data.db.SeriesCategoryEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.status.ChapterJoinIndex
 import com.tmm.mobile.data.status.ChapterJoinInputs
 import com.tmm.mobile.data.status.ChapterJoinRow
 import com.tmm.mobile.data.status.ChapterStatus
@@ -20,11 +21,13 @@ import com.tmm.mobile.data.status.joinInputsFlow
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.mock.MockSeries
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -68,6 +71,8 @@ class LibraryViewModel(
         container.db.seriesCategoryDao().observeAll(),
         joinInputsFlow(container.db),
     ) { seriesList, categories, links, joinInputs -> buildLibraryData(seriesList, categories, links, joinInputs) }
+        // Hors thread principal : avec ~1000 series le calcul prend du temps (freeze en v1.0.3).
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
 
     val state: StateFlow<LibraryState> = combine(ui, dataState) { u, d ->
@@ -169,16 +174,16 @@ class LibraryViewModel(
     ): LibraryData {
         val linksBySeries = links.groupBy { it.seriesKey }
         val categoryNameByOrder = categories.associate { it.order to it.name }
-        val chips = listOf("Tous" to seriesList.size) + categories.map { cat ->
-            cat.name to links.count { it.categoryOrder == cat.order }
-        }
-        val entries = seriesList.map { series -> series to buildChapterJoinRows(series.seriesKey, series.sourceName, series.title, joinInputs) }
+        val countByCategory = links.groupingBy { it.categoryOrder }.eachCount()
+        val chips = listOf("Tous" to seriesList.size) + categories.map { cat -> cat.name to (countByCategory[cat.order] ?: 0) }
+        val index = ChapterJoinIndex(joinInputs)
+        val entries = seriesList.map { series -> series to buildChapterJoinRows(series.seriesKey, series.sourceName, series.title, index) }
         val mockSeries = entries.map { (series, rows) ->
             val summary = deriveSeriesSummary(series.seriesKey, rows.toAggregateInputs(), emptySet())
             val badge = summary.badge()
             val primaryOrder = linksBySeries[series.seriesKey]?.minOfOrNull { it.categoryOrder }
             val categoryName = primaryOrder?.let { categoryNameByOrder[it] } ?: ""
-            val totalChapters = joinInputs.chapters.count { it.seriesKey == series.seriesKey }
+            val totalChapters = index.chaptersBySeries[series.seriesKey]?.size ?: 0
             MockSeries(
                 title = series.title,
                 colorHex = "",
