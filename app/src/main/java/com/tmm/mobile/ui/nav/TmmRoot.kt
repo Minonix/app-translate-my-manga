@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -103,8 +104,10 @@ fun TmmRoot() {
     }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-    val selectedTab = tabRouteOf.indexOfFirst { currentRoute?.startsWith(it.qualifiedName.orEmpty()) == true }
+    // hasRoute compare via le serializer : KClass.qualifiedName est renomme par R8 en release
+    // alors que la route garde le serialName d'origine (barre basse invisible en v1.0.2).
+    val currentDestination = backStackEntry?.destination
+    val selectedTab = tabRouteOf.indexOfFirst { currentDestination?.hasRoute(it) == true }
     val transfersBadge by remember { GlobalCounts.transfersBadgeCount(container.db) }.collectAsState(initial = 0)
 
     if (startupResult == null) return
@@ -164,7 +167,7 @@ private fun startDestinationFor(result: StartupResult) = when (result) {
 }
 
 private fun NavHostController.navigateSingleTop(route: Any) {
-    if (currentDestination?.route?.startsWith(route::class.qualifiedName.orEmpty()) == true) return
+    if (currentDestination?.hasRoute(route::class) == true) return
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { inclusive = true }
         launchSingleTop = true
