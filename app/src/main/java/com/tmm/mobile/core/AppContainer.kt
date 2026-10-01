@@ -15,6 +15,7 @@ import com.tmm.mobile.transport.DriveApi
 import com.tmm.mobile.transport.DriveTransport
 import com.tmm.mobile.transport.GoogleAuth
 import com.tmm.mobile.transport.JobTransport
+import com.tmm.mobile.ui.screens.library.LibraryCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,6 +35,7 @@ interface AppContainer {
     val refreshCoordinator: RefreshCoordinator
     val settingsSync: SettingsSync
     val startup: Startup
+    val libraryCache: LibraryCache
 }
 
 // PLAN_GEMINI.md : cablage complet de l'E8 (pas de framework de DI - singletons lazy manuels, comme
@@ -84,4 +86,6 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, transport, workManager) }
 
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
+
+    override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(context.filesDir, "library_snapshot.json")) }
 }

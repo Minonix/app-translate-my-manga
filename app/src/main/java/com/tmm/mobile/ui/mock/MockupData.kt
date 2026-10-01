@@ -31,11 +31,14 @@ import com.tmm.mobile.ui.screens.transfers.SyncFetchItem
 import com.tmm.mobile.ui.screens.transfers.SyncSeriesItem
 import com.tmm.mobile.ui.screens.transfers.SyncState
 import com.tmm.mobile.ui.theme.TmmColors
+import kotlinx.serialization.Serializable
 
 /**
  * Jeu de donnees de demo recopie tel quel depuis Library.dc.html (const all),
  * utilise pour les @Preview et les captures Roborazzi.
  */
+// Serializable : la liste de la Bibliotheque est gardee sur disque (LibraryCache) pour s'afficher des le lancement.
+@Serializable
 data class MockSeries(
     val title: String,
     val colorHex: String,

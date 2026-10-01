@@ -47,6 +47,15 @@ fun joinInputsFlow(db: TmmDatabase): Flow<ChapterJoinInputs> = combine(
     db.pcIndexChapterDao().observeAll(),
 ) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }
 
+/** Meme jointure limitee a une serie (Fiche serie) : ne charge pas les chapitres des ~2000 autres. */
+fun joinInputsFlow(db: TmmDatabase, seriesKey: String): Flow<ChapterJoinInputs> = combine(
+    db.chapterDao().observeForSeries(seriesKey),
+    db.downloadedChapterDao().observeForSeries(seriesKey),
+    db.jobDao().observeAll(),
+    db.localFrChapterDao().observeAll(),
+    db.pcIndexChapterDao().observeAll(),
+) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }
+
 /**
  * Index des entrees de jointure, construit une seule fois : la Bibliotheque rapproche ~1000
  * series, et refiltrer toutes les listes par serie (O(series x chapitres)) gelait l'app.

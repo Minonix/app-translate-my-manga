@@ -50,29 +50,30 @@ class Startup(
             return@withLock StartupResult.PERMISSION_NEEDED
         }
 
-        importBackupIfNeeded(fs, rootDocId)
-        scanDownloads(fs, rootDocId)
+        val backupImported = importBackupIfNeeded(fs, rootDocId)
+        scanDownloads(fs, rootDocId, rematch = backupImported)
         runAutoTranslate(db, jobRepository)
         refreshCoordinator.refresh()
         StartupResult.DONE
     }
 
-    private suspend fun importBackupIfNeeded(fs: MihonFs, rootDocId: String) {
-        val autobackupId = fs.findChild(rootDocId, "autobackup")?.docId ?: return
+    /** true si une nouvelle sauvegarde a ete importee (le catalogue Room a change). */
+    private suspend fun importBackupIfNeeded(fs: MihonFs, rootDocId: String): Boolean {
+        val autobackupId = fs.findChild(rootDocId, "autobackup")?.docId ?: return false
         val newest = fs.children(autobackupId)
             .filter { !it.isDirectory && it.name.endsWith(".tachibk") }
             .maxByOrNull { it.lastModified }
-            ?: return
+            ?: return false
         val known = db.backupImportDao().observe().first()
         val changed = known == null || known.name != newest.name || known.size != newest.size ||
             known.lastModified != newest.lastModified
-        if (!changed) return
+        if (!changed) return false
 
         // Sauvegarde illisible : on garde le cache Room existant plutot que de planter au demarrage.
         val backup = try {
             fs.openInput(newest.docId).use { BackupReader.read(it) }
         } catch (e: Exception) {
-            return
+            return false
         }
         BackupImporter(db).import(backup)
         db.backupImportDao().upsert(
@@ -84,11 +85,13 @@ class Startup(
                 source = "autobackup",
             ),
         )
+        return true
     }
 
-    private suspend fun scanDownloads(fs: MihonFs, rootDocId: String) {
+    private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean) {
         val scanner = DownloadScanner(fs, db)
         fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId) }
+        if (rematch) scanner.rematch()
         fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
         prefs.setLastScanAt(System.currentTimeMillis())
     }

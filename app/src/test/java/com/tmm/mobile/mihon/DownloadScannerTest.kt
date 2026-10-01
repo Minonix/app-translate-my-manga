@@ -123,4 +123,58 @@ class DownloadScannerTest {
         assertEquals("job1", updated?.jobId)
         assertEquals("MangaSource/One Piece/Chapitre 1", updated?.mihonPath)
     }
+
+    @Test fun scanDownloads_removesDeletedChapterAndDeletedSeriesDir() = runTest {
+        seedSeries()
+        val sourceDir = File(root, "MangaSource").apply { mkdirs() }
+        val seriesDir = File(sourceDir, "One Piece").apply { mkdirs() }
+        File(seriesDir, "Chapitre 1").mkdirs()
+        File(seriesDir, "Chapitre 2").mkdirs()
+        val bleach = File(sourceDir, "Bleach").apply { mkdirs() }
+        File(bleach, "Chapitre 1").mkdirs()
+        val scanner = DownloadScanner(FakeMihonFs(root), db)
+        scanner.scanDownloads(root.absolutePath)
+        assertEquals(3, db.downloadedChapterDao().observeAll().first().size)
+
+        File(seriesDir, "Chapitre 2").delete()
+        seriesDir.setLastModified(seriesDir.lastModified() + 10_000)
+        bleach.deleteRecursively()
+        scanner.scanDownloads(root.absolutePath)
+
+        assertEquals(listOf("MangaSource/One Piece/Chapitre 1"), db.downloadedChapterDao().observeAll().first().map { it.mihonPath })
+        assertEquals(1, db.scannedSeriesDirDao().observeAll().first().size)
+    }
+
+    @Test fun rematch_attachesDownloadsToSeriesImportedLater() = runTest {
+        val seriesDir = File(File(root, "MangaSource"), "One Piece").apply { mkdirs() }
+        File(seriesDir, "Chapitre 1").mkdirs()
+        val scanner = DownloadScanner(FakeMihonFs(root), db)
+        scanner.scanDownloads(root.absolutePath)
+        assertNull(db.downloadedChapterDao().observeAll().first().single().seriesKey)
+
+        seedSeries()
+        scanner.rematch()
+
+        assertEquals("sk1", db.downloadedChapterDao().observeAll().first().single().seriesKey)
+    }
+
+    @Test fun scanLocal_removesDeletedFiles_keepsUnchangedFolderViaCache() = runTest {
+        val localRoot = File(root, "local").apply { mkdirs() }
+        val folder = File(localRoot, "OnePiece").apply { mkdirs() }
+        File(folder, "ch1.cbz").writeBytes(byteArrayOf(1))
+        val ch2 = File(folder, "ch2.cbz").apply { writeBytes(byteArrayOf(1)) }
+        val fs = FakeMihonFs(root)
+        val scanner = DownloadScanner(fs, db)
+        scanner.scanLocal(localRoot.absolutePath)
+        assertEquals(2, db.localFrChapterDao().observeAll().first().size)
+
+        val calls = fs.childrenCallCount
+        scanner.scanLocal(localRoot.absolutePath)
+        assertEquals(calls + 1, fs.childrenCallCount)
+
+        ch2.delete()
+        folder.setLastModified(folder.lastModified() + 10_000)
+        scanner.scanLocal(localRoot.absolutePath)
+        assertEquals(listOf("OnePiece/ch1.cbz"), db.localFrChapterDao().observeAll().first().map { it.localPath })
+    }
 }

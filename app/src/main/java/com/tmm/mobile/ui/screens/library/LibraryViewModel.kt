@@ -5,36 +5,26 @@ import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
-import com.tmm.mobile.data.db.CategoryEntity
-import com.tmm.mobile.data.db.SeriesCategoryEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.status.ChapterJoinIndex
 import com.tmm.mobile.data.status.ChapterJoinInputs
 import com.tmm.mobile.data.status.ChapterJoinRow
 import com.tmm.mobile.data.status.ChapterStatus
-import com.tmm.mobile.data.status.SeriesBadge
-import com.tmm.mobile.data.status.SeriesSummary
-import com.tmm.mobile.data.status.badge
 import com.tmm.mobile.data.status.buildChapterJoinRows
-import com.tmm.mobile.data.status.deriveSeriesSummary
-import com.tmm.mobile.data.status.joinInputsFlow
-import com.tmm.mobile.data.status.toAggregateInputs
-import com.tmm.mobile.ui.components.StatusTone
-import com.tmm.mobile.ui.mock.MockSeries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * ViewModel reel de l'ecran Bibliotheque (E10, plan 7.2) : agrege series/categories/chapitres/
- * jobs Room via SeriesSummary (data/status) en LibraryState. Les actions (envoyer/recuperer/
+ * ViewModel reel de l'ecran Bibliotheque (E10, plan 7.2) : la liste agregee (SeriesSummary par
+ * serie) vient de LibraryCache, partage entre les ecrans et persiste sur disque. Les actions (envoyer/recuperer/
  * verifier/retraduire) passent par JobRepository, comme les autres ecrans de cette milestone.
  */
 class LibraryViewModel(
@@ -52,28 +42,10 @@ class LibraryViewModel(
         val toast: LibraryToast? = null,
     )
 
-    private data class LibraryData(
-        val categories: List<Pair<String, Int>>,
-        val allSeries: List<MockSeries>,
-        val seriesByTitle: Map<String, SeriesEntity>,
-        val rowsByTitle: Map<String, List<ChapterJoinRow>>,
-    )
-
-    private val emptyData = LibraryData(categories = listOf("Tous" to 0), allSeries = emptyList(), seriesByTitle = emptyMap(), rowsByTitle = emptyMap())
-
     private val ui = MutableStateFlow(UiOnly())
 
-    // ponytail: Eagerly (pas WhileSubscribed) pour que onEvent()/state.value soient coherents
-    // meme sans collecteur Compose actif (necessaire pour les tests de ViewModel).
-    private val dataState: StateFlow<LibraryData> = combine(
-        container.db.seriesDao().observeAll(),
-        container.db.categoryDao().observeAll(),
-        container.db.seriesCategoryDao().observeAll(),
-        joinInputsFlow(container.db),
-    ) { seriesList, categories, links, joinInputs -> buildLibraryData(seriesList, categories, links, joinInputs) }
-        // Hors thread principal : avec ~1000 series le calcul prend du temps (freeze en v1.0.3).
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
+    // Liste partagee et persistee (LibraryCache) : affichee tout de suite, recalculee en fond.
+    private val dataState: StateFlow<LibrarySnapshot> = container.libraryCache.data
 
     val state: StateFlow<LibraryState> = combine(ui, dataState) { u, d ->
         LibraryState(
@@ -83,11 +55,11 @@ class LibraryViewModel(
             category = u.category,
             categories = d.categories,
             view = u.view,
-            allSeries = d.allSeries,
+            allSeries = d.series,
             confirmRetranslate = u.confirmRetranslate,
             toast = u.toast,
         )
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, LibraryState(categories = emptyData.categories, allSeries = emptyList()))
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, LibraryState(categories = LibrarySnapshot().categories, allSeries = emptyList()))
 
     init {
         if (initialCategoryOrder != null) {
@@ -123,15 +95,32 @@ class LibraryViewModel(
         }
     }
 
-    private fun collectTargets(predicate: (ChapterJoinRow) -> Boolean): List<JobTarget> {
-        val d = dataState.value
-        return state.value.selected.flatMap { title ->
-            val series = d.seriesByTitle[title] ?: return@flatMap emptyList()
-            (d.rowsByTitle[title] ?: emptyList()).filter(predicate).map { row ->
+    /**
+     * Chapitres des series selectionnees, recalcules a la demande depuis Room : le cache de la
+     * Bibliotheque ne garde que le resume par serie, et seules les series choisies sont relues.
+     */
+    private suspend fun selectedRows(): List<Pair<SeriesEntity, List<ChapterJoinRow>>> = withContext(Dispatchers.Default) {
+        val db = container.db
+        val keys = state.value.allSeries.filter { it.title in state.value.selected }.map { it.seriesKey }
+        val series = keys.mapNotNull { db.seriesDao().get(it) }
+        val index = ChapterJoinIndex(
+            ChapterJoinInputs(
+                chapters = series.flatMap { db.chapterDao().getForSeries(it.seriesKey) },
+                downloaded = series.flatMap { db.downloadedChapterDao().observeForSeries(it.seriesKey).first() },
+                jobs = db.jobDao().observeAll().first(),
+                localFr = db.localFrChapterDao().observeAll().first(),
+                pcIndex = db.pcIndexChapterDao().observeAll().first(),
+            ),
+        )
+        series.map { it to buildChapterJoinRows(it.seriesKey, it.sourceName, it.title, index) }
+    }
+
+    private suspend fun collectTargets(predicate: (ChapterJoinRow) -> Boolean): List<JobTarget> =
+        selectedRows().flatMap { (series, rows) ->
+            rows.filter(predicate).map { row ->
                 JobTarget(mihonPath = row.mihonPath, downloaded = row.downloaded, series = series, chapter = row.chapter)
             }
         }
-    }
 
     private fun performSend() = viewModelScope.launch {
         val targets = collectTargets { it.status == ChapterStatus.TO_SEND }
@@ -140,11 +129,8 @@ class LibraryViewModel(
     }
 
     private fun performFetch() = viewModelScope.launch {
-        val d = dataState.value
-        val jobIds = state.value.selected.flatMap { title ->
-            (d.rowsByTitle[title] ?: emptyList()).mapNotNull { row ->
-                row.facts.latestJob?.takeIf { it.phoneState == "RESULT_READY" }?.jobId
-            }
+        val jobIds = selectedRows().flatMap { (_, rows) ->
+            rows.mapNotNull { row -> row.facts.latestJob?.takeIf { it.phoneState == "RESULT_READY" }?.jobId }
         }
         container.jobRepository.fetch(jobIds)
         showToast(LibraryToast.Received(jobIds.size))
@@ -165,60 +151,4 @@ class LibraryViewModel(
     private fun showToast(toast: LibraryToast) {
         ui.update { it.copy(toast = toast, confirmRetranslate = false, picking = false, selected = emptySet()) }
     }
-
-    private fun buildLibraryData(
-        seriesList: List<SeriesEntity>,
-        categories: List<CategoryEntity>,
-        links: List<SeriesCategoryEntity>,
-        joinInputs: ChapterJoinInputs,
-    ): LibraryData {
-        val linksBySeries = links.groupBy { it.seriesKey }
-        val categoryNameByOrder = categories.associate { it.order to it.name }
-        val countByCategory = links.groupingBy { it.categoryOrder }.eachCount()
-        val chips = listOf("Tous" to seriesList.size) + categories.map { cat -> cat.name to (countByCategory[cat.order] ?: 0) }
-        val index = ChapterJoinIndex(joinInputs)
-        val entries = seriesList.map { series -> series to buildChapterJoinRows(series.seriesKey, series.sourceName, series.title, index) }
-        val mockSeries = entries.map { (series, rows) ->
-            val summary = deriveSeriesSummary(series.seriesKey, rows.toAggregateInputs(), emptySet())
-            val badge = summary.badge()
-            val primaryOrder = linksBySeries[series.seriesKey]?.minOfOrNull { it.categoryOrder }
-            val categoryName = primaryOrder?.let { categoryNameByOrder[it] } ?: ""
-            val totalChapters = index.chaptersBySeries[series.seriesKey]?.size ?: 0
-            MockSeries(
-                title = series.title,
-                colorHex = "",
-                category = categoryName,
-                frChapters = summary.frCount,
-                totalChapters = totalChapters,
-                toSend = summary.toSend,
-                toGet = summary.toFetch,
-                badge = libraryBadgeLabel(badge, summary),
-                tone = badge.toStatusTone(),
-                seriesKey = series.seriesKey,
-                thumbnailUrl = series.thumbnailUrl,
-            )
-        }
-        return LibraryData(
-            categories = chips,
-            allSeries = mockSeries,
-            seriesByTitle = seriesList.associateBy { it.title },
-            rowsByTitle = entries.associate { (series, rows) -> series.title to rows },
-        )
-    }
-}
-
-private fun libraryBadgeLabel(badge: SeriesBadge, s: SeriesSummary): String = when (badge) {
-    SeriesBadge.BUSY -> "Traduction en cours"
-    SeriesBadge.SEND -> "${s.toSend} à envoyer"
-    SeriesBadge.GET -> "${s.toFetch} à récupérer"
-    SeriesBadge.ABSENT -> "Non téléchargée"
-    SeriesBadge.OK -> "À jour"
-}
-
-private fun SeriesBadge.toStatusTone(): StatusTone = when (this) {
-    SeriesBadge.BUSY -> StatusTone.Busy
-    SeriesBadge.SEND -> StatusTone.Send
-    SeriesBadge.GET -> StatusTone.Get
-    SeriesBadge.ABSENT -> StatusTone.Absent
-    SeriesBadge.OK -> StatusTone.Ok
 }

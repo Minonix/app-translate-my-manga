@@ -74,6 +74,9 @@ interface ChapterDao {
     @Query("SELECT * FROM chapter WHERE chapterKey = :chapterKey")
     suspend fun get(chapterKey: String): ChapterEntity?
 
+    @Query("SELECT * FROM chapter WHERE seriesKey = :seriesKey")
+    suspend fun getForSeries(seriesKey: String): List<ChapterEntity>
+
     @Upsert
     suspend fun upsertAll(chapters: List<ChapterEntity>)
 
@@ -103,6 +106,9 @@ interface DownloadedChapterDao {
 
     @Delete
     suspend fun delete(chapter: DownloadedChapterEntity)
+
+    @Query("DELETE FROM downloaded_chapter WHERE sourceDir = :sourceDir AND seriesDir = :seriesDir")
+    suspend fun deleteForSeriesDir(sourceDir: String, seriesDir: String)
 }
 
 @Dao
@@ -118,6 +124,12 @@ interface ScannedSeriesDirDao {
 
     @Upsert
     suspend fun upsertAll(dirs: List<ScannedSeriesDirEntity>)
+
+    @Query("SELECT * FROM scanned_series_dir WHERE sourceDir = :sourceDir")
+    suspend fun getForSource(sourceDir: String): List<ScannedSeriesDirEntity>
+
+    @Query("DELETE FROM scanned_series_dir WHERE sourceDir = :sourceDir AND seriesDir = :seriesDir")
+    suspend fun delete(sourceDir: String, seriesDir: String)
 }
 
 @Dao
@@ -127,6 +139,9 @@ interface LocalFrChapterDao {
 
     @Query("SELECT * FROM local_fr_chapter WHERE localPath = :localPath")
     suspend fun get(localPath: String): LocalFrChapterEntity?
+
+    @Query("SELECT * FROM local_fr_chapter WHERE folderName = :folderName")
+    suspend fun getForFolder(folderName: String): List<LocalFrChapterEntity>
 
     @Upsert
     suspend fun upsertAll(chapters: List<LocalFrChapterEntity>)

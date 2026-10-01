@@ -79,7 +79,7 @@ class SeriesViewModel(
 
     private val core = combine(
         container.db.seriesDao().observe(seriesKey),
-        joinInputsFlow(container.db),
+        joinInputsFlow(container.db, seriesKey),
         container.db.chapterQualityDao().observeAll(),
         container.db.ignoredGapDao().observeForSeries(seriesKey),
         container.prefs.settingsJson,

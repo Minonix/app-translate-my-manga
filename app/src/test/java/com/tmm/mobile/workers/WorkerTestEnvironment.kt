@@ -11,6 +11,7 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import com.tmm.mobile.Startup
 import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.AppContainer
+import com.tmm.mobile.ui.screens.library.LibraryCache
 import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.AppPrefs
 import com.tmm.mobile.data.JobRepository
@@ -131,4 +132,6 @@ class FakeAppContainer(
     }
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, transport, workManager) }
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
+    // Fichier neuf par test : un instantane d'un test precedent ne doit pas s'afficher dans le suivant.
+    override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(kotlin.io.path.createTempDirectory().toFile(), "library_snapshot.json")) }
 }
