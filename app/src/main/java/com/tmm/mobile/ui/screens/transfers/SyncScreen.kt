@@ -38,11 +38,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
+import com.tmm.mobile.ui.components.SectionLabel
 import com.tmm.mobile.ui.components.TmmCheckbox
 import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.components.dashedBorder
@@ -54,6 +57,7 @@ import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.TmmType
 import com.tmm.mobile.ui.theme.halftone
+import java.util.Locale
 
 /**
  * Écran Transferts (Sync.dc.html, E4.4).
@@ -183,13 +187,13 @@ private fun SyncHowItWorksCard(
         val annotated = buildAnnotatedString {
             append(explainPart)
             append(" ")
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = TmmColors.accent)) {
+            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = TmmColors.accent, textDecoration = TextDecoration.Underline)) {
                 append(queueLink)
             }
             append(".")
         }
         TmmText(
-            text = annotated.text,
+            text = annotated,
             style = TmmType.sans(12, lineHeight = 18f),
             color = TmmColors.textMuted,
             modifier = Modifier.clickable(onClick = onOpenQueue),
@@ -252,8 +256,10 @@ private fun TransitNode(
             text = name,
             style = TmmType.sans(11, weight = 600),
             color = TmmColors.ink,
-            maxLines = 1,
+            // Deux lignes comme la maquette : « Google Drive » etait coupe en « Google Dri... ».
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -325,12 +331,7 @@ private fun TransitLane(modifier: Modifier = Modifier) {
 @Composable
 private fun SyncLiveSection(state: SyncState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TmmText(
-            text = stringResource(R.string.sync_now_title),
-            style = TmmType.sans(12, weight = 600),
-            color = TmmColors.textMuted,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
+        SectionLabel(text = stringResource(R.string.sync_now_title), modifier = Modifier.padding(horizontal = 4.dp))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -465,8 +466,8 @@ private fun SyncUpSection(
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 TmmText(
-                    text = stringResource(R.string.sync_up_section_title),
-                    style = TmmType.sans(12, weight = 600),
+                    text = stringResource(R.string.sync_up_section_title).uppercase(Locale.FRENCH),
+                    style = TmmType.sans(12, weight = 600, letterSpacingEm = 0.06f),
                     color = TmmColors.textMuted,
                 )
                 val titleText = if (isDone) {
@@ -635,8 +636,8 @@ private fun SyncDownSection(
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 TmmText(
-                    text = stringResource(R.string.sync_down_section_title),
-                    style = TmmType.sans(12, weight = 600),
+                    text = stringResource(R.string.sync_down_section_title).uppercase(Locale.FRENCH),
+                    style = TmmType.sans(12, weight = 600, letterSpacingEm = 0.06f),
                     color = TmmColors.textMuted,
                 )
                 val titleText = if (isDone) {

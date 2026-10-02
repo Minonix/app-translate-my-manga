@@ -9,12 +9,15 @@ import kotlinx.coroutines.flow.first
 
 // PLAN_GEMINI.md 5.15/5.16 : meme etape d'auto-traduction appelee par Startup.run() (une fois au
 // demarrage) et par RefreshCoordinator.refresh() (a chaque cycle) - une seule implementation partagee.
+// Tourne a chaque refresh : les series en auto-traduction sont lues en une requete (et le cas courant,
+// aucune, sort tout de suite) au lieu d'une requete par chapitre telecharge.
 suspend fun runAutoTranslate(db: TmmDatabase, jobRepository: JobRepository) {
+    val autoSeries = db.seriesSettingsDao().autoTranslateSeriesKeys().toSet()
+    if (autoSeries.isEmpty()) return
     val localFrPaths = db.localFrChapterDao().observeAll().first().mapNotNull { it.mihonPath }.toSet()
     for (downloaded in db.downloadedChapterDao().observeAll().first()) {
         val seriesKey = downloaded.seriesKey ?: continue
-        val autoTranslateOn = db.seriesSettingsDao().observe(seriesKey).first()?.autoTranslate ?: false
-        if (!autoTranslateOn) continue
+        if (seriesKey !in autoSeries) continue
 
         val index = db.pcIndexChapterDao().get(downloaded.mihonPath)
         val latestJob = db.jobDao().getAllForMihonPath(downloaded.mihonPath).firstOrNull()

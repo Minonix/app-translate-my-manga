@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.screens.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.ProgressBar
@@ -38,6 +40,7 @@ import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmType
 import com.tmm.mobile.ui.theme.halftone
 import com.tmm.mobile.ui.theme.pressScale
+import java.util.Locale
 
 /**
  * Ecran Accueil (Main.dc.html, E4.1). Ne rend que le contenu propre a l'ecran ;
@@ -157,6 +160,7 @@ private fun PcStatusPill(state: MainState) {
             .height(36.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(TmmColors.surface)
+            .border(1.dp, TmmColors.track, RoundedCornerShape(18.dp))
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -201,7 +205,7 @@ private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenQu
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
         ) {
             TmmText(
-                text = stringResource(R.string.home_todo_section_label),
+                text = stringResource(R.string.home_todo_section_label).uppercase(Locale.FRENCH),
                 style = TmmType.sans(12, weight = 600, letterSpacingEm = 0.06f),
                 color = TmmColors.textOnInkMuted,
             )
@@ -243,6 +247,7 @@ private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenQu
 
 @Composable
 private fun TodoRow(count: Int, icons: List<TmmIconId>, label: String, summary: String, action: @Composable () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(TmmColors.C2E2D29))
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -268,7 +273,7 @@ private fun InlineButton(label: String, filled: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
-            .then(if (filled) Modifier.background(bg) else Modifier)
+            .then(if (filled) Modifier.background(bg) else Modifier.border(1.dp, TmmColors.paper, RoundedCornerShape(10.dp)))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.Center,
@@ -325,7 +330,8 @@ private fun OnPcNowSection(state: MainState, onOpenQueue: () -> Unit) {
             TmmText(text = stringResource(R.string.home_now_on_pc_title), style = TmmType.display(19, weight = 800))
             TmmText(
                 text = stringResource(R.string.home_queue_link_fmt, state.queueCount),
-                style = TmmType.sans(13, weight = 600),
+                style = TmmType.sans(13, weight = 600).copy(textDecoration = TextDecoration.Underline),
+                color = TmmColors.accent,
                 modifier = Modifier.clickable(onClick = onOpenQueue),
             )
         }

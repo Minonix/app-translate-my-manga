@@ -4,7 +4,7 @@ import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.mock.MockSeries
 
 /** Filtre "Afficher" (Library.dc.html, radiogroup) ; ignore quand `picking` est actif. */
-enum class LibraryViewFilter { All, Todo, Absent }
+enum class LibraryViewFilter { All, Todo, Downloaded, OnPc, Absent }
 
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
 sealed interface LibraryToast {
@@ -32,6 +32,8 @@ data class LibraryState(
                 (
                     picking || view == LibraryViewFilter.All ||
                         (view == LibraryViewFilter.Todo && (s.tone == StatusTone.Send || s.tone == StatusTone.Busy)) ||
+                        (view == LibraryViewFilter.Downloaded && s.onPhone > 0) ||
+                        (view == LibraryViewFilter.OnPc && s.onPc > 0) ||
                         (view == LibraryViewFilter.Absent && s.tone == StatusTone.Absent)
                     ) &&
                 (query.isBlank() || s.title.contains(query, ignoreCase = true))

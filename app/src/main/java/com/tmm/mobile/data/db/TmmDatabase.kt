@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -22,7 +24,7 @@ import androidx.room.TypeConverters
         BackupImportEntity::class,
         PcIndexChapterEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -42,7 +44,16 @@ abstract class TmmDatabase : RoomDatabase() {
     abstract fun pcIndexChapterDao(): PcIndexChapterDao
 
     companion object {
+        // v1 -> v2 : canal du job (connexion directe). Les jobs existants restent sur Drive.
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `job` ADD COLUMN `channel` TEXT NOT NULL DEFAULT 'drive'")
+            }
+        }
+
         fun build(context: Context): TmmDatabase =
-            Room.databaseBuilder(context, TmmDatabase::class.java, "tmm.db").build()
+            Room.databaseBuilder(context, TmmDatabase::class.java, "tmm.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
     }
 }

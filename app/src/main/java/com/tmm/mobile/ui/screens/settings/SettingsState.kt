@@ -16,7 +16,12 @@ sealed interface SettingsToast {
     data object ChooseAccount : SettingsToast
     data object FolderPicker : SettingsToast
     data object LogsReady : SettingsToast
+    data object Paired : SettingsToast
+    data object PairFailed : SettingsToast
 }
+
+// Connexion directe (Tailscale) : etat affiche dans les Reglages.
+enum class DirectStatus { Direct, Unreachable, NotPaired, Expired }
 
 data class SettingsState(
     val pcName: String = "PC-BUREAU",
@@ -33,6 +38,11 @@ data class SettingsState(
     val wifiOnly: Boolean = false,
     val logsInfo: String = "7 derniers jours · 240 Ko",
     val toast: SettingsToast? = null,
+    val directStatus: DirectStatus = DirectStatus.NotPaired,
+    // Adresse du PC : publiee par le PC via Drive (pc/remote.json) ou saisie a la main.
+    val directUrl: String = "",
+    val pairingCode: String = "",
+    val pairing: Boolean = false,
 )
 
 sealed interface SettingsEvent {
@@ -43,4 +53,8 @@ sealed interface SettingsEvent {
     data object ToggleWifiOnly : SettingsEvent
     data object ExportLogs : SettingsEvent
     data object DismissToast : SettingsEvent
+    data class DirectUrlChanged(val url: String) : SettingsEvent
+    data class PairingCodeChanged(val code: String) : SettingsEvent
+    data object Pair : SettingsEvent
+    data object ForgetPc : SettingsEvent
 }

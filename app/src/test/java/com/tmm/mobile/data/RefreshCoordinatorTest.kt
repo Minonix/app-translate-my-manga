@@ -95,6 +95,23 @@ class RefreshCoordinatorTest {
         assertEquals(8, quality?.translatedBubbles)
     }
 
+    // Le meme result.json reste visible plusieurs refresh de suite : il ne doit etre applique qu'une fois.
+    @Test fun refresh_doesNotReapplyResult_toAlreadyInstalledJob() = runTest {
+        writeOwnRequest("job-3")
+        env.db.jobDao().upsert(job("job-3"))
+        env.pc.finish("job-3", resultBytes = ByteArray(0), fileRef = null, quality = null)
+        env.container.refreshCoordinator.refresh()
+        val installed = env.db.jobDao().get("job-3")!!
+
+        env.clock.millis += 60_000
+        env.container.refreshCoordinator.refresh()
+
+        val again = env.db.jobDao().get("job-3")!!
+        assertEquals("INSTALLED", again.phoneState)
+        assertEquals(installed.installedAt, again.installedAt)
+        assertEquals(installed.updatedAt, again.updatedAt)
+    }
+
     @Test fun refresh_ignoresStatus_forJobUnknownLocally() = runTest {
         writeOwnRequest("job-not-mine")
         env.pc.accept("job-not-mine")

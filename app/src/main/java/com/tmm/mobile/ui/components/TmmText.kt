@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.components
 
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,4 +32,15 @@ fun TmmText(
         maxLines = maxLines,
         overflow = overflow,
     )
+}
+
+/** Variante pour un texte a styles mixtes (ex. debut en gras). */
+@Composable
+fun TmmText(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    style: TextStyle = TmmType.sans(15),
+    color: Color = TmmColors.ink,
+) {
+    BasicText(text = text, modifier = modifier, style = style.copy(color = color))
 }

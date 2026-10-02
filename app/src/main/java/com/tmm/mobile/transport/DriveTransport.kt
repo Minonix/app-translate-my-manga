@@ -10,6 +10,7 @@ import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.ProtocolMarker
 import com.tmm.mobile.protocol.ReceivedJson
+import com.tmm.mobile.protocol.RemoteInfo
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.ResultJson
 import com.tmm.mobile.protocol.SettingsCommand
@@ -23,7 +24,7 @@ import kotlinx.coroutines.flow.first
 
 private const val CHUNK_SIZE = 8 * 1024 * 1024
 
-// CdC 7.1/7.3. Seule implementation V1 de JobTransport (DirectTransport V2 n'existe pas).
+// CdC 7.1/7.3. Canal Drive de JobTransport (le canal direct est DirectTransport).
 class DriveTransport(
     private val driveApi: DriveApi,
     private val prefs: AppPrefs,
@@ -163,6 +164,7 @@ class DriveTransport(
         var heartbeat: Heartbeat? = null
         var index: PcIndex? = null
         var settings: PcSettings? = null
+        var remote: RemoteInfo? = null
         var protocolTooNew = false
         var maxModified: String? = null
         var pageToken: String? = null
@@ -204,6 +206,11 @@ class DriveTransport(
                             val decoded = ProtocolJson.decodeFromString(PcSettings.serializer(), text)
                             if (decoded.protocol > 1) protocolTooNew = true else settings = decoded
                         }
+                        "remote.json" -> {
+                            val text = driveApi.readText(entry.id)
+                            val decoded = ProtocolJson.decodeFromString(RemoteInfo.serializer(), text)
+                            if (decoded.protocol > 1) protocolTooNew = true else remote = decoded
+                        }
                     }
                 } catch (e: Exception) {
                     // ponytail: un fichier partiellement ecrit ou corrompu ne doit pas bloquer
@@ -215,7 +222,7 @@ class DriveTransport(
         } while (pageToken != null)
         // Marge de recouvrement CdC 7.3 : on retranche 120s pour couvrir les ecritures encore en vol.
         val cursor = maxModified?.let { Instant.parse(it).minusSeconds(120).toString() } ?: since
-        return PollResult(cursor, statuses, results, heartbeat, index, settings, protocolTooNew)
+        return PollResult(cursor, statuses, results, heartbeat, index, settings, protocolTooNew, remote)
     }
 
     override suspend fun readSettings(): PcSettings? {
@@ -223,6 +230,14 @@ class DriveTransport(
         val file = driveApi.findChild(pcId, "settings.json", folder = false) ?: return null
         val text = driveApi.readText(file.id)
         return ProtocolJson.decodeFromString(PcSettings.serializer(), text)
+    }
+
+    // Lecture directe de pc/remote.json (ecran d'appairage) : le poll ne le voit que s'il a change
+    // depuis le curseur, alors qu'ici on veut la valeur courante.
+    suspend fun readRemoteInfo(): RemoteInfo? {
+        val pcId = prefs.drivePcId.first() ?: ensureLayout().let { prefs.drivePcId.first() } ?: return null
+        val file = driveApi.findChild(pcId, "remote.json", folder = false) ?: return null
+        return ProtocolJson.decodeFromString(RemoteInfo.serializer(), driveApi.readText(file.id))
     }
 
     override suspend fun downloadResult(job: JobEntity, fileId: String, dest: File, onProgress: suspend (Long, Long) -> Unit) {

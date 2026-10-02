@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.screens.library
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -99,53 +100,59 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
         modifier = Modifier.padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                TmmText(text = stringResource(R.string.library_title), style = TmmType.display(36, weight = 800))
-                val subtitle = if (state.picking) {
-                    pluralStringResource(R.plurals.library_series_selected, state.selectionCount, state.selectionCount)
-                } else {
-                    // ponytail: subtitle recompose depuis les vraies donnees (state.allSeries/categories)
-                    // plutot que le texte fige de la maquette (library_subtitle_default, garde defini-mais-
-                    // -inutilise pour MockupTextCoverageTest, qui ne verifie que l'existence de la ressource).
-                    val seriesCount = state.allSeries.size
-                    val categoryCount = (state.categories.size - 1).coerceAtLeast(0)
-                    pluralStringResource(R.plurals.library_series_count, seriesCount, seriesCount) + " · " +
-                        pluralStringResource(R.plurals.library_categories_count, categoryCount, categoryCount)
-                }
-                TmmText(text = subtitle, style = TmmType.sans(13), color = TmmColors.textMuted)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!state.picking) {
-                    val categoriesCd = stringResource(R.string.library_categories_cd)
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(TmmColors.surface)
-                            .clickable(onClick = onOpenCatalog),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        TmmIcon(TmmIconId.Filter, size = 16.dp, contentDescription = categoriesCd)
+        // Titre seul sur sa ligne : a cote des boutons, il ne laissait plus assez de place et
+        // « Sélectionner » passait sur deux lignes (comme la maquette, les boutons s'alignent sur le sous-titre).
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            TmmText(text = stringResource(R.string.library_title), style = TmmType.display(36, weight = 800))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    val subtitle = if (state.picking) {
+                        pluralStringResource(R.plurals.library_series_selected, state.selectionCount, state.selectionCount)
+                    } else {
+                        // ponytail: subtitle recompose depuis les vraies donnees (state.allSeries/categories)
+                        // plutot que le texte fige de la maquette (library_subtitle_default, garde defini-mais-
+                        // -inutilise pour MockupTextCoverageTest, qui ne verifie que l'existence de la ressource).
+                        val seriesCount = state.allSeries.size
+                        val categoryCount = (state.categories.size - 1).coerceAtLeast(0)
+                        pluralStringResource(R.plurals.library_series_count, seriesCount, seriesCount) + " · " +
+                            pluralStringResource(R.plurals.library_categories_count, categoryCount, categoryCount)
                     }
+                    TmmText(text = subtitle, style = TmmType.sans(13), color = TmmColors.textMuted)
                 }
-                val pickLabel = if (state.picking) stringResource(R.string.library_finish_button) else stringResource(R.string.library_select_button)
-                Row(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (state.picking) TmmColors.ink else TmmColors.surface)
-                        .clickable { onEvent(LibraryEvent.TogglePicking) }
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TmmIcon(TmmIconId.CheckboxChecked, size = 16.dp, tint = if (state.picking) TmmColors.paper else TmmColors.ink)
-                    TmmText(text = pickLabel, style = TmmType.sans(13, weight = 600), color = if (state.picking) TmmColors.paper else TmmColors.ink)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!state.picking) {
+                        val categoriesCd = stringResource(R.string.library_categories_cd)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(TmmColors.surface)
+                                .border(1.dp, TmmColors.track, RoundedCornerShape(10.dp))
+                                .clickable(onClick = onOpenCatalog),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            TmmIcon(TmmIconId.Filter, size = 16.dp, contentDescription = categoriesCd)
+                        }
+                    }
+                    val pickLabel = if (state.picking) stringResource(R.string.library_finish_button) else stringResource(R.string.library_select_button)
+                    Row(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (state.picking) TmmColors.ink else TmmColors.surface)
+                            .border(1.dp, if (state.picking) TmmColors.ink else TmmColors.track, RoundedCornerShape(10.dp))
+                            .clickable { onEvent(LibraryEvent.TogglePicking) }
+                            .padding(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TmmIcon(TmmIconId.CheckboxChecked, size = 16.dp, tint = if (state.picking) TmmColors.paper else TmmColors.ink)
+                        TmmText(text = pickLabel, style = TmmType.sans(13, weight = 600), color = if (state.picking) TmmColors.paper else TmmColors.ink, maxLines = 1)
+                    }
                 }
             }
         }
@@ -170,6 +177,8 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
                 options = listOf(
                     LibraryViewFilter.All to stringResource(R.string.library_view_all),
                     LibraryViewFilter.Todo to stringResource(R.string.library_view_todo),
+                    LibraryViewFilter.Downloaded to stringResource(R.string.library_view_downloaded),
+                    LibraryViewFilter.OnPc to stringResource(R.string.library_view_on_pc),
                     LibraryViewFilter.Absent to stringResource(R.string.library_view_absent),
                 ),
                 selected = state.view,

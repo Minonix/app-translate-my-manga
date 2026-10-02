@@ -1,5 +1,9 @@
 package com.tmm.mobile.ui.screens.offline
 
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,18 +76,20 @@ fun OfflineScreen(
                             tint = TmmColors.paper,
                             size = 18.dp,
                         )
-                        Row(modifier = Modifier.weight(1f)) {
-                            TmmText(
-                                text = stringResource(R.string.offline_banner_network_title) + " ",
-                                style = TmmType.sans(13, weight = 600),
-                                color = TmmColors.paper,
-                            )
-                            TmmText(
-                                text = stringResource(R.string.offline_banner_network_desc),
-                                style = TmmType.sans(13, weight = 400),
-                                color = TmmColors.paper,
-                            )
-                        }
+                        // Un seul texte a styles mixtes : en deux TmmText cote a cote, la suite
+                        // revenait a la ligne dans sa propre colonne au lieu de suivre le titre.
+                        val title = stringResource(R.string.offline_banner_network_title)
+                        val desc = stringResource(R.string.offline_banner_network_desc)
+                        TmmText(
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(title) }
+                                append(" ")
+                                append(desc)
+                            },
+                            style = TmmType.sans(13, weight = 400),
+                            color = TmmColors.paper,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
                 OfflineCause.Token -> {

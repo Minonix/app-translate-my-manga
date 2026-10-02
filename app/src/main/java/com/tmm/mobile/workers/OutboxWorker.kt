@@ -11,7 +11,7 @@ import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.protocol.CancelJson
 import com.tmm.mobile.protocol.ReceivedJson
 import com.tmm.mobile.transport.AuthExpiredException
-import com.tmm.mobile.transport.JobTransport
+import com.tmm.mobile.transport.TransportRouter
 import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -24,7 +24,7 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
     override suspend fun doWork(): Result {
         val container = (applicationContext as TmmApp).container
         val db = container.db
-        val transport = container.transport
+        val router = container.router
         val clock = container.clock
         val prefs = container.prefs
 
@@ -36,7 +36,7 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
 
             for (job in db.jobDao().observeAll().first()) {
                 if (job.phoneState == "CANCEL_REQUESTED" && job.cancelWrittenAt == null) {
-                    transport.writeCancel(job, CancelJson(jobId = job.jobId, requestedAt = now))
+                    router.forJob(job).writeCancel(job, CancelJson(jobId = job.jobId, requestedAt = now))
                     db.jobDao().upsert(job.copy(cancelWrittenAt = clock.nowMillis(), updatedAt = clock.nowMillis()))
                 }
             }
@@ -44,17 +44,17 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
             for (job in db.jobDao().observeAll().first()) {
                 if (job.phoneState == "INSTALLED" && job.receivedWrittenAt == null) {
                     val installedPath = requireNotNull(job.installedPath) { "job INSTALLED sans installedPath" }
-                    transport.writeReceived(job, ReceivedJson(jobId = job.jobId, receivedAt = now, installedPath = installedPath))
+                    router.forJob(job).writeReceived(job, ReceivedJson(jobId = job.jobId, receivedAt = now, installedPath = installedPath))
                     var updated = job.copy(receivedWrittenAt = clock.nowMillis(), updatedAt = clock.nowMillis())
                     if (retention == Retention.AFTER_RECEIVE) {
-                        transport.deleteJobFolder(updated)
+                        router.forJob(updated).deleteJobFolder(updated)
                         updated = updated.copy(driveDeletedAt = clock.nowMillis(), updatedAt = clock.nowMillis())
                     }
                     db.jobDao().upsert(updated)
                 }
             }
 
-            applyDays30Retention(retention, transport, db.jobDao().observeAll().first(), clock)
+            applyDays30Retention(retention, router, db.jobDao().observeAll().first(), clock)
             Result.success()
         } catch (e: AuthExpiredException) {
             Result.retry()
@@ -68,7 +68,7 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
     // upgrade vers un WorkRequest periodique dedie si un delai plus strict est requis.
     private suspend fun applyDays30Retention(
         retention: Retention,
-        transport: JobTransport,
+        router: TransportRouter,
         jobs: List<JobEntity>,
         clock: Clock,
     ) {
@@ -77,7 +77,7 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         val db = (applicationContext as TmmApp).container.db
         for (job in jobs) {
             if (job.driveDeletedAt == null && job.receivedWrittenAt != null && job.receivedWrittenAt <= cutoff) {
-                transport.deleteJobFolder(job)
+                router.forJob(job).deleteJobFolder(job)
                 db.jobDao().upsert(job.copy(driveDeletedAt = clock.nowMillis(), updatedAt = clock.nowMillis()))
             }
         }

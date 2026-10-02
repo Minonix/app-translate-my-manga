@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,6 +28,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -189,6 +192,75 @@ fun SettingsScreen(
                     )
                 }
 
+                // Connexion directe (Tailscale) : saisie du code d'appairage genere par l'app Windows.
+                SettingsGroup(title = stringResource(R.string.settings_group_direct)) {
+                    val paired = state.directStatus == DirectStatus.Direct || state.directStatus == DirectStatus.Unreachable
+                    SettingsRow(
+                        label = stringResource(R.string.settings_row_direct_state),
+                        value = stringResource(
+                            when (state.directStatus) {
+                                DirectStatus.Direct -> R.string.settings_direct_on
+                                DirectStatus.Unreachable -> R.string.settings_direct_unreachable
+                                DirectStatus.NotPaired -> R.string.settings_direct_unpaired
+                                DirectStatus.Expired -> R.string.settings_direct_expired
+                            },
+                        ),
+                    )
+                    if (paired) {
+                        SettingsRow(
+                            label = stringResource(R.string.settings_row_direct_url),
+                            value = state.directUrl,
+                            isMono = true,
+                            actionButtonText = stringResource(R.string.settings_action_forget),
+                            onActionClick = { onEvent(SettingsEvent.ForgetPc) },
+                            showBottomDivider = false,
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            SettingsTextField(
+                                value = state.directUrl,
+                                onValueChange = { onEvent(SettingsEvent.DirectUrlChanged(it)) },
+                                placeholder = stringResource(R.string.settings_row_direct_url),
+                                keyboardType = KeyboardType.Uri,
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                SettingsTextField(
+                                    value = state.pairingCode,
+                                    onValueChange = { onEvent(SettingsEvent.PairingCodeChanged(it)) },
+                                    placeholder = stringResource(R.string.settings_direct_code_hint),
+                                    keyboardType = KeyboardType.NumberPassword,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                val enabled = !state.pairing && state.pairingCode.length == 6 && state.directUrl.isNotBlank()
+                                val pairLabel = stringResource(R.string.settings_action_pair)
+                                Box(
+                                    modifier = Modifier
+                                        .height(46.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (enabled) TmmColors.ink else TmmColors.track)
+                                        .clickable(enabled = enabled, role = Role.Button, onClickLabel = pairLabel) {
+                                            onEvent(SettingsEvent.Pair)
+                                        }
+                                        .padding(horizontal = 16.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    TmmText(
+                                        text = pairLabel,
+                                        style = TmmType.sans(14, weight = 600),
+                                        color = if (enabled) TmmColors.paper else TmmColors.textMuted,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Groupe 1 : Google Drive
                 SettingsGroup(title = stringResource(R.string.settings_group_drive)) {
                     SettingsRow(
@@ -296,6 +368,8 @@ fun SettingsScreen(
             SettingsToast.ChooseAccount -> stringResource(R.string.settings_toast_choose_account)
             SettingsToast.FolderPicker -> stringResource(R.string.settings_toast_folder_picker)
             SettingsToast.LogsReady -> stringResource(R.string.settings_toast_logs_ready)
+            SettingsToast.Paired -> stringResource(R.string.settings_toast_paired)
+            SettingsToast.PairFailed -> stringResource(R.string.settings_toast_pair_failed)
             null -> ""
         }
 
@@ -334,6 +408,40 @@ private fun SettingsGroup(
         ) {
             content()
         }
+    }
+}
+
+@Composable
+private fun SettingsTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    keyboardType: KeyboardType,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(TmmColors.paperRaised)
+            .border(1.dp, TmmColors.track, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (value.isEmpty()) {
+            TmmText(text = placeholder, style = TmmType.sans(14), color = TmmColors.textMuted)
+        }
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TmmType.mono(14).copy(color = TmmColors.ink),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = placeholder },
+        )
     }
 }
 

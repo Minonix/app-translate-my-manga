@@ -1,5 +1,7 @@
 package com.tmm.mobile.ui.screens.permission
 
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -123,8 +125,16 @@ fun PermissionScreen(
                             style = TmmType.mono(14, weight = 500),
                             color = TmmColors.ink,
                         )
+                        // Noms de dossiers (« downloads/ »...) en mono, comme dans la maquette.
+                        val desc = stringResource(R.string.perm_expected_desc)
+                        val mono = TmmType.mono(13).fontFamily
                         TmmText(
-                            text = stringResource(R.string.perm_expected_desc),
+                            text = buildAnnotatedString {
+                                append(desc)
+                                Regex("""\w+/""").findAll(desc).forEach {
+                                    addStyle(SpanStyle(fontFamily = mono, color = TmmColors.ink), it.range.first, it.range.last + 1)
+                                }
+                            },
                             style = TmmType.sans(13, weight = 400, lineHeight = 19f),
                             color = TmmColors.textMuted,
                         )

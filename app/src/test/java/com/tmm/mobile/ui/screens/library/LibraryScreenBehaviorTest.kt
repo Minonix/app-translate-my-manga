@@ -91,7 +91,7 @@ class LibraryScreenBehaviorTest {
     @Test
     fun viewFilter_absent_showsOnlyAbsentSeries() {
         setState(MockupData.library)
-        composeRule.onNodeWithText("Non téléchargées").performClick()
+        composeRule.onNodeWithText("Non téléchargées").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Dandadan").assertExists()
         composeRule.onNodeWithText("Blue Lock").assertDoesNotExist()

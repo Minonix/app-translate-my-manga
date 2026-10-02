@@ -7,7 +7,7 @@ import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.SettingsCommand
 import com.tmm.mobile.protocol.SettingsSchema
 import com.tmm.mobile.protocol.SettingsValues
-import com.tmm.mobile.transport.JobTransport
+import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.workers.enqueueOutbox
 import java.time.Instant
 import java.util.UUID
@@ -37,7 +37,7 @@ private const val CONFIRM_MAX_ATTEMPTS = 12 // 12 x 5s = 60s, PLAN_GEMINI.md 5.1
 
 class SettingsSync(
     private val prefs: AppPrefs,
-    private val transport: JobTransport,
+    private val router: TransportRouter,
     private val workManager: WorkManager,
 ) {
     suspend fun readOnly(): Boolean = prefs.settingsJson.first() == null
@@ -63,13 +63,13 @@ class SettingsSync(
         return command.cmdId
     }
 
-    // Appelee par OutboxWorker : ecrit sur Drive les commandes en attente pas encore envoyees.
+    // Appelee par OutboxWorker : ecrit sur le canal actif (direct si le PC repond, sinon Drive) les commandes en attente pas encore envoyees.
     // ponytail: lecture-modification-ecriture non atomique sur pending_commands_json - suffisant tant
     // qu'un seul worker OutboxWorker tourne a la fois (WorkManager le garantit via OUTBOX_WORK_NAME).
     suspend fun sendPendingCommands() {
         for (p in readPending()) {
             if (p.sent) continue
-            transport.writeCommand(p.command)
+            router.active().writeCommand(p.command)
             writePending(readPending().map { if (it.command.cmdId == p.command.cmdId) it.copy(sent = true) else it })
         }
     }
@@ -81,7 +81,7 @@ class SettingsSync(
             val target = readPending().find { it.command.cmdId == cmdId } ?: return SyncBanner.APPLIED
             // Reseau ou session Drive en echec : tentative perdue, pas de crash (appele depuis viewModelScope).
             val settings = try {
-                transport.readSettings()
+                router.active().readSettings()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

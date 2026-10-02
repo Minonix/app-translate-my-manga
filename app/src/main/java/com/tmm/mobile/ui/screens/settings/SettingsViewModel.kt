@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.screens.settings
 
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Formatters
@@ -19,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +54,50 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { observeBackupInfo() }
         viewModelScope.launch { observeLogsInfo() }
         viewModelScope.launch { loadTranslationSummary() }
+        viewModelScope.launch { observeDirect() }
+    }
+
+    // URL connue (publiee par le PC ou deja associee) pre-remplie ; l'etat suit l'appairage et un
+    // health-check de 2 s a chaque changement.
+    private suspend fun observeDirect() {
+        combine(container.prefs.directUrl, container.prefs.directPairingExpired) { url, expired -> url to expired }
+            .collect { (url, expired) ->
+                val direct = container.router.direct
+                val status = when {
+                    expired -> DirectStatus.Expired
+                    !direct.isPaired() -> DirectStatus.NotPaired
+                    direct.health() != null -> DirectStatus.Direct
+                    else -> DirectStatus.Unreachable
+                }
+                _state.update {
+                    it.copy(directStatus = status, directUrl = if (it.directUrl.isEmpty()) url.orEmpty() else it.directUrl)
+                }
+            }
+    }
+
+    private fun pair() {
+        val s = _state.value
+        if (s.pairing || s.pairingCode.length != 6 || s.directUrl.isBlank()) return
+        _state.update { it.copy(pairing = true) }
+        viewModelScope.launch {
+            val ok = runCatching { container.router.direct.pair(s.directUrl, s.pairingCode, Build.MODEL ?: "android") }
+                .onFailure { AppLog.d("SettingsViewModel", "appairage impossible : ${it.javaClass.simpleName} ${it.message}") }
+                .isSuccess
+            if (ok) container.prefs.setDirectPairingExpired(false)
+            val paired = ok && container.router.direct.health() != null
+            _state.update {
+                it.copy(
+                    pairing = false,
+                    pairingCode = if (ok) "" else it.pairingCode,
+                    directStatus = when {
+                        !ok -> it.directStatus
+                        paired -> DirectStatus.Direct
+                        else -> DirectStatus.Unreachable
+                    },
+                )
+            }
+            showToast(if (ok) SettingsToast.Paired else SettingsToast.PairFailed)
+        }
     }
 
     private suspend fun observeHeartbeat() {
@@ -205,6 +251,14 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             // Le vrai export (CreateDocument) est lance par SettingsRoute ; onLogsExported() affiche le toast.
             SettingsEvent.ExportLogs -> Unit
             SettingsEvent.DismissToast -> _state.update { it.copy(toast = null) }
+            is SettingsEvent.DirectUrlChanged -> _state.update { it.copy(directUrl = event.url.trim()) }
+            is SettingsEvent.PairingCodeChanged ->
+                _state.update { it.copy(pairingCode = event.code.filter(Char::isDigit).take(6)) }
+            SettingsEvent.Pair -> pair()
+            SettingsEvent.ForgetPc -> viewModelScope.launch {
+                container.router.direct.forget()
+                _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = "") }
+            }
         }
     }
 

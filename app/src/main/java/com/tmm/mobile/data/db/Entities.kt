@@ -1,5 +1,6 @@
 package com.tmm.mobile.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -123,7 +124,12 @@ data class JobEntity(
     val receivedWrittenAt: Long?,
     val cancelWrittenAt: Long?,
     val driveDeletedAt: Long?,
+    // Canal du job, fige a l'envoi : "drive" ou "direct" (Tailscale). Il ne change plus jusqu'au resultat.
+    @ColumnInfo(defaultValue = CHANNEL_DRIVE) val channel: String = CHANNEL_DRIVE,
 )
+
+const val CHANNEL_DRIVE = "drive"
+const val CHANNEL_DIRECT = "direct"
 
 @Entity(tableName = "chapter_quality")
 data class ChapterQualityEntity(

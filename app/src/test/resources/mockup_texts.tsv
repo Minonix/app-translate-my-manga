@@ -68,6 +68,8 @@ Library.dc.html	Favoris	DEMO
 Library.dc.html	Webtoons	DEMO
 Library.dc.html	Toutes	STR	library_view_all
 Library.dc.html	À traduire	STR	library_view_todo
+Library.dc.html	Téléchargées	STR	library_view_downloaded
+Library.dc.html	Sur le PC	STR	library_view_on_pc
 Library.dc.html	Non téléchargées	STR	library_view_absent
 Library.dc.html	Touchez les séries à inclure	STR	library_picking_hint
 Library.dc.html	Tout cocher (6)	FMT	library_select_all_fmt		[6]
@@ -434,6 +436,18 @@ Settings.dc.html	Journaux	STR	settings_row_logs
 Settings.dc.html	7 derniers jours · 240 Ko	DEMO
 Settings.dc.html	Exporter	STR	settings_action_export
 Settings.dc.html	Journaux prêts à partager	STR	settings_toast_logs_ready
+Settings.dc.html	Connexion directe	STR	settings_group_direct
+Settings.dc.html	État	STR	settings_row_direct_state
+Settings.dc.html	Directe via Tailscale	STR	settings_direct_on
+Settings.dc.html	PC injoignable, Google Drive utilisé	STR	settings_direct_unreachable
+Settings.dc.html	Non associée	STR	settings_direct_unpaired
+Settings.dc.html	Appairage expiré	STR	settings_direct_expired
+Settings.dc.html	Adresse du PC	STR	settings_row_direct_url
+Settings.dc.html	Code à 6 chiffres	STR	settings_direct_code_hint
+Settings.dc.html	Associer	STR	settings_action_pair
+Settings.dc.html	Oublier ce PC	STR	settings_action_forget
+Settings.dc.html	PC associé	STR	settings_toast_paired
+Settings.dc.html	Association impossible, vérifiez l'adresse et le code	STR	settings_toast_pair_failed
 Settings.dc.html	TMM Mobile 1.0.0 · protocole v1	STR	settings_footer_app_version
 TranslationSettings.dc.html	Retour aux réglages	STR	trans_settings_back_cd
 TranslationSettings.dc.html	Traduction sur le PC	STR	trans_settings_title

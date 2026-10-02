@@ -26,7 +26,9 @@ object AppLog {
 }
 
 private val EMAIL_REGEX = Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}")
-private val AUTH_HEADER_REGEX = Regex("(?i)(authorization\\s*[:=]\\s*)\\S+")
+// Le jeton suit souvent "Bearer" : on masque le schema ET la valeur, sinon seul "Bearer" disparaissait.
+private val AUTH_HEADER_REGEX = Regex("(?i)(authorization\\s*[:=]\\s*)(?:bearer\\s+)?\\S+")
+private val BEARER_REGEX = Regex("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+")
 
 // PLAN_GEMINI.md E10.4 : nom du fichier exporte, aaaa-mm-jj (LocalDate.toString() est deja ISO-8601).
 fun journalExportFileName(today: LocalDate): String = "tmm-journaux-$today.txt"
@@ -39,4 +41,6 @@ fun journalExportText(entries: List<AppLog.Entry>, nowMillis: Long, days: Long =
 }
 
 fun maskSensitive(text: String): String =
-    text.replace(EMAIL_REGEX, "***@***").replace(AUTH_HEADER_REGEX) { "${it.groupValues[1]}***" }
+    text.replace(EMAIL_REGEX, "***@***")
+        .replace(AUTH_HEADER_REGEX) { "${it.groupValues[1]}***" }
+        .replace(BEARER_REGEX) { "${it.groupValues[1]}***" }

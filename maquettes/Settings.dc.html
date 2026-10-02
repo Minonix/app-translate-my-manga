@@ -71,7 +71,7 @@ button{cursor:pointer}button:disabled{cursor:default}
 </div>
 <div style="font-size: 12px; color: #CFC8B8; border-top: 1px solid #2E2D29; padding-top: 10px">Dernier signal {{ beat }} · le PC écrit sur Drive toutes les minutes</div>
 </section>
-<sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="6">
 <section class="rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: {{ g.delay }}">
 <h2 style="margin: 0; padding: 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5E5A52">{{ g.title }}</h2>
 <div style="background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px; overflow: hidden">
@@ -108,19 +108,30 @@ button{cursor:pointer}button:disabled{cursor:default}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  state = { wifi: false, keep: 0, sec: 12, toast: '' };
+  state = { wifi: false, keep: 0, sec: 12, toast: '', direct: 2 };
   componentDidMount() { this.iv = setInterval(() => this.setState((s) => ({ sec: s.sec >= 59 ? 1 : s.sec + 1 })), 1000); }
   componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); }
   toast(msg) { this.setState({ toast: msg }); clearTimeout(this.t); this.t = setTimeout(() => this.setState({ toast: '' }), 2600); }
   renderVals() {
     const s = this.state;
     const keeps = ['Jamais supprimer', 'Après 30 jours', 'Après récupération'];
+    // Etats de la connexion directe : 0 associee et joignable, 1 associee injoignable, 2 non associee, 3 expiree.
+    const directs = ['Directe via Tailscale', 'PC injoignable, Google Drive utilisé', 'Non associée', 'Appairage expiré'];
+    const paired = s.direct < 2;
     const row = (label, value, extra) => ({ label, value, mono: '', isAction: false, isToggle: false, isLink: false, onBool: false, on: 'false', track: '', knob: '0px', act: null, action: '', href: '', ...extra });
     const toggle = (on, act) => ({ isToggle: true, on: String(on), onBool: on, track: on ? '#16161A' : '#D5CDBC', knob: on ? '20px' : '0px', act });
     return {
       beat: 'il y a ' + s.sec + ' s',
       hasToast: s.toast !== '', toast: s.toast,
       groups: [
+        { title: 'Connexion directe', rows: [
+          row('État', directs[s.direct]),
+          row('Adresse du PC', 'https://pc-bureau.tail1234.ts.net:8765', paired
+            ? { mono: 'm', isAction: true, action: 'Oublier ce PC', act: () => this.setState({ direct: 2 }) }
+            : { mono: 'm' }),
+          ...(paired ? [] : [row('Code à 6 chiffres', '••••••', { mono: 'm', isAction: true, action: 'Associer',
+            act: () => { this.setState({ direct: 0 }); this.toast(Math.random() < 0.8 ? 'PC associé' : "Association impossible, vérifiez l'adresse et le code"); } })])
+        ] },
         { title: 'Google Drive', rows: [
           row('Compte', 'vous@gmail.com', { isAction: true, action: 'Changer', act: () => this.toast('Choix du compte Google') }),
           row('Dossier partagé', 'TranslateMyManga/', { mono: 'm' }),

@@ -52,7 +52,10 @@ class SettingsScreenBehaviorTest {
                             is SettingsEvent.SetWifiOnly -> state.copy(wifiOnly = event.enabled)
                             SettingsEvent.ToggleWifiOnly -> state.copy(wifiOnly = !state.wifiOnly)
                             SettingsEvent.DismissToast -> state.copy(toast = null)
-                            SettingsEvent.ChangeMihonFolder, SettingsEvent.ExportLogs -> state
+                            is SettingsEvent.DirectUrlChanged -> state.copy(directUrl = event.url)
+                            is SettingsEvent.PairingCodeChanged -> state.copy(pairingCode = event.code)
+                            SettingsEvent.ChangeMihonFolder, SettingsEvent.ExportLogs,
+                            SettingsEvent.Pair, SettingsEvent.ForgetPc -> state
                         }
                     },
                     onNavigateBack = { backNavigated = true },

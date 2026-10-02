@@ -1,10 +1,13 @@
 package com.tmm.mobile.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +23,10 @@ import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.TmmType
 
-/** Bascule de vue (`role=radiogroup`), 3 segments, Library.dc.html. */
+/**
+ * Bascule de vue (`role=radiogroup`), Library.dc.html. Jusqu'a 3 segments ils se partagent la largeur ;
+ * au-dela (filtres de la Bibliotheque) ils prennent leur largeur naturelle et la rangee defile.
+ */
 @Composable
 fun <T> TmmSegmented(
     options: List<Pair<T, String>>,
@@ -28,25 +34,29 @@ fun <T> TmmSegmented(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scrolls = options.size > 3
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(TmmColors.line)
+            .then(if (scrolls) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
             .padding(4.dp)
             .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(if (scrolls) 4.dp else 0.dp),
     ) {
         options.forEach { (value, label) ->
             val isOn = value == selected
             Row(
                 modifier = Modifier
-                    .weight(1f)
+                    .then(if (scrolls) Modifier else Modifier.weight(1f))
                     .height(36.dp)
                     .then(if (isOn) Modifier.shadow(1.dp, RoundedCornerShape(9.dp)) else Modifier)
                     .clip(RoundedCornerShape(9.dp))
                     .background(if (isOn) TmmColors.surface else androidx.compose.ui.graphics.Color.Transparent)
-                    .selectable(selected = isOn, onClick = { onSelect(value) }, role = Role.RadioButton),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                    .selectable(selected = isOn, onClick = { onSelect(value) }, role = Role.RadioButton)
+                    .then(if (scrolls) Modifier.padding(horizontal = 14.dp) else Modifier),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TmmText(

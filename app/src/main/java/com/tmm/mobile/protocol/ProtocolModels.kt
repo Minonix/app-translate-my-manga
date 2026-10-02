@@ -190,6 +190,75 @@ data class ProtocolMarker(
     val protocol: Int = 1,
 )
 
+// Connexion directe (Tailscale) : memes contrats que Drive, plus ces quelques objets propres au HTTP.
+// pc/remote.json (Drive) : url == null signifie acces direct coupe cote PC.
+@Serializable
+data class RemoteInfo(
+    val protocol: Int = 1,
+    val url: String? = null,
+    val updatedAt: String,
+)
+
+@Serializable
+data class HealthResponse(
+    val protocol: Int = 1,
+    val pcName: String,
+    val appVersion: String,
+    val capabilities: List<String> = emptyList(),
+)
+
+@Serializable
+data class PairRequest(
+    val protocol: Int = 1,
+    val code: String,
+    val deviceId: String,
+    val deviceName: String,
+)
+
+@Serializable
+data class PairResponse(
+    val token: String,
+    val pcName: String,
+)
+
+@Serializable
+data class InventorySeries(
+    val seriesKey: String,
+    val title: String,
+    val sourceName: String,
+    val chapters: Int,
+    val downloaded: Int,
+    val read: Int,
+    val fr: Int,
+    val downloadedPaths: List<MihonPath> = emptyList(),
+)
+
+@Serializable
+data class PhoneInventory(
+    val protocol: Int = 1,
+    val deviceName: String,
+    val updatedAt: String,
+    val series: List<InventorySeries> = emptyList(),
+)
+
+// Reponse d'erreur du PC : {"error":{"code","message"}}.
+@Serializable
+data class RemoteErrorBody(val error: RemoteErrorDetail? = null)
+
+@Serializable
+data class RemoteErrorDetail(val code: String? = null, val message: String? = null)
+
+// Corps de GET poll (miroir de PollResult, cote PC direct_poll).
+@Serializable
+data class DirectPollResponse(
+    val cursor: String? = null,
+    val statuses: List<StatusJson> = emptyList(),
+    val results: List<ResultJson> = emptyList(),
+    val heartbeat: Heartbeat? = null,
+    val index: PcIndex? = null,
+    val settings: PcSettings? = null,
+)
+
 // CdC 7.5, tableau des valeurs autorisees. Utilise pour construire les feuilles de choix
 // (settings) et pour refuser une valeur hors liste avant envoi d'une SettingsCommand.
 object SettingsSchema {

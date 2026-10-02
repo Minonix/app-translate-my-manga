@@ -22,8 +22,8 @@ android {
         applicationId = "com.tmm.mobile"
         minSdk = 26
         targetSdk = 37
-        versionCode = 6
-        versionName = "1.0.5"
+        versionCode = 7
+        versionName = "1.0.6"
     }
 
     buildFeatures {
@@ -74,6 +74,11 @@ android {
             isIncludeAndroidResources = true
             all {
                 it.systemProperty("robolectric.graphicsMode", "NATIVE")
+                // Sans le plugin Gradle Roborazzi, captureRoboImage n'ecrit rien : les captures se
+                // produisent avec -Proborazzi.test.record=true (dans app/build/outputs/roborazzi/).
+                providers.gradleProperty("roborazzi.test.record").orNull?.let { v ->
+                    it.systemProperty("roborazzi.test.record", v)
+                }
                 // ponytail: si user.home contient un espace, la resolution des jars natifs
                 // Robolectric casse (bug de decodage %20 cote Windows/JVM). On redirige alors
                 // le cache Robolectric vers un chemin sans espace, cree a la volee.

@@ -47,8 +47,7 @@ class OfflineScreenBehaviorTest {
     @Test
     fun initialState_network_showsNetworkBannerAndElements() {
         setState()
-        composeRule.onNodeWithText("Pas de connexion. ").assertExists()
-        composeRule.onNodeWithText("Les envois partiront dès le retour du réseau.").assertExists()
+        composeRule.onNodeWithText("Pas de connexion. Les envois partiront dès le retour du réseau.").assertExists()
         composeRule.onNodeWithText("TMM Mobile").assertExists()
         composeRule.onNodeWithText("État du PC inconnu").assertExists()
         composeRule.onNodeWithText("Accueil").assertExists()
@@ -67,7 +66,7 @@ class OfflineScreenBehaviorTest {
         composeRule.onNodeWithText("Accès à Google Drive expiré").assertExists()
         composeRule.onNodeWithText("Reconnecter").assertExists()
         composeRule.onAllNodesWithText("Attend la reconnexion à Drive").onFirst().assertExists()
-        composeRule.onNodeWithText("Pas de connexion. ").assertDoesNotExist()
+        composeRule.onNodeWithText("Pas de connexion.", substring = true).assertDoesNotExist()
     }
 
     @Test

@@ -123,6 +123,8 @@ internal fun buildLibrarySnapshot(
             tone = badge.toStatusTone(),
             seriesKey = series.seriesKey,
             thumbnailUrl = series.thumbnailUrl,
+            onPhone = summary.onPhone,
+            onPc = summary.onPc,
         )
     }
     return LibrarySnapshot(categories = chips, series = mockSeries)

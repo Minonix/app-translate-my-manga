@@ -22,6 +22,9 @@ internal const val LOCAL_SCAN_SOURCE = "local/"
 class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
 
     suspend fun scanDownloads(downloadsRootDocId: String) {
+        // Lignes posees par les versions qui comptaient aussi les fichiers/dossiers sans page : le cache
+        // par date de dossier ne les relirait jamais, on les retire ici.
+        db.downloadedChapterDao().deleteWithoutPages()
         val cached = db.scannedSeriesDirDao().observeAll().first()
             .filter { it.sourceDir != LOCAL_SCAN_SOURCE }
             .associate { (it.sourceDir to it.seriesDir) to it.lastModified }
@@ -45,6 +48,11 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                     if (MihonNaming.isIncompleteChapterDirName(chapterDirName)) return@mapNotNull null
 
                     val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
+                    // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
+                    // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
+                    if (!chapterEntry.isDirectory && !isCbz) return@mapNotNull null
+                    val pageCount = CbzPacker.pageCount(entryNames(chapterEntry, isCbz))
+                    if (pageCount == 0) return@mapNotNull null
                     val matchedChapter = Matcher.findChapter(chapterDirName, matchableChapters)
                     DownloadedChapterEntity(
                         mihonPath = "${sourceDir.name}/${seriesDirEntry.name}/${chapterEntry.name}",
@@ -55,7 +63,7 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                         isCbz = isCbz,
                         sizeBytes = chapterEntry.size,
                         lastModified = chapterEntry.lastModified,
-                        pageCount = CbzPacker.pageCount(entryNames(chapterEntry, isCbz)),
+                        pageCount = pageCount,
                         seriesKey = matchedSeries?.seriesKey,
                         chapterKey = matchedChapter?.chapterKey,
                         number = matchedChapter?.number,

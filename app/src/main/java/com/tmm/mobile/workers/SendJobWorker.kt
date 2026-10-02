@@ -23,13 +23,22 @@ import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.RequestOptions
 import com.tmm.mobile.protocol.SeriesRef
 import com.tmm.mobile.transport.AuthExpiredException
+import com.tmm.mobile.transport.JobTransport
+import com.tmm.mobile.transport.SessionExpiredException
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 private const val NOTIFICATION_ID_SEND = 1
+
+// ponytail: limite par processus, suffisant tant qu'un seul processus execute les workers.
+private const val SEND_PARALLELISM = 2
+private val sendSlots = Semaphore(SEND_PARALLELISM)
 
 // PLAN_GEMINI.md 5.12 : PREPARING (cbz + sha256 + taille en cache) -> UPLOADING (envoi resumable,
 // session/progression persistees en Room) -> request.json -> SENT. verify/retranslate n'ont pas de
@@ -44,45 +53,84 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         val container = (applicationContext as TmmApp).container
         val db = container.db
         val clock = container.clock
-        val job = db.jobDao().get(jobId) ?: return Result.success()
-        if (job.phoneState != "PREPARING" && job.phoneState != "UPLOADING") return Result.success()
+        val initial = db.jobDao().get(jobId) ?: return Result.success()
+        if (initial.phoneState != "PREPARING" && initial.phoneState != "UPLOADING") return Result.success()
 
         return try {
             setForeground(getForegroundInfo())
-
-            val jobFolderId = job.driveFolderId ?: container.transport.ensureJobFolder(jobId).also { id ->
-                db.jobDao().upsert(job.copy(driveFolderId = id, updatedAt = clock.nowMillis()))
-            }
-
-            val fileRef = if (job.mode == JobMode.TRANSLATE) uploadFile(job, container) else null
-
-            val current = db.jobDao().get(jobId) ?: return Result.success()
-            val request = buildRequest(current, fileRef, db)
-            container.transport.writeRequest(jobFolderId, request)
-
-            current.cachePath?.let { File(it).parentFile?.deleteRecursively() }
-            db.jobDao().upsert(current.copy(phoneState = "SENT", cachePath = null, updatedAt = clock.nowMillis()))
-            Result.success()
+            // Envoyer 2000 chapitres d'un coup lancait ~20 workers en parallele (CBZ en memoire, lectures SAF,
+            // uploads) et faisait planter l'app : au plus SEND_PARALLELISM a la fois, les autres attendent
+            // leur tour deja en foreground (pas de limite de 10 min, pas de tentative consommee).
+            sendSlots.withPermit { send(jobId, container) }
         } catch (e: AuthExpiredException) {
             Result.retry()
+        } catch (e: SessionExpiredException) {
+            // Session resumable Drive perimee (404/410) : on en ouvrira une neuve au prochain essai.
+            db.jobDao().get(jobId)?.let { db.jobDao().upsert(it.copy(uploadSessionUrl = null, updatedAt = clock.nowMillis())) }
+            failOrRetry(jobId, db, clock, e.message)
         } catch (e: IOException) {
-            failOrRetry(jobId, db, clock, e)
+            failOrRetry(jobId, db, clock, e.message)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Chapitre supprime de Mihon, arbre SAF revoque... : sans FAILED, le job resterait PREPARING
+            // a vie et bloquerait tout nouvel envoi du chapitre (createJobs refuse s'il y a un job actif).
+            markFailed(jobId, db, clock, e.message)
+            Result.failure()
         }
     }
 
-    private suspend fun failOrRetry(jobId: String, db: TmmDatabase, clock: Clock, e: IOException): Result =
-        if (runAttemptCount >= MAX_RETRY_ATTEMPTS) {
-            db.jobDao().get(jobId)?.let {
-                db.jobDao().upsert(
-                    it.copy(phoneState = "FAILED", failedStep = "send", errorMessage = e.message, updatedAt = clock.nowMillis()),
-                )
+    private suspend fun send(jobId: String, container: AppContainer): Result {
+        val db = container.db
+        val clock = container.clock
+        // Relu apres l'attente du creneau : le job a pu etre annule entre-temps.
+        var job = db.jobDao().get(jobId) ?: return Result.success()
+        if (job.phoneState != "PREPARING" && job.phoneState != "UPLOADING") return Result.success()
+        // Le canal se decide une seule fois, avant le premier octet envoye (PREPARING) : direct si le PC
+        // repond au health-check, sinon Drive. Ensuite le job y reste jusqu'au resultat.
+        if (job.phoneState == "PREPARING") {
+            val channel = container.router.activeChannel()
+            if (channel != job.channel) {
+                // Nouvel essai sur l'autre canal : l'id de dossier/session du precedent n'y vaut rien
+                // (le direct stocke le jobId comme "dossier", inconnu de Drive).
+                job = job.copy(channel = channel, driveFolderId = null, uploadSessionUrl = null, updatedAt = clock.nowMillis())
+                db.jobDao().upsert(job)
             }
+        }
+        val transport = container.router.forJob(job)
+
+        val jobFolderId = job.driveFolderId ?: transport.ensureJobFolder(jobId).also { id ->
+            db.jobDao().upsert(job.copy(driveFolderId = id, updatedAt = clock.nowMillis()))
+        }
+
+        val fileRef = if (job.mode == JobMode.TRANSLATE) uploadFile(job, container, transport) else null
+
+        val current = db.jobDao().get(jobId) ?: return Result.success()
+        val request = buildRequest(current, fileRef, db)
+        transport.writeRequest(jobFolderId, request)
+
+        current.cachePath?.let { File(it).parentFile?.deleteRecursively() }
+        db.jobDao().upsert(current.copy(phoneState = "SENT", cachePath = null, updatedAt = clock.nowMillis()))
+        return Result.success()
+    }
+
+    private suspend fun failOrRetry(jobId: String, db: TmmDatabase, clock: Clock, message: String?): Result =
+        if (runAttemptCount >= MAX_RETRY_ATTEMPTS) {
+            markFailed(jobId, db, clock, message)
             Result.failure()
         } else {
             Result.retry()
         }
 
-    private suspend fun uploadFile(job: JobEntity, container: AppContainer): FileRef {
+    private suspend fun markFailed(jobId: String, db: TmmDatabase, clock: Clock, message: String?) {
+        db.jobDao().get(jobId)?.let {
+            db.jobDao().upsert(
+                it.copy(phoneState = "FAILED", failedStep = "send", errorMessage = message, updatedAt = clock.nowMillis()),
+            )
+        }
+    }
+
+    private suspend fun uploadFile(job: JobEntity, container: AppContainer, transport: JobTransport): FileRef {
         val db = container.db
         val clock = container.clock
         val treeUriString = requireNotNull(container.prefs.mihonTreeUri.first()) { "aucun arbre Mihon configure" }
@@ -111,7 +159,7 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         }
 
         var lastProgressWrite = 0L
-        container.transport.uploadSource(
+        transport.uploadSource(
             job = db.jobDao().get(job.jobId) ?: job,
             file = file,
             onSession = { session ->
@@ -141,9 +189,10 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         if (downloaded.isCbz) {
             fs.openInput(downloaded.documentUri).use { input -> dest.outputStream().use { input.copyTo(it) } }
         } else {
-            val entries = fs.children(downloaded.documentUri).filter { !it.isDirectory }
-                .associate { entry -> entry.name to fs.openInput(entry.docId).use { it.readBytes() } }
-            dest.outputStream().use { CbzPacker.pack(entries, it) }
+            val docIdByName = fs.children(downloaded.documentUri).filter { !it.isDirectory }.associate { it.name to it.docId }
+            dest.outputStream().buffered().use { out ->
+                CbzPacker.pack(docIdByName.keys, { name -> fs.openInput(docIdByName.getValue(name)).use { it.readBytes() } }, out)
+            }
         }
         return dest
     }

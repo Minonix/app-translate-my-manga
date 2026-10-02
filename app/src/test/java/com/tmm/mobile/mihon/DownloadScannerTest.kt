@@ -35,6 +35,12 @@ class DownloadScannerTest {
         root.deleteRecursively()
     }
 
+    // Chapitre telecharge avec une page : un dossier vide n'est plus compte comme chapitre.
+    private fun chapter(seriesDir: File, name: String) = File(seriesDir, name).apply {
+        mkdirs()
+        File(this, "1.jpg").writeBytes(byteArrayOf(1))
+    }
+
     private suspend fun seedSeries() {
         db.seriesDao().upsert(
             SeriesEntity("sk1", "42", "/manga/1", "One Piece", null, 0, null, "MangaSource", 0L, null),
@@ -72,7 +78,7 @@ class DownloadScannerTest {
     @Test fun scanDownloads_unmatchedSeries_keepsChapterWithNullSeriesKey() = runTest {
         val sourceDir = File(root, "MangaSource").apply { mkdirs() }
         val seriesDir = File(sourceDir, "Bleach").apply { mkdirs() }
-        File(seriesDir, "Chapitre 1").mkdirs()
+        chapter(seriesDir, "Chapitre 1")
 
         val fs = FakeMihonFs(root)
         DownloadScanner(fs, db).scanDownloads(root.absolutePath)
@@ -86,7 +92,7 @@ class DownloadScannerTest {
         seedSeries()
         val sourceDir = File(root, "MangaSource").apply { mkdirs() }
         val seriesDir = File(sourceDir, "One Piece").apply { mkdirs() }
-        File(seriesDir, "Chapitre 1").mkdirs()
+        chapter(seriesDir, "Chapitre 1")
 
         val fs = FakeMihonFs(root)
         val scanner = DownloadScanner(fs, db)
@@ -96,6 +102,18 @@ class DownloadScannerTest {
 
         // le second scan ne doit pas redescendre dans le dossier chapitre (cache par mtime)
         assertEquals(callsAfterFirst + 2, fs.childrenCallCount)
+    }
+
+    @Test fun scanDownloads_ignoresLooseFilesAndChaptersWithoutPages() = runTest {
+        seedSeries()
+        val seriesDir = File(File(root, "MangaSource"), "One Piece").apply { mkdirs() }
+        chapter(seriesDir, "Chapitre 1")
+        File(seriesDir, "Chapitre 2").mkdirs()
+        File(seriesDir, "cover.jpg").writeBytes(byteArrayOf(1))
+
+        DownloadScanner(FakeMihonFs(root), db).scanDownloads(root.absolutePath)
+
+        assertEquals(listOf("MangaSource/One Piece/Chapitre 1"), db.downloadedChapterDao().observeAll().first().map { it.mihonPath })
     }
 
     @Test fun scanLocal_preservesExistingJobIdAndMihonPath() = runTest {
@@ -128,15 +146,15 @@ class DownloadScannerTest {
         seedSeries()
         val sourceDir = File(root, "MangaSource").apply { mkdirs() }
         val seriesDir = File(sourceDir, "One Piece").apply { mkdirs() }
-        File(seriesDir, "Chapitre 1").mkdirs()
-        File(seriesDir, "Chapitre 2").mkdirs()
+        chapter(seriesDir, "Chapitre 1")
+        chapter(seriesDir, "Chapitre 2")
         val bleach = File(sourceDir, "Bleach").apply { mkdirs() }
-        File(bleach, "Chapitre 1").mkdirs()
+        chapter(bleach, "Chapitre 1")
         val scanner = DownloadScanner(FakeMihonFs(root), db)
         scanner.scanDownloads(root.absolutePath)
         assertEquals(3, db.downloadedChapterDao().observeAll().first().size)
 
-        File(seriesDir, "Chapitre 2").delete()
+        File(seriesDir, "Chapitre 2").deleteRecursively()
         seriesDir.setLastModified(seriesDir.lastModified() + 10_000)
         bleach.deleteRecursively()
         scanner.scanDownloads(root.absolutePath)
@@ -147,7 +165,7 @@ class DownloadScannerTest {
 
     @Test fun rematch_attachesDownloadsToSeriesImportedLater() = runTest {
         val seriesDir = File(File(root, "MangaSource"), "One Piece").apply { mkdirs() }
-        File(seriesDir, "Chapitre 1").mkdirs()
+        chapter(seriesDir, "Chapitre 1")
         val scanner = DownloadScanner(FakeMihonFs(root), db)
         scanner.scanDownloads(root.absolutePath)
         assertNull(db.downloadedChapterDao().observeAll().first().single().seriesKey)

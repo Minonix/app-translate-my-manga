@@ -3,6 +3,7 @@ package com.tmm.mobile
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.AppPrefs
 import com.tmm.mobile.data.JobRepository
 import com.tmm.mobile.data.RefreshCoordinator
@@ -14,6 +15,7 @@ import com.tmm.mobile.mihon.BackupReader
 import com.tmm.mobile.mihon.DownloadScanner
 import com.tmm.mobile.mihon.MihonFs
 import com.tmm.mobile.mihon.MihonTree
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -50,8 +52,16 @@ class Startup(
             return@withLock StartupResult.PERMISSION_NEEDED
         }
 
-        val backupImported = importBackupIfNeeded(fs, rootDocId)
-        scanDownloads(fs, rootDocId, rematch = backupImported)
+        // Sauvegarde ou dossier Mihon devenus illisibles en cours de route (SAF) : on garde le cache
+        // Room et on poursuit, plutot que de faire planter l'app a chaque retour au premier plan.
+        try {
+            val backupImported = importBackupIfNeeded(fs, rootDocId)
+            scanDownloads(fs, rootDocId, rematch = backupImported)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLog.d("Startup", "scan Mihon interrompu : ${e.javaClass.simpleName} ${e.message}")
+        }
         runAutoTranslate(db, jobRepository)
         refreshCoordinator.refresh()
         StartupResult.DONE

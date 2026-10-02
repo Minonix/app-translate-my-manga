@@ -54,6 +54,9 @@ data class MockSeries(
     // ne servent qu'a la navigation et a l'affichage de la vignette pour les vraies series.
     val seriesKey: String = title,
     val thumbnailUrl: String? = null,
+    // Chapitres presents sur le telephone / originaux sur le PC : filtres "Telechargees" et "Sur le PC".
+    val onPhone: Int = 0,
+    val onPc: Int = 0,
 )
 
 object MockupData {

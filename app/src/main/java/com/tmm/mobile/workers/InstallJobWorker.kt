@@ -20,6 +20,7 @@ import com.tmm.mobile.transport.AuthExpiredException
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 private const val NOTIFICATION_ID_INSTALL = 2
@@ -54,7 +55,7 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
 
             val cacheDir = File(applicationContext.cacheDir, "jobs/${job.jobId}").apply { mkdirs() }
             val dest = File(cacheDir, "result.cbz")
-            container.transport.downloadResult(job, fileId, dest) { _, _ -> }
+            container.router.forJob(job).downloadResult(job, fileId, dest) { _, _ -> }
 
             val actualSize = dest.length()
             val actualSha = sha256(dest)
@@ -123,20 +124,31 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             Result.retry()
         } catch (e: IOException) {
             failOrRetry(jobId, db, clock, e.message ?: "erreur reseau")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // resultJson illisible, dossier local/ absent, arbre SAF revoque : sans FAILED, le job resterait
+            // DOWNLOADING a vie (plus jamais relance, puisque refresh ne relance que RESULT_READY).
+            markFailed(jobId, db, clock, e.message ?: e.javaClass.simpleName)
+            Result.failure()
         }
     }
 
     private suspend fun failOrRetry(jobId: String, db: TmmDatabase, clock: Clock, message: String): Result =
         if (runAttemptCount >= MAX_RETRY_ATTEMPTS) {
-            db.jobDao().get(jobId)?.let {
-                db.jobDao().upsert(
-                    it.copy(phoneState = "FAILED", failedStep = "download", errorMessage = message, updatedAt = clock.nowMillis()),
-                )
-            }
+            markFailed(jobId, db, clock, message)
             Result.failure()
         } else {
             Result.retry()
         }
+
+    private suspend fun markFailed(jobId: String, db: TmmDatabase, clock: Clock, message: String) {
+        db.jobDao().get(jobId)?.let {
+            db.jobDao().upsert(
+                it.copy(phoneState = "FAILED", failedStep = "download", errorMessage = message, updatedAt = clock.nowMillis()),
+            )
+        }
+    }
 
     private fun sha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")

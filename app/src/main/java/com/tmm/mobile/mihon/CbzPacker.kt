@@ -51,12 +51,18 @@ object CbzPacker {
     }
 
     /** Empaquette [entries] (nom -> contenu) dans [output], tri en ordre naturel, exclusions appliquees. */
-    fun pack(entries: Map<String, ByteArray>, output: OutputStream) {
-        val names = entries.keys.filter(::isEligible).sortedWith(NATURAL_ORDER)
+    fun pack(entries: Map<String, ByteArray>, output: OutputStream) = pack(entries.keys, entries::getValue, output)
+
+    /**
+     * Meme chose, mais une page lue a la fois via [read] : un chapitre entier ne tient jamais en memoire
+     * (plusieurs envois simultanes de chapitres de 50 Mo faisaient planter l'app).
+     */
+    fun pack(names: Collection<String>, read: (String) -> ByteArray, output: OutputStream) {
+        val sorted = names.filter(::isEligible).sortedWith(NATURAL_ORDER)
         ZipOutputStream(output).use { zos ->
             zos.setMethod(ZipOutputStream.STORED)
-            for (name in names) {
-                val bytes = entries.getValue(name)
+            for (name in sorted) {
+                val bytes = read(name)
                 val entry = ZipEntry(name).apply {
                     size = bytes.size.toLong()
                     compressedSize = bytes.size.toLong()

@@ -57,6 +57,8 @@
     <string name="library_search_placeholder">Rechercher une série</string>
     <string name="library_view_all">Toutes</string>
     <string name="library_view_todo">À traduire</string>
+    <string name="library_view_downloaded">Téléchargées</string>
+    <string name="library_view_on_pc">Sur le PC</string>
     <string name="library_view_absent">Non téléchargées</string>
     <string name="library_picking_hint">Touchez les séries à inclure</string>
     <string name="library_select_all_fmt">Tout cocher (%1$d)</string>
@@ -346,6 +348,18 @@
     <string name="settings_toast_choose_account">Choix du compte Google</string>
     <string name="settings_toast_folder_picker">Sélecteur de dossier Android</string>
     <string name="settings_toast_logs_ready">Journaux prêts à partager</string>
+    <string name="settings_group_direct">Connexion directe</string>
+    <string name="settings_row_direct_state">État</string>
+    <string name="settings_direct_on">Directe via Tailscale</string>
+    <string name="settings_direct_unreachable">PC injoignable, Google Drive utilisé</string>
+    <string name="settings_direct_unpaired">Non associée</string>
+    <string name="settings_direct_expired">Appairage expiré</string>
+    <string name="settings_row_direct_url">Adresse du PC</string>
+    <string name="settings_direct_code_hint">Code à 6 chiffres</string>
+    <string name="settings_action_pair">Associer</string>
+    <string name="settings_action_forget">Oublier ce PC</string>
+    <string name="settings_toast_paired">PC associé</string>
+    <string name="settings_toast_pair_failed">Association impossible, vérifiez l\'adresse et le code</string>
 
     <!-- TranslationSettings.dc.html (E4.9) -->
     <string name="trans_settings_back_cd">Retour aux réglages</string>

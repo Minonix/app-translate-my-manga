@@ -5,6 +5,7 @@ import com.tmm.mobile.protocol.CancelJson
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.PcIndex
 import com.tmm.mobile.protocol.PcSettings
+import com.tmm.mobile.protocol.RemoteInfo
 import com.tmm.mobile.protocol.ReceivedJson
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.ResultJson
@@ -12,7 +13,7 @@ import com.tmm.mobile.protocol.SettingsCommand
 import com.tmm.mobile.protocol.StatusJson
 import java.io.File
 
-// CdC 4.3. DriveTransport est la seule implementation en V1 ; DirectTransport (V2) n'existe pas ici.
+// CdC 4.3. Deux implementations : DriveTransport (boite aux lettres Drive) et DirectTransport (HTTPS via Tailscale).
 interface JobTransport {
     suspend fun ensureLayout(): LayoutInfo
     suspend fun accountEmail(): String?
@@ -56,4 +57,6 @@ data class PollResult(
     val index: PcIndex?,
     val settings: PcSettings?,
     val protocolTooNew: Boolean,
+    // pc/remote.json (Drive uniquement) : URL de la connexion directe publiee par le PC.
+    val remote: RemoteInfo? = null,
 )

@@ -42,6 +42,11 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
         val TRANSLATE_ON_ARRIVAL = booleanPreferencesKey("translate_on_arrival")
         val PROTOCOL_TOO_NEW = booleanPreferencesKey("protocol_too_new")
+        val DIRECT_URL = stringPreferencesKey("direct_url")
+        val DIRECT_TOKEN_ENC = stringPreferencesKey("direct_token_enc")
+        val DIRECT_DEVICE_ID = stringPreferencesKey("direct_device_id")
+        val DIRECT_PC_NAME = stringPreferencesKey("direct_pc_name")
+        val DIRECT_PAIRING_EXPIRED = booleanPreferencesKey("direct_pairing_expired")
     }
 
     val onboardingDone: Flow<Boolean> = dataStore.data.map { it[Keys.ONBOARDING_DONE] ?: false }
@@ -124,6 +129,23 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
 
     val protocolTooNew: Flow<Boolean> = dataStore.data.map { it[Keys.PROTOCOL_TOO_NEW] ?: false }
     suspend fun setProtocolTooNew(value: Boolean) = set(Keys.PROTOCOL_TOO_NEW, value)
+
+    // Connexion directe (Tailscale). Le jeton n'est jamais stocke en clair : voir DirectTokenStore.
+    val directUrl: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_URL] }
+    suspend fun setDirectUrl(value: String?) = setOrRemove(Keys.DIRECT_URL, value)
+
+    val directTokenEnc: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_TOKEN_ENC] }
+    suspend fun setDirectTokenEnc(value: String?) = setOrRemove(Keys.DIRECT_TOKEN_ENC, value)
+
+    val directDeviceId: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_DEVICE_ID] }
+    suspend fun setDirectDeviceId(value: String?) = setOrRemove(Keys.DIRECT_DEVICE_ID, value)
+
+    val directPcName: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_PC_NAME] }
+    suspend fun setDirectPcName(value: String?) = setOrRemove(Keys.DIRECT_PC_NAME, value)
+
+    // Vrai apres un 401 du PC : le jeton a ete efface, l'ecran Reglages affiche "Appairage expire".
+    val directPairingExpired: Flow<Boolean> = dataStore.data.map { it[Keys.DIRECT_PAIRING_EXPIRED] ?: false }
+    suspend fun setDirectPairingExpired(value: Boolean) = set(Keys.DIRECT_PAIRING_EXPIRED, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         dataStore.edit { it[key] = value }

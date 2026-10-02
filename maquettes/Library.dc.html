@@ -78,9 +78,9 @@ button{cursor:pointer}button:disabled{cursor:default}
 </sc-for>
 </div>
 <sc-if value="{{ notPicking }}" hint-placeholder-val="{{ true }}">
-<div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; background: #ECE7DC" role="radiogroup" aria-label="Afficher">
-<sc-for list="{{ views }}" as="v" hint-placeholder-count="3">
-<button type="button" role="radio" aria-checked="{{ v.on }}" onClick="{{ v.pick }}" style="flex-grow: 1; flex-basis: 0; height: 36px; border: 0; border-radius: 9px; background: {{ v.bg }}; color: {{ v.fg }}; box-shadow: {{ v.shadow }}; font-size: 13px; font-weight: 600; transition: background-color .2s ease, box-shadow .2s ease">{{ v.name }}</button>
+<div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; background: #ECE7DC; overflow-x: auto; scrollbar-width: none" role="radiogroup" aria-label="Afficher">
+<sc-for list="{{ views }}" as="v" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{ v.on }}" onClick="{{ v.pick }}" style="flex: 0 0 auto; padding: 0 14px; white-space: nowrap; height: 36px; border: 0; border-radius: 9px; background: {{ v.bg }}; color: {{ v.fg }}; box-shadow: {{ v.shadow }}; font-size: 13px; font-weight: 600; transition: background-color .2s ease, box-shadow .2s ease">{{ v.name }}</button>
 </sc-for>
 </div>
 </sc-if>
@@ -198,7 +198,7 @@ class Component extends DCLogic {
     const q = s.q.trim().toLowerCase();
     const list = all.filter((x) =>
       (s.cat === 'Tous' || x.cat === s.cat) &&
-      (s.picking || s.view === 'all' || (s.view === 'todo' && (x.kind === 'send' || x.kind === 'busy')) || (s.view === 'absent' && x.kind === 'absent')) &&
+      (s.picking || s.view === 'all' || (s.view === 'todo' && (x.kind === 'send' || x.kind === 'busy')) || (s.view === 'downloaded' && x.kind !== 'absent') || (s.view === 'onpc' && x.kind !== 'send' && x.kind !== 'absent') || (s.view === 'absent' && x.kind === 'absent')) &&
       (!q || x.t.toLowerCase().includes(q)));
     const catNames = [['Tous', 142], ['En cours', 24], ['À lire', 31], ['Terminé', 58], ['Favoris', 12], ['Webtoons', 9]];
     const picked = all.filter((x) => s.sel[x.t]);
@@ -234,7 +234,7 @@ class Component extends DCLogic {
         return { name, n, on: String(on), pick: () => this.setState({ cat: name }),
           bg: on ? '#16161A' : '#FFFFFF', fg: on ? '#F4F1EA' : '#16161A', border: on ? '#16161A' : '#D5CDBC' };
       }),
-      views: [['all', 'Toutes'], ['todo', 'À traduire'], ['absent', 'Non téléchargées']].map(([k, name]) => {
+      views: [['all', 'Toutes'], ['todo', 'À traduire'], ['downloaded', 'Téléchargées'], ['onpc', 'Sur le PC'], ['absent', 'Non téléchargées']].map(([k, name]) => {
         const on = s.view === k;
         return { name, on: String(on), pick: () => this.setState({ view: k }),
           bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#16161A' : '#5E5A52', shadow: on ? '0 1px 3px rgba(22,22,26,.12)' : 'none' };

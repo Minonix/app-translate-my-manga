@@ -1,5 +1,7 @@
 package com.tmm.mobile.ui.screens.series
 
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -263,7 +265,7 @@ private fun SeriesGapAlert(gapNumber: Int, onDismiss: () -> Unit) {
             append(stringResource(R.string.series_gap_rest))
         }
         TmmText(
-            text = annotated.text,
+            text = annotated,
             style = TmmType.sans(13, lineHeight = 19f),
             color = TmmColors.dangerText,
             modifier = Modifier.weight(1f),
@@ -466,13 +468,17 @@ private fun PresenceBar(present: Boolean, color: Color) {
     }
 }
 
+// FlowRow comme le flex-wrap de la maquette : en Row, les dernieres puces etaient ecrasees
+// (« 12 » coupe sur deux lignes) des qu'un chapitre avait des bulles non traduites.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChapterStatsChips(stats: SeriesChapterStats) {
-    Row(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         val warnPages = stats.pagesTranslated < stats.pagesTotal
         StatChip(

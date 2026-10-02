@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -84,6 +85,8 @@ fun RefreshButton(
         modifier = modifier
             .size(48.dp)
             .clip(CircleShape)
+            .background(TmmColors.surface)
+            .border(1.dp, TmmColors.track, CircleShape)
             .clickable(enabled = !disabled) {
                 spinning = true
                 onRefresh()

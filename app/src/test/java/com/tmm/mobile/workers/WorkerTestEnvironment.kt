@@ -21,9 +21,13 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.fake.FakeDrive
 import com.tmm.mobile.fake.FakePc
+import com.tmm.mobile.transport.DirectTokenStore
+import com.tmm.mobile.transport.DirectTransport
 import com.tmm.mobile.transport.DriveApi
 import com.tmm.mobile.transport.DriveTransport
 import com.tmm.mobile.transport.JobTransport
+import com.tmm.mobile.transport.TokenCipher
+import com.tmm.mobile.transport.TransportRouter
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +72,8 @@ class WorkerTestEnvironment {
     lateinit var prefs: AppPrefs
         private set
     lateinit var transport: JobTransport
+    lateinit var direct: DirectTransport
+    lateinit var router: TransportRouter
         private set
     lateinit var container: FakeAppContainer
         private set
@@ -97,6 +103,8 @@ class WorkerTestEnvironment {
         prefs = AppPrefs(MemoryDataStore())
         val api = DriveApi(client = OkHttpClient(), token = { _ -> "test-token" }, baseUrl = drive.baseUrl())
         transport = DriveTransport(api, prefs)
+        direct = DirectTransport(OkHttpClient(), prefs, DirectTokenStore(prefs, FakeTokenCipher))
+        router = TransportRouter(transport, direct)
         // ensureLayout() une fois pour toutes : SendJobWorker/InstallJobWorker/OutboxWorker
         // supposent le layout Drive deja etabli (seul RefreshCoordinator.refresh() l'appelle en prod).
         kotlinx.coroutines.runBlocking { transport.ensureLayout() }
@@ -104,7 +112,7 @@ class WorkerTestEnvironment {
         // par androidx.startup (via le manifest fusionne) sans lever d'exception - c'est precisement
         // son role documente pour les tests JVM/Robolectric (cf commentaire build.gradle.kts).
         WorkManagerTestInitHelper.initializeTestWorkManager(context)
-        container = FakeAppContainer(context, db, prefs, transport, clock)
+        container = FakeAppContainer(context, db, prefs, router, clock)
         (context as TmmApp).container = container
     }
 
@@ -121,17 +129,24 @@ class FakeAppContainer(
     override val context: Context,
     override val db: TmmDatabase,
     override val prefs: AppPrefs,
-    override val transport: JobTransport,
+    override val router: TransportRouter,
     override val clock: Clock,
 ) : AppContainer {
+    override val transport: JobTransport get() = router.drive
     override val workManager: WorkManager by lazy { WorkManager.getInstance(context) }
     private val scope: CoroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
-    override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, transport, workManager, clock) }
+    override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, router, workManager, clock) }
     override val refreshCoordinator: RefreshCoordinator by lazy {
-        RefreshCoordinator(db, prefs, transport, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
+        RefreshCoordinator(db, prefs, router, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
     }
-    override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, transport, workManager) }
+    override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
     // Fichier neuf par test : un instantane d'un test precedent ne doit pas s'afficher dans le suivant.
     override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(kotlin.io.path.createTempDirectory().toFile(), "library_snapshot.json")) }
+}
+
+// Robolectric n'a pas d'Android Keystore : chiffreur factice (aucun secret reel dans les tests).
+object FakeTokenCipher : TokenCipher {
+    override fun encrypt(plain: String): String = "enc:$plain"
+    override fun decrypt(encoded: String): String? = encoded.removePrefix("enc:").takeIf { encoded.startsWith("enc:") }
 }

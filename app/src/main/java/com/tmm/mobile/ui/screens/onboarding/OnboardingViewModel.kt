@@ -144,13 +144,13 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
 
     private suspend fun finishGoogleAuth(result: AuthorizationResult) {
         // BLOQUÉ (point ouvert, cf rapport) : AuthorizationResult ne porte pas l'e-mail du compte.
-        // container.transport.accountEmail() (Drive "about", deja cable pour Reglages/export des
+        // container.router.drive.accountEmail() (Drive "about", deja cable pour Reglages/export des
         // journaux) est la seule source d'identite reelle du depot ; best-effort, ne bloque pas
         // l'onboarding si hors-ligne ou si le scope ne l'autorise pas.
         var email: String? = null
         try {
-            container.transport.ensureLayout()
-            email = container.transport.accountEmail()
+            container.router.drive.ensureLayout()
+            email = container.router.drive.accountEmail()
             if (email != null) container.prefs.setGoogleEmail(email)
         } catch (e: Exception) {
             AppLog.d(TAG, "ensureLayout/accountEmail a echoue, poursuite sans e-mail : ${e.message}")

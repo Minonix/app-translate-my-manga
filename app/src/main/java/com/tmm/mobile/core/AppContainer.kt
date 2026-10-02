@@ -11,6 +11,10 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.data.tmmDataStore
 import com.tmm.mobile.transport.AuthExpiredException
+import com.tmm.mobile.transport.DirectTokenStore
+import com.tmm.mobile.transport.DirectTransport
+import com.tmm.mobile.transport.KeystoreTokenCipher
+import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.transport.DriveApi
 import com.tmm.mobile.transport.DriveTransport
 import com.tmm.mobile.transport.GoogleAuth
@@ -22,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 
 interface AppContainer {
@@ -30,7 +35,9 @@ interface AppContainer {
     val prefs: AppPrefs
     val clock: Clock
     val workManager: WorkManager
+    // Canal Drive (toujours disponible) ; le choix Drive/direct par job ou par operation passe par router.
     val transport: JobTransport
+    val router: TransportRouter
     val jobRepository: JobRepository
     val refreshCoordinator: RefreshCoordinator
     val settingsSync: SettingsSync
@@ -77,13 +84,27 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
 
     override val transport: JobTransport by lazy { DriveTransport(driveApi, prefs) }
 
-    override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, transport, workManager, clock) }
-
-    override val refreshCoordinator: RefreshCoordinator by lazy {
-        RefreshCoordinator(db, prefs, transport, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
+    // Delais courts pour les appels de controle, longs pour les transferts de CBZ (le health-check a son
+    // propre client de 2 s dans DirectTransport).
+    private val directClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .build()
     }
 
-    override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, transport, workManager) }
+    override val router: TransportRouter by lazy {
+        TransportRouter(transport, DirectTransport(directClient, prefs, DirectTokenStore(prefs, KeystoreTokenCipher())))
+    }
+
+    override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, router, workManager, clock) }
+
+    override val refreshCoordinator: RefreshCoordinator by lazy {
+        RefreshCoordinator(db, prefs, router, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
+    }
+
+    override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }
 
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
 

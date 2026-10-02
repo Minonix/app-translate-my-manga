@@ -57,7 +57,12 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val downloaded: List<DownloadedChapterEntity>,
         val localFrPaths: Set<String>,
         val pcIndex: List<PcIndexChapterEntity>,
-    )
+    ) {
+        // Calcules une fois par instantane : statusFor les reconstruisait pour chaque chapitre (O(n^2),
+        // l'accueil figeait avec ~2000 chapitres telecharges).
+        val latestJobByPath by lazy { jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { job -> job.createdAt } } }
+        val indexByPath by lazy { pcIndex.associateBy { it.mihonPath } }
+    }
 
     private val roomSnapshot = combine(
         db.jobDao().observeAll(),
@@ -148,14 +153,12 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     )
 
     private fun statusFor(dl: DownloadedChapterEntity, room: RoomSnapshot): ChapterStatus {
-        val latestJobByPath = room.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { job -> job.createdAt } }
-        val indexByPath = room.pcIndex.associateBy { it.mihonPath }
         return deriveStatus(
             ChapterFacts(
                 downloaded = true,
                 inCatalog = dl.chapterKey != null,
-                index = indexByPath[dl.mihonPath],
-                latestJob = latestJobByPath[dl.mihonPath],
+                index = room.indexByPath[dl.mihonPath],
+                latestJob = room.latestJobByPath[dl.mihonPath],
                 localFr = dl.mihonPath in room.localFrPaths,
             ),
         )

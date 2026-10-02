@@ -109,6 +109,9 @@ interface DownloadedChapterDao {
 
     @Query("DELETE FROM downloaded_chapter WHERE sourceDir = :sourceDir AND seriesDir = :seriesDir")
     suspend fun deleteForSeriesDir(sourceDir: String, seriesDir: String)
+
+    @Query("DELETE FROM downloaded_chapter WHERE pageCount = 0")
+    suspend fun deleteWithoutPages()
 }
 
 @Dao
@@ -195,6 +198,9 @@ interface ChapterQualityDao {
 interface SeriesSettingsDao {
     @Query("SELECT * FROM series_settings WHERE seriesKey = :seriesKey")
     fun observe(seriesKey: String): Flow<SeriesSettingsEntity?>
+
+    @Query("SELECT seriesKey FROM series_settings WHERE autoTranslate = 1")
+    suspend fun autoTranslateSeriesKeys(): List<String>
 
     @Upsert
     suspend fun upsert(settings: SeriesSettingsEntity)
