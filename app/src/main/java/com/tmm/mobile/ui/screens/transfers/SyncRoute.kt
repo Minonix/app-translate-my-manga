@@ -30,7 +30,7 @@ fun SyncRoute(nav: NavController) {
         state = state,
         onEvent = viewModel::onEvent,
         onOpenQueue = { nav.navigate(QueueRoute) },
-        onOpenLibrary = { nav.navigate(LibraryRoute) },
+        onOpenLibrary = { nav.navigate(LibraryRoute()) },
         onOpenMissingSeries = {
             state.missingSeriesKey?.let { nav.navigate(SeriesRoute(it)) }
         },

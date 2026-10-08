@@ -15,13 +15,14 @@ import com.tmm.mobile.ui.nav.SeriesRoute
 /**
  * Point d'entree navigation de l'ecran Bibliotheque (E10, plan 7.2). Construit le vrai
  * LibraryViewModel via l'AppContainer de TmmApp ; `categoryOrder` vient de LibraryFilteredRoute
- * (depuis le Catalogue) ou est null (onglet Bibliotheque de la barre basse).
+ * (depuis le Catalogue) ou est null (onglet Bibliotheque de la barre basse). `picking` vient de
+ * LibraryRoute(picking = true) (bouton "+" de la File) : l'ecran s'ouvre en mode selection.
  */
 @Composable
-fun LibraryRoute(nav: NavController, categoryOrder: Long?) {
+fun LibraryRoute(nav: NavController, categoryOrder: Long?, picking: Boolean = false) {
     val container = (LocalContext.current.applicationContext as TmmApp).container
     val vm: LibraryViewModel = viewModel(
-        factory = viewModelFactory { initializer { LibraryViewModel(container, categoryOrder) } },
+        factory = viewModelFactory { initializer { LibraryViewModel(container, categoryOrder, initialPicking = picking) } },
     )
     val state by vm.state.collectAsStateWithLifecycle()
     LibraryScreen(

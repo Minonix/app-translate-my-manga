@@ -30,7 +30,7 @@ fun CatalogRoute(nav: NavController) {
         onEvent = viewModel::onEvent,
         // plan 7.6 : la carte "non téléchargées" pointe vers la Bibliothèque non filtrée
         // (href="Library.dc.html" brut dans la maquette, sans filtre catégorie).
-        onOpenLibrary = { nav.navigate(LibraryRoute) },
+        onOpenLibrary = { nav.navigate(LibraryRoute()) },
         // plan 7.6 : "appui -> LibraryFilteredRoute" sur une ligne de catégorie.
         onOpenCategory = { name ->
             val order = state.categories.firstOrNull { it.name == name }?.order ?: UNCATEGORIZED_ORDER

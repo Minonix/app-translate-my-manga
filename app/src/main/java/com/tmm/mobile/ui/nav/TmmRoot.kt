@@ -146,7 +146,10 @@ fun TmmRoot() {
                 composable<OnboardingRoute> { OnboardingScreenRoute(navController) }
                 composable<PermissionRoute> { PermissionScreenRoute(navController) }
                 composable<HomeRoute> { HomeScreenRoute(navController) }
-                composable<LibraryRoute> { LibraryScreenRoute(navController, categoryOrder = null) }
+                composable<LibraryRoute> { entry ->
+                    val route: LibraryRoute = entry.toRoute()
+                    LibraryScreenRoute(navController, categoryOrder = null, picking = route.picking)
+                }
                 composable<LibraryFilteredRoute> { entry ->
                     val route: LibraryFilteredRoute = entry.toRoute()
                     LibraryScreenRoute(navController, categoryOrder = route.categoryOrder)
@@ -171,7 +174,7 @@ fun TmmRoot() {
                 onSelect = { index ->
                     val target = when (index) {
                         0 -> HomeRoute
-                        1 -> LibraryRoute
+                        1 -> LibraryRoute()
                         2 -> TransfersRoute
                         3 -> QueueRoute
                         else -> CatalogRoute

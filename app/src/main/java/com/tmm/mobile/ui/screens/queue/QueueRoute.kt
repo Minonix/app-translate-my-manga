@@ -9,6 +9,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.tmm.mobile.TmmApp
+import com.tmm.mobile.ui.nav.HomeRoute
+import com.tmm.mobile.ui.nav.LibraryRoute
 import com.tmm.mobile.ui.nav.TranslationSettingsRoute
 
 /**
@@ -28,8 +30,20 @@ fun QueueRoute(nav: NavController) {
         state = state,
         onEvent = viewModel::onEvent,
         onOpenTranslationSettings = { nav.navigate(TranslationSettingsRoute) },
-        // ponytail: pas de NewTranslationRoute dans Routes.kt et DoneJob ne porte pas de seriesKey
-        // (seulement mihonPath) - onOpenNewTranslation/onOpenSeries restent no-op ; upgrade quand
-        // ces routes/champs existeront (cf rapport final).
+        onOpenNewTranslation = { nav.openLibraryPicking() },
+        // ponytail: DoneJob ne porte pas de seriesKey (seulement mihonPath) - onOpenSeries reste
+        // no-op ; upgrade quand ce champ existera.
     )
+}
+
+/**
+ * Bouton "+" : Bibliotheque en mode selection, comme un changement d'onglet (onglet Bibliotheque
+ * allume) mais sans restoreState : une entree neuve, donc un ViewModel cree avec picking = true,
+ * meme si la Bibliotheque etait deja dans la pile ou sauvegardee.
+ */
+internal fun NavController.openLibraryPicking() {
+    navigate(LibraryRoute(picking = true)) {
+        popUpTo(HomeRoute) { saveState = true }
+        launchSingleTop = true
+    }
 }

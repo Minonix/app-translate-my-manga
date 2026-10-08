@@ -137,6 +137,7 @@ private fun QueueHeader(
                     color = TmmColors.textMuted,
                 )
             }
+            val newTranslationCd = stringResource(R.string.queue_new_translation_cd)
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -147,7 +148,7 @@ private fun QueueHeader(
                         role = Role.Button,
                     )
                     .semantics {
-                        contentDescription = "Nouvelle traduction"
+                        contentDescription = newTranslationCd
                     },
                 contentAlignment = Alignment.Center,
             ) {

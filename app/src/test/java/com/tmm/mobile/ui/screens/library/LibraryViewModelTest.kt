@@ -113,4 +113,15 @@ class LibraryViewModelTest {
         assertEquals(LibraryToast.Sent(1), state.toast)
         assertEquals(1, env.db.jobDao().observeAll().first().size)
     }
+
+    // Bouton "+" de la File : LibraryRoute(picking = true) ouvre l'ecran directement en mode selection.
+    @Test fun initialPicking_startsInPickingMode() = runTest {
+        seedSeriesWithOneChapterToSend("blue-lock", "Blue Lock")
+        val vm = LibraryViewModel(env.container, initialPicking = true)
+        // Attend la liste (calcul de LibraryCache sur IO) avant tearDown, comme les autres tests :
+        // sinon ce calcul tombe sur la base fermee et l'exception echoue le test suivant.
+        val state = vm.state.first { it.allSeries.isNotEmpty() }
+        assertEquals(true, state.picking)
+        assertEquals(emptySet<String>(), state.selected)
+    }
 }

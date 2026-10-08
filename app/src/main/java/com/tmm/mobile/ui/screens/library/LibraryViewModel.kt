@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 class LibraryViewModel(
     private val container: AppContainer,
     initialCategoryOrder: Long? = null,
+    initialPicking: Boolean = false,
 ) : ViewModel() {
 
     private data class UiOnly(
@@ -45,7 +46,7 @@ class LibraryViewModel(
         val toast: LibraryToast? = null,
     )
 
-    private val ui = MutableStateFlow(UiOnly())
+    private val ui = MutableStateFlow(UiOnly(picking = initialPicking))
 
     // Liste partagee et persistee (LibraryCache) : affichee tout de suite, recalculee en fond.
     private val dataState: StateFlow<LibrarySnapshot> = container.libraryCache.data
