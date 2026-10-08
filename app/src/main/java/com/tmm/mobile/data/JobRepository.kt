@@ -75,7 +75,11 @@ class JobRepository(
                         val hasActive = db.jobDao().getAllForMihonPath(flatPath).any { it.isActive() }
                         val indexEntry = db.pcIndexChapterDao().get(flatPath)
                         val refuse = if (mode == JobMode.TRANSLATE) {
-                            hasActive || indexEntry?.original == true
+                            // Sans chapitre telecharge, SendJobWorker.prepareCbz echouerait ("chapitre
+                            // telecharge introuvable"). Lu en base et non dans target.downloaded : Serie et
+                            // Bibliotheque passent null pour les lignes catalogue, et c'est cette meme
+                            // ligne que le worker relira.
+                            hasActive || indexEntry?.original == true || db.downloadedChapterDao().get(flatPath) == null
                         } else {
                             hasActive || indexEntry?.original != true
                         }
@@ -190,7 +194,12 @@ class JobRepository(
             .forEach { workManager.enqueueSendJob(it.jobId, wifiOnly, ExistingWorkPolicy.REPLACE) }
 
         val now = clock.nowMillis()
-        val unseen = driveJobs.filter { it.phoneState == "SENT" && it.pcState == null && now - it.updatedAt >= STALLED_SENT_MILLIS }
+        // Un job que recreate() ne pourrait pas recreer (chapitre ni telecharge ni en original sur le
+        // PC, refuse par createJobs) reste tel quel sur Drive plutot que d'etre supprime sans remplacant.
+        val unseen = driveJobs.filter {
+            it.phoneState == "SENT" && it.pcState == null && now - it.updatedAt >= STALLED_SENT_MILLIS &&
+                (db.downloadedChapterDao().get(it.mihonPath) != null || db.pcIndexChapterDao().get(it.mihonPath)?.original == true)
+        }
         for (job in unseen) {
             try {
                 router.forJob(job).deleteJobFolder(job)

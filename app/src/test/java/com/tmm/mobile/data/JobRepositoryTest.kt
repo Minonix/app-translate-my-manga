@@ -1,5 +1,6 @@
 package com.tmm.mobile.data
 
+import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.fake.FakeFile
@@ -37,7 +38,32 @@ class JobRepositoryTest {
         chapter = null,
     )
 
+    // Ligne downloaded_chapter du chapitre de target() : condition d'une traduction (createJobs).
+    private suspend fun seedDownloaded() = env.db.downloadedChapterDao().upsert(
+        DownloadedChapterEntity(
+            mihonPath = "MangaSource/Titre/Chapitre 1", sourceDir = "MangaSource", seriesDir = "Titre", chapterDir = "Chapitre 1",
+            documentUri = "doc://1", isCbz = true, sizeBytes = 1_000L, lastModified = 0L, pageCount = 10,
+            seriesKey = null, chapterKey = null, number = 1f,
+        ),
+    )
+
+    @Test fun createJobs_refusesTranslate_whenChapterNotDownloaded() = runTest {
+        val result = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(target()))
+        assertEquals(0, result.createdJobIds.size)
+        assertEquals(1, result.refused)
+        assertTrue(env.db.jobDao().observeAll().first().isEmpty())
+    }
+
+    // target().downloaded est null (cas des lignes catalogue de Serie/Bibliotheque) : la garde lit la base.
+    @Test fun createJobs_allowsTranslate_whenDownloadedInDb_evenIfTargetDownloadedIsNull() = runTest {
+        seedDownloaded()
+        val result = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(target()))
+        assertEquals(1, result.createdJobIds.size)
+        assertEquals(0, result.refused)
+    }
+
     @Test fun createJobs_refusesTranslate_whenActiveJobAlreadyExists() = runTest {
+        seedDownloaded()
         val repo = env.container.jobRepository
         val first = repo.createJobs(JobMode.TRANSLATE, listOf(target()))
         assertEquals(1, first.createdJobIds.size)
@@ -50,6 +76,7 @@ class JobRepositoryTest {
     }
 
     @Test fun createJobs_allowsTranslate_onceActiveJobIsTerminal() = runTest {
+        seedDownloaded()
         val repo = env.container.jobRepository
         val first = repo.createJobs(JobMode.TRANSLATE, listOf(target()))
         val jobId = first.createdJobIds.single()
@@ -111,6 +138,7 @@ class JobRepositoryTest {
     @Test fun resendStalledDriveJobs_recreatesUnseenSentJob() = runTest {
         val folder = FakeFile(name = "job-4", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.google-apps.folder", modifiedTime = "2026-01-01T00:00:00Z")
         env.drive.files[folder.id] = folder
+        seedDownloaded()
         env.db.jobDao().upsert(job(jobId = "job-4", phoneState = "SENT", driveFolderId = folder.id))
         env.clock.millis += STALLED_SENT_MILLIS
 
@@ -121,6 +149,21 @@ class JobRepositoryTest {
         val recreated = env.db.jobDao().observeAll().first().single()
         assertEquals("PREPARING", recreated.phoneState)
         assertEquals("MangaSource/Titre/Chapitre 1", recreated.mihonPath)
+    }
+
+    // Chapitre plus telecharge ni en original sur le PC : createJobs refuserait le remplacant, le job
+    // Drive est donc laisse tel quel (ni supprime, ni recree).
+    @Test fun resendStalledDriveJobs_keepsUnseenSentJob_whenItCannotBeRecreated() = runTest {
+        val folder = FakeFile(name = "job-7", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.google-apps.folder", modifiedTime = "2026-01-01T00:00:00Z")
+        env.drive.files[folder.id] = folder
+        env.db.jobDao().upsert(job(jobId = "job-7", phoneState = "SENT", driveFolderId = folder.id))
+        env.clock.millis += STALLED_SENT_MILLIS
+
+        env.container.jobRepository.resendStalledDriveJobs()
+
+        assertEquals("SENT", env.db.jobDao().get("job-7")!!.phoneState)
+        assertTrue(env.drive.files.containsKey(folder.id))
+        assertEquals(1, env.db.jobDao().observeAll().first().size)
     }
 
     @Test fun resendStalledDriveJobs_keepsSentJobSeenByPc_orTooRecent() = runTest {
