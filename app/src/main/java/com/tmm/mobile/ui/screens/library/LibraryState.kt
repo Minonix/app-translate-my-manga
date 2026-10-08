@@ -11,6 +11,7 @@ sealed interface LibraryToast {
     data class Sent(val chapterCount: Int) : LibraryToast
     data class Received(val chapterCount: Int) : LibraryToast
     data class Verified(val chapterCount: Int) : LibraryToast
+    data class Translated(val chapterCount: Int) : LibraryToast
     data class Retranslated(val chapterCount: Int) : LibraryToast
 }
 
@@ -45,10 +46,14 @@ data class LibraryState(
     val selectionLabel: String get() = selectedSeries.joinToString(", ") { it.title }
     val hasSelection: Boolean get() = picking && selectedSeries.isNotEmpty()
 
-    /** send = chapitres a envoyer, get = a recuperer, fr = deja traduits (verifiables/retraduisibles). */
+    /** send = chapitres a envoyer, get = a recuperer, verify = a jour (frChapters, meme predicat que VerifyPending). */
     val selectionToSend: Int get() = selectedSeries.sumOf { it.toSend }
     val selectionToGet: Int get() = selectedSeries.sumOf { it.toGet }
     val selectionToVerify: Int get() = selectedSeries.sumOf { it.frChapters }
+
+    /** Bouton "Traduire"/"Retraduire" : "Retraduire" des qu'une cible a deja une traduction. */
+    val selectionToTranslate: Int get() = selectedSeries.sumOf { it.toTranslate }
+    val selectionRetranslates: Boolean get() = selectedSeries.any { it.toRetranslate > 0 }
 
     val allVisibleSelected: Boolean get() = visibleSeries.isNotEmpty() && visibleSeries.all { it.title in selected }
 }

@@ -11,6 +11,7 @@ import com.tmm.mobile.data.status.ChapterJoinInputs
 import com.tmm.mobile.data.status.ChapterJoinRow
 import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.buildChapterJoinRows
+import com.tmm.mobile.data.status.planTranslation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -86,10 +87,16 @@ class LibraryViewModel(
             LibraryEvent.SendToPc -> performSend()
             LibraryEvent.FetchToMihon -> performFetch()
             LibraryEvent.VerifyPending -> performVerify()
-            LibraryEvent.RequestRetranslate -> ui.update {
-                if (state.value.selectionToVerify > 0) it.copy(confirmRetranslate = true) else it
+            // "Retraduire" ecrase une traduction : confirmation d'abord. "Traduire" agit directement.
+            LibraryEvent.RequestRetranslate -> {
+                val current = state.value
+                when {
+                    current.selectionToTranslate == 0 -> Unit
+                    current.selectionRetranslates -> ui.update { it.copy(confirmRetranslate = true) }
+                    else -> performTranslation()
+                }
             }
-            LibraryEvent.ConfirmRetranslate -> performRetranslate()
+            LibraryEvent.ConfirmRetranslate -> performTranslation()
             LibraryEvent.DismissConfirm -> ui.update { it.copy(confirmRetranslate = false) }
             LibraryEvent.DismissToast -> ui.update { it.copy(toast = null) }
         }
@@ -142,10 +149,16 @@ class LibraryViewModel(
         showToast(LibraryToast.Verified(targets.size))
     }
 
-    private fun performRetranslate() = viewModelScope.launch {
-        val targets = collectTargets { it.status == ChapterStatus.UP_TO_DATE }
+    /** Bouton "Traduire"/"Retraduire" : cibles et libelle du toast via planTranslation, serie par serie. */
+    private fun performTranslation() = viewModelScope.launch {
+        var retranslate = false
+        val targets = selectedRows().flatMap { (series, rows) ->
+            val plan = planTranslation(rows)
+            if (plan.retranslate) retranslate = true
+            plan.targets.map { row -> JobTarget(mihonPath = row.mihonPath, downloaded = row.downloaded, series = series, chapter = row.chapter) }
+        }
         container.jobRepository.createJobs(JobMode.RETRANSLATE, targets)
-        showToast(LibraryToast.Retranslated(targets.size))
+        showToast(if (retranslate) LibraryToast.Retranslated(targets.size) else LibraryToast.Translated(targets.size))
     }
 
     private fun showToast(toast: LibraryToast) {

@@ -78,6 +78,7 @@ fun LibraryScreen(
             is LibraryToast.Sent -> pluralStringResource(R.plurals.library_toast_sent, toast.chapterCount, toast.chapterCount)
             is LibraryToast.Received -> pluralStringResource(R.plurals.library_toast_received, toast.chapterCount, toast.chapterCount)
             is LibraryToast.Verified -> pluralStringResource(R.plurals.library_toast_verified, toast.chapterCount, toast.chapterCount)
+            is LibraryToast.Translated -> pluralStringResource(R.plurals.library_toast_translated, toast.chapterCount, toast.chapterCount)
             is LibraryToast.Retranslated -> pluralStringResource(R.plurals.library_toast_retranslated, toast.chapterCount, toast.chapterCount)
             null -> ""
         }
@@ -341,11 +342,12 @@ private fun SelectionActionBar(state: LibraryState, onEvent: (LibraryEvent) -> U
                 onClick = { onEvent(LibraryEvent.VerifyPending) },
                 modifier = Modifier.weight(1f),
             )
+            // "Retraduire" si une cible a deja une traduction, sinon "Traduire" (planTranslation).
             ActionTile(
                 icon = TmmIconId.Refresh,
-                label = stringResource(R.string.library_action_retranslate_label),
-                count = state.selectionToVerify,
-                hintSuffix = stringResource(R.string.library_action_hint_retranslate),
+                label = stringResource(if (state.selectionRetranslates) R.string.library_action_retranslate_label else R.string.library_action_translate_label),
+                count = state.selectionToTranslate,
+                hintSuffix = stringResource(if (state.selectionRetranslates) R.string.library_action_hint_retranslate else R.string.library_action_hint_translate),
                 onClick = { onEvent(LibraryEvent.RequestRetranslate) },
                 modifier = Modifier.weight(1f),
             )
@@ -374,7 +376,7 @@ private fun ActionTile(
 @Composable
 private fun LibraryConfirmSheet(state: LibraryState, onEvent: (LibraryEvent) -> Unit) {
     TmmSheet(visible = state.confirmRetranslate, onDismiss = { onEvent(LibraryEvent.DismissConfirm) }) {
-        val chapters = pluralStringResource(R.plurals.library_chapters_count, state.selectionToVerify, state.selectionToVerify)
+        val chapters = pluralStringResource(R.plurals.library_chapters_count, state.selectionToTranslate, state.selectionToTranslate)
         val series = pluralStringResource(R.plurals.library_series_count, state.selectionCount, state.selectionCount)
         TmmText(
             text = stringResource(R.string.library_confirm_title_fmt, chapters),

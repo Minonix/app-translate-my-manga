@@ -43,6 +43,7 @@ sealed interface SeriesToast {
     data class Sent(val chapterCount: Int) : SeriesToast
     data class Received(val chapterCount: Int) : SeriesToast
     data class Verified(val chapterCount: Int) : SeriesToast
+    data class Translated(val chapterCount: Int) : SeriesToast
     data class Retranslated(val chapterCount: Int) : SeriesToast
 }
 
@@ -61,6 +62,10 @@ data class SeriesState(
     val showGap: Boolean = true,
     val sheet: SeriesSheet = SeriesSheet.None,
     val toast: SeriesToast? = null,
+    // Bouton "Traduire"/"Retraduire" de la selection : calcule par le ViewModel depuis les vraies
+    // lignes (planTranslation), les tons de SeriesChapter ne suffisant pas (original sur le PC, job actif).
+    val selectionToTranslate: Int = 0,
+    val selectionRetranslates: Boolean = false,
 ) {
     val gapChapter: SeriesChapter? get() = chapters.firstOrNull { it.kind == StatusTone.Gap }
 
@@ -71,7 +76,8 @@ data class SeriesState(
     val hasSelection: Boolean get() = pickedChapters.isNotEmpty()
     val selectionToSend: Int get() = pickedChapters.count { it.kind == StatusTone.Send }
     val selectionToGet: Int get() = pickedChapters.count { it.kind == StatusTone.Get }
-    val selectionToVerify: Int get() = pickedChapters.count { it.kind == StatusTone.Get || it.kind == StatusTone.Ok }
+    // Meme predicat que VerifyPending (UP_TO_DATE, seul statut au ton Ok).
+    val selectionToVerify: Int get() = pickedChapters.count { it.kind == StatusTone.Ok }
 }
 
 sealed interface SeriesEvent {

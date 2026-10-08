@@ -58,8 +58,12 @@ class LibraryScreenBehaviorTest {
         LibraryEvent.SendToPc -> showToast(state, LibraryToast.Sent(state.selectionToSend))
         LibraryEvent.FetchToMihon -> showToast(state, LibraryToast.Received(state.selectionToGet))
         LibraryEvent.VerifyPending -> showToast(state, LibraryToast.Verified(state.selectionToVerify))
-        LibraryEvent.RequestRetranslate -> if (state.selectionToVerify > 0) state.copy(confirmRetranslate = true) else state
-        LibraryEvent.ConfirmRetranslate -> showToast(state, LibraryToast.Retranslated(state.selectionToVerify))
+        LibraryEvent.RequestRetranslate -> when {
+            state.selectionToTranslate == 0 -> state
+            state.selectionRetranslates -> state.copy(confirmRetranslate = true)
+            else -> showToast(state, LibraryToast.Translated(state.selectionToTranslate))
+        }
+        LibraryEvent.ConfirmRetranslate -> showToast(state, LibraryToast.Retranslated(state.selectionToTranslate))
         LibraryEvent.DismissConfirm -> state.copy(confirmRetranslate = false)
         LibraryEvent.DismissToast -> state.copy(toast = null)
     }
@@ -133,8 +137,9 @@ class LibraryScreenBehaviorTest {
 
     @Test
     fun requestRetranslate_withoutChapters_doesNotOpenConfirmSheet() {
+        // Aucune cible : le bouton prend le libelle "Traduire" et reste inactif.
         val currentState = setState(MockupData.library.copy(picking = true, selected = setOf("Dandadan")))
-        composeRule.onNodeWithText("Retraduire").performClick()
+        composeRule.onNodeWithText("Traduire").performClick()
         composeRule.waitForIdle()
         assertEquals(false, currentState().confirmRetranslate)
     }

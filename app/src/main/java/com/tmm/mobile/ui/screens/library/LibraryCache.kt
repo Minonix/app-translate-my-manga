@@ -13,6 +13,7 @@ import com.tmm.mobile.data.status.badge
 import com.tmm.mobile.data.status.buildChapterJoinRows
 import com.tmm.mobile.data.status.deriveSeriesSummary
 import com.tmm.mobile.data.status.joinInputsFlow
+import com.tmm.mobile.data.status.planTranslation
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.components.StatusTone
@@ -111,6 +112,7 @@ internal fun buildLibrarySnapshot(
         val primaryOrder = linksBySeries[series.seriesKey]?.minOfOrNull { it.categoryOrder }
         val categoryName = primaryOrder?.let { categoryNameByOrder[it] } ?: ""
         val totalChapters = index.chaptersBySeries[series.seriesKey]?.size ?: 0
+        val translation = planTranslation(rows)
         MockSeries(
             title = series.title,
             colorHex = "",
@@ -125,6 +127,8 @@ internal fun buildLibrarySnapshot(
             thumbnailUrl = series.thumbnailUrl,
             onPhone = summary.onPhone,
             onPc = summary.onPc,
+            toTranslate = translation.count,
+            toRetranslate = translation.alreadyTranslated,
         )
     }
     return LibrarySnapshot(categories = chips, series = mockSeries)

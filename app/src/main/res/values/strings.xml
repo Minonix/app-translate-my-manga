@@ -71,10 +71,12 @@
     <string name="library_action_get_label">Récupérer</string>
     <string name="library_action_verify_label">Vérifier</string>
     <string name="library_action_retranslate_label">Retraduire</string>
+    <string name="library_action_translate_label">Traduire</string>
     <string name="library_action_hint_send">absents du PC</string>
     <string name="library_action_hint_get">vers Mihon</string>
     <string name="library_action_hint_verify">corrige les oublis</string>
     <string name="library_action_hint_retranslate">refait tout</string>
+    <string name="library_action_hint_translate">depuis l\'original</string>
     <string name="library_confirm_title_fmt">Retraduire %1$s ?</string>
     <string name="library_confirm_text_fmt">Sur %1$s. Les versions françaises actuelles restent lisibles dans Mihon jusqu\'à ce que les nouvelles soient prêtes.</string>
     <string name="library_confirm_info">Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.</string>
@@ -112,6 +114,10 @@
         <item quantity="one">%1$d chapitre ajouté en retraduction.</item>
         <item quantity="other">%1$d chapitres ajoutés en retraduction.</item>
     </plurals>
+    <plurals name="library_toast_translated">
+        <item quantity="one">%1$d chapitre ajouté en traduction.</item>
+        <item quantity="other">%1$d chapitres ajoutés en traduction.</item>
+    </plurals>
 
     <!-- Series.dc.html (E4.3) -->
     <string name="series_back_cd">Retour à la bibliothèque</string>
@@ -135,6 +141,7 @@
     <string name="series_action_hint_get">Vers Mihon/local</string>
     <string name="series_action_hint_verify">Corrige les oublis</string>
     <string name="series_action_hint_retranslate">Refait tout</string>
+    <string name="series_action_hint_translate">Depuis l\'original</string>
     <string name="series_sheet_action_send_label">Envoyer ce qui manque</string>
     <string name="series_sheet_action_send_hint">Chapitres du téléphone absents du PC</string>
     <string name="series_sheet_action_get_label">Récupérer les traductions</string>
@@ -179,6 +186,10 @@
     <plurals name="series_toast_retranslated">
         <item quantity="one">%1$d chapitre ajouté à la file en retraduction.</item>
         <item quantity="other">%1$d chapitres ajoutés à la file en retraduction.</item>
+    </plurals>
+    <plurals name="series_toast_translated">
+        <item quantity="one">%1$d chapitre ajouté à la file en traduction.</item>
+        <item quantity="other">%1$d chapitres ajoutés à la file en traduction.</item>
     </plurals>
 
     <!-- Sync.dc.html (E4.4) -->

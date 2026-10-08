@@ -69,7 +69,11 @@ class SeriesScreenBehaviorTest {
         SeriesEvent.SendToPc -> state.copy(toast = SeriesToast.Sent(state.selectionToSend), sheet = SeriesSheet.None, selected = emptySet())
         SeriesEvent.FetchToMihon -> state.copy(toast = SeriesToast.Received(state.selectionToGet), sheet = SeriesSheet.None, selected = emptySet())
         SeriesEvent.VerifyPending -> state.copy(toast = SeriesToast.Verified(state.selectionToVerify), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.RequestRetranslateSelection -> if (state.selectionToVerify > 0) state.copy(sheet = SeriesSheet.Confirm(state.selectionToVerify)) else state
+        SeriesEvent.RequestRetranslateSelection -> when {
+            state.selectionToTranslate == 0 -> state
+            state.selectionRetranslates -> state.copy(sheet = SeriesSheet.Confirm(state.selectionToTranslate))
+            else -> state.copy(toast = SeriesToast.Translated(state.selectionToTranslate), sheet = SeriesSheet.None, selected = emptySet())
+        }
         SeriesEvent.OpenSeriesSheet -> state.copy(sheet = SeriesSheet.SeriesActions)
         SeriesEvent.CloseSheet -> state.copy(sheet = SeriesSheet.None)
         SeriesEvent.SeriesSendMissing -> state.copy(toast = SeriesToast.Sent(state.chapters.count { c -> c.kind == StatusTone.Send }), sheet = SeriesSheet.None, selected = emptySet())
@@ -77,7 +81,7 @@ class SeriesScreenBehaviorTest {
         SeriesEvent.SeriesVerifyAll -> state.copy(toast = SeriesToast.Verified(state.frCount), sheet = SeriesSheet.None, selected = emptySet())
         SeriesEvent.SeriesRequestRetranslateAll -> state.copy(sheet = SeriesSheet.Confirm(state.frCount))
         SeriesEvent.ConfirmRetranslate -> {
-            val count = (state.sheet as? SeriesSheet.Confirm)?.chapterCount ?: state.selectionToVerify
+            val count = (state.sheet as? SeriesSheet.Confirm)?.chapterCount ?: state.selectionToTranslate
             state.copy(toast = SeriesToast.Retranslated(count), sheet = SeriesSheet.None, selected = emptySet())
         }
         SeriesEvent.DismissToast -> state.copy(toast = null)

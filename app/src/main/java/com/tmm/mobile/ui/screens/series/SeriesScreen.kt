@@ -90,6 +90,7 @@ fun SeriesScreen(
             is SeriesToast.Sent -> pluralStringResource(R.plurals.series_toast_sent, toast.chapterCount, toast.chapterCount)
             is SeriesToast.Received -> pluralStringResource(R.plurals.series_toast_received, toast.chapterCount, toast.chapterCount)
             is SeriesToast.Verified -> pluralStringResource(R.plurals.series_toast_verified, toast.chapterCount, toast.chapterCount)
+            is SeriesToast.Translated -> pluralStringResource(R.plurals.series_toast_translated, toast.chapterCount, toast.chapterCount)
             is SeriesToast.Retranslated -> pluralStringResource(R.plurals.series_toast_retranslated, toast.chapterCount, toast.chapterCount)
             null -> ""
         }
@@ -595,10 +596,11 @@ private fun SeriesSelectionActionBar(state: SeriesState, onEvent: (SeriesEvent) 
                 onClick = { onEvent(SeriesEvent.VerifyPending) },
                 modifier = Modifier.weight(1f),
             )
+            // "Retraduire" si une cible a deja une traduction, sinon "Traduire" (planTranslation).
             SeriesActionButton(
-                label = stringResource(R.string.library_action_retranslate_label),
-                count = state.selectionToVerify,
-                hint = stringResource(R.string.series_action_hint_retranslate),
+                label = stringResource(if (state.selectionRetranslates) R.string.library_action_retranslate_label else R.string.library_action_translate_label),
+                count = state.selectionToTranslate,
+                hint = stringResource(if (state.selectionRetranslates) R.string.series_action_hint_retranslate else R.string.series_action_hint_translate),
                 icon = TmmIconId.Refresh,
                 primary = false,
                 onClick = { onEvent(SeriesEvent.RequestRetranslateSelection) },

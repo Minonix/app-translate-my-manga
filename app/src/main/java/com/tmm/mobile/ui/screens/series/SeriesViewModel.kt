@@ -18,6 +18,7 @@ import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.buildChapterJoinRows
 import com.tmm.mobile.data.status.deriveSeriesSummary
 import com.tmm.mobile.data.status.joinInputsFlow
+import com.tmm.mobile.data.status.planTranslation
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.protocol.PcSettings
@@ -106,6 +107,7 @@ class SeriesViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
 
     val state: StateFlow<SeriesState> = combine(ui, dataState) { u, d ->
+        val plan = planTranslation(d.rows.filter { it.number in u.selected })
         SeriesState(
             title = d.title,
             categoryLabel = d.categoryLabel,
@@ -121,6 +123,8 @@ class SeriesViewModel(
             showGap = u.showGap,
             sheet = u.sheet,
             toast = u.toast,
+            selectionToTranslate = plan.count,
+            selectionRetranslates = plan.retranslate,
         )
     }.stateIn(
         viewModelScope,
@@ -150,8 +154,16 @@ class SeriesViewModel(
             SeriesEvent.SendToPc -> performJobs(selected = true, predicate = { it.status == ChapterStatus.TO_SEND }, mode = JobMode.TRANSLATE) { SeriesToast.Sent(it) }
             SeriesEvent.FetchToMihon -> performFetch(selected = true)
             SeriesEvent.VerifyPending -> performJobs(selected = true, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.VERIFY) { SeriesToast.Verified(it) }
-            SeriesEvent.RequestRetranslateSelection -> ui.update {
-                if (state.value.selectionToVerify > 0) it.copy(sheet = SeriesSheet.Confirm(state.value.selectionToVerify), retranslateSelectionOnly = true) else it
+            // "Retraduire" ecrase une traduction : confirmation d'abord. "Traduire" agit directement.
+            SeriesEvent.RequestRetranslateSelection -> {
+                val current = state.value
+                when {
+                    current.selectionToTranslate == 0 -> Unit
+                    current.selectionRetranslates -> ui.update {
+                        it.copy(sheet = SeriesSheet.Confirm(current.selectionToTranslate), retranslateSelectionOnly = true)
+                    }
+                    else -> performTranslation()
+                }
             }
             SeriesEvent.OpenSeriesSheet -> ui.update { it.copy(sheet = SeriesSheet.SeriesActions) }
             SeriesEvent.CloseSheet -> ui.update { it.copy(sheet = SeriesSheet.None) }
@@ -159,9 +171,10 @@ class SeriesViewModel(
             SeriesEvent.SeriesFetchMissing -> performFetch(selected = false)
             SeriesEvent.SeriesVerifyAll -> performJobs(selected = false, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.VERIFY) { SeriesToast.Verified(it) }
             SeriesEvent.SeriesRequestRetranslateAll -> ui.update { it.copy(sheet = SeriesSheet.Confirm(dataState.value.frCount), retranslateSelectionOnly = false) }
-            SeriesEvent.ConfirmRetranslate -> {
-                val selectedOnly = ui.value.retranslateSelectionOnly
-                performJobs(selected = selectedOnly, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
+            SeriesEvent.ConfirmRetranslate -> if (ui.value.retranslateSelectionOnly) {
+                performTranslation()
+            } else {
+                performJobs(selected = false, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
             }
             SeriesEvent.DismissToast -> ui.update { it.copy(toast = null) }
         }
@@ -170,9 +183,16 @@ class SeriesViewModel(
     private fun rowsFor(selected: Boolean, predicate: (ChapterJoinRow) -> Boolean): List<ChapterJoinRow> {
         val d = dataState.value
         val nums = ui.value.selected
-        return d.rows.filter { row ->
-            val number = (row.chapter?.number ?: row.downloaded?.number ?: 0f).toInt()
-            (!selected || number in nums) && predicate(row)
+        return d.rows.filter { row -> (!selected || row.number in nums) && predicate(row) }
+    }
+
+    /** Bouton "Traduire"/"Retraduire" de la selection : cibles et libelle du toast via planTranslation. */
+    private fun performTranslation() {
+        viewModelScope.launch {
+            val plan = planTranslation(rowsFor(selected = true) { true })
+            val targets = plan.targets.map { JobTarget(mihonPath = it.mihonPath, downloaded = it.downloaded, series = dataState.value.series, chapter = it.chapter) }
+            container.jobRepository.createJobs(JobMode.RETRANSLATE, targets)
+            showToast(if (plan.retranslate) SeriesToast.Retranslated(targets.size) else SeriesToast.Translated(targets.size))
         }
     }
 
@@ -245,9 +265,11 @@ class SeriesViewModel(
     }
 }
 
+/** Numero affiche (et cle de selection) d'une ligne : les hors-serie 7.5 se rangent sous 7. */
+private val ChapterJoinRow.number: Int get() = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
+
 private fun ChapterJoinRow.toSeriesChapter(quality: ChapterQualityEntity?): SeriesChapter {
     val job = facts.latestJob
-    val number = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
     val untranslatedPages = quality?.alerts?.map { it.page }?.distinct()?.size ?: 0
     val pagesTranslated = (quality?.totalPages ?: 0) - untranslatedPages
     val (kind, label, color) = when (status) {

@@ -57,9 +57,13 @@ data class MockSeries(
     // Chapitres presents sur le telephone / originaux sur le PC : filtres "Telechargees" et "Sur le PC".
     val onPhone: Int = 0,
     val onPc: Int = 0,
+    // Bouton "Traduire"/"Retraduire" (planTranslation) : cibles, dont celles deja traduites.
+    val toTranslate: Int = 0,
+    val toRetranslate: Int = 0,
 )
 
 object MockupData {
+    // La maquette compte "Retraduire" sur les chapitres FR (s.fr) : memes cibles ici.
     val series = listOf(
         MockSeries("Blue Lock", "#D8D2E4", "En cours", 205, 214, 1, 1, "1 à envoyer", StatusTone.Send),
         MockSeries("Solo Leveling", "#C9D3DE", "En cours", 200, 201, 0, 0, "Traduction en cours", StatusTone.Busy),
@@ -70,7 +74,7 @@ object MockupData {
         MockSeries("Vinland Saga", "#DCCFC4", "Terminé", 214, 214, 0, 0, "À jour", StatusTone.Ok),
         MockSeries("Sakamoto Days", "#C9D3DE", "À lire", 0, 12, 12, 0, "12 à envoyer", StatusTone.Send),
         MockSeries("Chainsaw Man", "#E2C6BB", "Terminé", 97, 97, 0, 0, "À jour", StatusTone.Ok),
-    )
+    ).map { it.copy(toTranslate = it.frChapters, toRetranslate = it.frChapters) }
 
     /** Library.dc.html, onglets de categories Mihon (nom, nombre total demo). */
     val libraryCategories = listOf(
@@ -148,6 +152,9 @@ object MockupData {
         ),
         selected = setOf(214, 212, 210),
         expandedStats = setOf(212),
+        // 212 et 210 ont l'original sur le PC et deja une traduction (214 est a envoyer).
+        selectionToTranslate = 2,
+        selectionRetranslates = true,
     )
 
     /** Sync.dc.html, etat initial (Transferts). */
