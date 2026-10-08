@@ -41,6 +41,9 @@ enum class RefreshError { NETWORK, DRIVE_QUOTA, AUTH }
 private const val DRIVE_COOLDOWN_SECONDS = 30
 private const val DIRECT_COOLDOWN_SECONDS = 5
 
+// 1 : boite aux lettres dans APP/TranslateMyManga (au lieu de App/TranslateMyManga).
+private const val DRIVE_LAYOUT_VERSION = 1
+
 // PLAN_GEMINI.md 5.15/CdC 11.3. autoTranslate est injectee (pas reimplementee ici) : Startup (5.16)
 // et refresh() appellent la meme etape de traduction automatique sur les memes chapitres TO_SEND.
 // ponytail: DriveApi ne distingue pas encore une erreur de quota Drive (403) d'une IOException
@@ -126,10 +129,17 @@ class RefreshCoordinator(
 
     private suspend fun pollDrive(): PollResult {
         val drive = router.drive
+        // Boite aux lettres deplacee de App/ vers APP/ : les ids en cache pointent l'ancienne, on les
+        // recherche une fois. Les dossiers de jobs gardent leur id quand le PC les deplace.
+        val layoutOutdated = prefs.driveLayoutVersion.first() < DRIVE_LAYOUT_VERSION
+        if (layoutOutdated) prefs.resetDriveLayout()
         if (prefs.driveJobsId.first() == null || prefs.drivePcId.first() == null || prefs.driveCommandsId.first() == null) {
             drive.ensureLayout()
         }
+        if (layoutOutdated) prefs.setDriveLayoutVersion(DRIVE_LAYOUT_VERSION)
         val result = drive.poll(prefs.lastChangesCursor.first())
+        // Rien ne levait ce drapeau : le bandeau "reconnecter" restait affiche apres un nouveau consentement.
+        if (prefs.authExpired.first()) prefs.setAuthExpired(false)
         applyPoll(result)
         // Adresse Tailscale publiee par le PC : une URL non nulle ecrase la precedente, null ne l'efface pas.
         result.remote?.url?.let { prefs.setDirectUrl(it) }

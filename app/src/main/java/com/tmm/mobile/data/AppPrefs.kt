@@ -49,6 +49,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val DIRECT_PC_NAME = stringPreferencesKey("direct_pc_name")
         val DIRECT_PAIRING_EXPIRED = booleanPreferencesKey("direct_pairing_expired")
         val MATCHER_VERSION = intPreferencesKey("matcher_version")
+        val DRIVE_LAYOUT_VERSION = intPreferencesKey("drive_layout_version")
     }
 
     val onboardingDone: Flow<Boolean> = dataStore.data.map { it[Keys.ONBOARDING_DONE] ?: false }
@@ -153,6 +154,23 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     // Startup refait un rematch() une fois quand elle augmente (le cache de scan ne les relit pas).
     val matcherVersion: Flow<Int> = dataStore.data.map { it[Keys.MATCHER_VERSION] ?: 0 }
     suspend fun setMatcherVersion(value: Int) = set(Keys.MATCHER_VERSION, value)
+
+    // Version de l'arborescence Drive (APP/TranslateMyManga depuis la 1) : RefreshCoordinator oublie
+    // une fois les ids de dossiers en cache quand elle augmente, pour les rechercher a nouveau.
+    val driveLayoutVersion: Flow<Int> = dataStore.data.map { it[Keys.DRIVE_LAYOUT_VERSION] ?: 0 }
+    suspend fun setDriveLayoutVersion(value: Int) = set(Keys.DRIVE_LAYOUT_VERSION, value)
+
+    /** Oublie les ids de dossiers/fichiers Drive et le curseur de poll (nouvelle arborescence). */
+    suspend fun resetDriveLayout() {
+        dataStore.edit {
+            for (key in listOf(
+                Keys.DRIVE_APP_ID, Keys.DRIVE_ROOT_ID, Keys.DRIVE_JOBS_ID, Keys.DRIVE_PC_ID,
+                Keys.DRIVE_COMMANDS_ID, Keys.DRIVE_FILE_IDS, Keys.LAST_CHANGES_CURSOR,
+            )) {
+                it.remove(key)
+            }
+        }
+    }
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         dataStore.edit { it[key] = value }

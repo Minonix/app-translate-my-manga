@@ -24,6 +24,12 @@ import kotlinx.coroutines.flow.first
 
 private const val CHUNK_SIZE = 8 * 1024 * 1024
 
+// Dossier racine de l'utilisateur, casse exacte (un ancien "App" cree par l'app existe a cote).
+const val APP_FOLDER = "APP"
+
+private val PC_FILES = listOf("heartbeat.json", "index.json", "settings.json", "remote.json")
+private val JOB_FILES = listOf("status.json", "result.json")
+
 // CdC 7.1/7.3. Canal Drive de JobTransport (le canal direct est DirectTransport).
 class DriveTransport(
     private val driveApi: DriveApi,
@@ -34,8 +40,10 @@ class DriveTransport(
         var created = false
         var appId = prefs.driveAppId.first()
         if (appId == null) {
-            appId = driveApi.findChild("root", "App", folder = true)?.id
-                ?: driveApi.createFolder("root", "App").also { created = true }
+            // "APP" appartient a l'utilisateur (un sous-dossier par application) : jamais cree ici, un
+            // second APP a la racine serait un clone. Introuvable = portee insuffisante ou dossier absent.
+            appId = driveApi.findChild("root", APP_FOLDER, folder = true)?.id
+                ?: throw IOException("Dossier $APP_FOLDER introuvable a la racine du Drive")
             prefs.setDriveAppId(appId)
         }
         var rootId = prefs.driveRootId.first()
@@ -168,11 +176,24 @@ class DriveTransport(
         var protocolTooNew = false
         var maxModified: String? = null
         var pageToken: String? = null
+        // Acces Drive complet : un settings.json ou status.json d'une autre application peut porter le
+        // meme nom. Seuls comptent les fichiers de pc/ et des dossiers de jobs/ de la boite aux lettres.
+        val pcId = prefs.drivePcId.first()
+        val jobsId = prefs.driveJobsId.first()
+        var jobFolderIds: Set<String>? = null
         do {
-            val page = driveApi.listChanged(sinceIso, pageToken)
+            val page = driveApi.listChanged(sinceIso, pageToken, PC_FILES + JOB_FILES)
             for (entry in page.files) {
                 val modified = entry.modifiedTime
                 if (modified != null && (maxModified == null || modified > maxModified!!)) maxModified = modified
+                val parent = entry.parents.firstOrNull()
+                val inMailbox = when (entry.name) {
+                    in PC_FILES -> parent != null && parent == pcId
+                    in JOB_FILES -> parent != null && jobsId != null &&
+                        parent in (jobFolderIds ?: driveApi.listChildFolderIds(jobsId).also { jobFolderIds = it })
+                    else -> false
+                }
+                if (!inMailbox) continue
                 try {
                     when (entry.name) {
                         "status.json" -> {

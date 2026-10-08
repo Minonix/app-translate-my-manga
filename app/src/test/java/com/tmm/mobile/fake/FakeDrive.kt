@@ -40,9 +40,13 @@ class FakeDrive(private val nowIso: () -> String) {
     var force401Once: Boolean = false
     var force429ForNextAttempts: Int = 0
     var cutoffUploadAfterBytes: Long? = null
+    // Simule un "name =" Drive insensible a la casse (App et APP renvoyes ensemble).
+    var caseInsensitiveNames: Boolean = false
 
     init {
-        files["root"] = FakeFile(id = "root", name = "root", parents = mutableListOf(), mimeType = "application/vnd.google-apps.folder", modifiedTime = nowIso())
+        files["root"] = FakeFile(id = "root", name = "root", parents = mutableListOf(), mimeType = FOLDER, modifiedTime = nowIso())
+        // Dossier APP cree par l'utilisateur : l'app ne le cree jamais, elle s'y range.
+        files[APP_ID] = FakeFile(id = APP_ID, name = "APP", parents = mutableListOf("root"), mimeType = FOLDER, modifiedTime = nowIso())
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse = handle(request)
         }
@@ -81,7 +85,8 @@ class FakeDrive(private val nowIso: () -> String) {
     }
 
     private val findRegex = Regex("""name = '(.*)' and '(.*)' in parents and trashed = false( and mimeType = 'application/vnd\.google-apps\.folder')?""")
-    private val listRegex = Regex("""modifiedTime > '(.*)' and trashed = false""")
+    private val listRegex = Regex("""modifiedTime > '([^']*)' and trashed = false and \((name = '[^']*'(?: or name = '[^']*')*)\)""")
+    private val childFoldersRegex = Regex("""'([^']*)' in parents and trashed = false and mimeType = 'application/vnd\.google-apps\.folder'""")
 
     private fun handleQuery(url: HttpUrl): MockResponse {
         val q = url.queryParameter("q") ?: return failRequest("q manquant")
@@ -89,14 +94,21 @@ class FakeDrive(private val nowIso: () -> String) {
             val name = m.groupValues[1].replace("\\'", "'")
             val parentId = m.groupValues[2]
             val folderOnly = m.groupValues[3].isNotEmpty()
-            val match = files.values.firstOrNull {
-                it.name == name && parentId in it.parents && (!folderOnly || it.mimeType == "application/vnd.google-apps.folder")
-            }
-            return MockResponse(code = 200, body = filesJson(listOfNotNull(match), null))
+            // Comme Drive, "name =" peut renvoyer plusieurs dossiers (doublons) : DriveApi trie lui-meme.
+            val matches = files.values.filter {
+                it.name.equals(name, ignoreCase = caseInsensitiveNames) && parentId in it.parents && (!folderOnly || it.mimeType == FOLDER)
+            }.sortedBy { it.modifiedTime }
+            return MockResponse(code = 200, body = filesJson(matches, null))
         }
         listRegex.matchEntire(q)?.let { m ->
             val since = m.groupValues[1]
-            val entries = files.values.filter { it.id != "root" && it.modifiedTime > since }.sortedBy { it.modifiedTime }
+            val names = Regex("""name = '([^']*)'""").findAll(m.groupValues[2]).map { it.groupValues[1] }.toSet()
+            val entries = files.values.filter { it.id != "root" && it.name in names && it.modifiedTime > since }.sortedBy { it.modifiedTime }
+            return MockResponse(code = 200, body = filesJson(entries, null))
+        }
+        childFoldersRegex.matchEntire(q)?.let { m ->
+            val parentId = m.groupValues[1]
+            val entries = files.values.filter { parentId in it.parents && it.mimeType == FOLDER }
             return MockResponse(code = 200, body = filesJson(entries, null))
         }
         return failRequest("forme de q inconnue : $q")
@@ -106,7 +118,7 @@ class FakeDrive(private val nowIso: () -> String) {
         val body = request.body?.utf8() ?: ""
         val name = extractJsonString(body, "name") ?: return failRequest("name manquant : $body")
         val parentId = extractJsonArrayFirst(body, "parents") ?: return failRequest("parents manquant : $body")
-        val file = FakeFile(name = name, parents = mutableListOf(parentId), mimeType = "application/vnd.google-apps.folder", modifiedTime = nowIso())
+        val file = FakeFile(name = name, parents = mutableListOf(parentId), mimeType = FOLDER, modifiedTime = nowIso())
         files[file.id] = file
         return MockResponse(code = 200, body = """{"id":"${file.id}"}""")
     }
@@ -207,6 +219,11 @@ class FakeDrive(private val nowIso: () -> String) {
 
     private fun extractJsonArrayFirst(json: String, key: String): String? =
         Regex(""""$key"\s*:\s*\["((?:\\.|[^"\\])*)"""").find(json)?.groupValues?.get(1)
+
+    companion object {
+        const val FOLDER = "application/vnd.google-apps.folder"
+        const val APP_ID = "app-folder"
+    }
 
     private fun failRequest(message: String): MockResponse {
         fail(message)

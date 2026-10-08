@@ -5,6 +5,9 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +33,9 @@ import androidx.navigation.toRoute
 import com.tmm.mobile.Startup
 import com.tmm.mobile.StartupResult
 import com.tmm.mobile.TmmApp
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.status.GlobalCounts
+import com.tmm.mobile.transport.GoogleAuth
 import com.tmm.mobile.ui.components.OfflineBanner
 import com.tmm.mobile.ui.components.OfflineBannerState
 import com.tmm.mobile.ui.components.TmmBottomBar
@@ -90,12 +95,34 @@ fun TmmRoot() {
     val protocolTooNew by container.prefs.protocolTooNew.collectAsState(initial = false)
     var reconnecting by remember { mutableStateOf(false) }
 
+    // Un refresh seul ne pouvait pas aboutir : sans consentement (nouvelle portee Drive, jeton revoque),
+    // authorize() renvoie un ecran Google a afficher, ce qu'un worker ou un refresh ne sait pas faire.
+    val googleAuth = remember { GoogleAuth(context) }
+    fun refreshAfterConsent() {
+        scope.launch {
+            container.refreshCoordinator.refresh()
+            reconnecting = false
+        }
+    }
+    val consentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        refreshAfterConsent()
+    }
+
     val bannerState = when {
         authExpired -> OfflineBannerState.TokenExpired(reconnecting = reconnecting) {
             reconnecting = true
             scope.launch {
-                container.refreshCoordinator.refresh()
-                reconnecting = false
+                val pending = try {
+                    googleAuth.pendingIntent(googleAuth.authorize())
+                } catch (e: Exception) {
+                    AppLog.d("TmmRoot", "authorize() a echoue : ${e.message}")
+                    null
+                }
+                if (pending != null) {
+                    consentLauncher.launch(IntentSenderRequest.Builder(pending).build())
+                } else {
+                    refreshAfterConsent()
+                }
             }
         }
         protocolTooNew -> OfflineBannerState.ProtocolTooNew

@@ -14,8 +14,9 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
-// CdC 7.3.9 : portee Drive minimale. Pour changer de portee, ne modifier que cette constante.
-const val DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+// Acces Drive complet : la boite aux lettres vit dans le dossier "APP" cree par l'utilisateur, que la
+// portee drive.file (CdC 7.3.9, fichiers crees par l'app seulement) ne voit pas. Le PC demande la meme.
+const val DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 
 // CdC 5.11 : utilise Identity.getAuthorizationClient (pas GoogleSignIn, deprecie).
 class GoogleAuth(context: Context) {

@@ -65,6 +65,21 @@ class RefreshCoordinatorTest {
         receivedWrittenAt = null, cancelWrittenAt = null, driveDeletedAt = null,
     )
 
+    @Test fun refresh_relocatesMailboxOnce_andClearsAuthExpired() = runTest {
+        // Ids en cache de l'ancienne boite App/TranslateMyManga, version de layout jamais posee.
+        env.prefs.setDriveAppId("old-app")
+        env.prefs.setDriveJobsId("old-jobs")
+        env.prefs.setAuthExpired(true)
+
+        env.container.refreshCoordinator.refresh()
+
+        val rootId = env.drive.childOf(com.tmm.mobile.fake.FakeDrive.APP_ID, "TranslateMyManga")!!.id
+        assertEquals(com.tmm.mobile.fake.FakeDrive.APP_ID, env.prefs.driveAppId.first())
+        assertEquals(env.drive.childOf(rootId, "jobs")!!.id, env.prefs.driveJobsId.first())
+        assertEquals(1, env.prefs.driveLayoutVersion.first())
+        assertEquals(false, env.prefs.authExpired.first())
+    }
+
     @Test fun refresh_updatesPcState_forOwnJob() = runTest {
         writeOwnRequest("job-1")
         env.db.jobDao().upsert(job("job-1"))

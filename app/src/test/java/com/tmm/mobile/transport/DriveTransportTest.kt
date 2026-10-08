@@ -11,6 +11,8 @@ import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.RequestOptions
 import com.tmm.mobile.protocol.SeriesRef
+import com.tmm.mobile.protocol.ProtocolJson
+import com.tmm.mobile.protocol.StatusJson
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
@@ -123,6 +126,49 @@ class DriveTransportTest {
         assertEquals("processing", result.statuses.first().state)
         assertFalse(result.protocolTooNew)
         assertTrue(result.cursor != null)
+    }
+
+    @Test
+    fun ensureLayout_usesExistingAppFolder() = runTest {
+        transport.ensureLayout()
+        assertEquals(FakeDrive.APP_ID, prefs.driveAppId.first())
+        assertEquals(FakeDrive.APP_ID, drive.files[prefs.driveRootId.first()!!]!!.parents.single())
+        assertEquals(1, drive.files.values.count { it.name.equals("APP", ignoreCase = true) && "root" in it.parents })
+    }
+
+    @Test
+    fun ensureLayout_failsWithoutAppFolderAndCreatesNothing() = runTest {
+        drive.files.remove(FakeDrive.APP_ID)
+        val error = runCatching { transport.ensureLayout() }.exceptionOrNull()
+        assertTrue(error is java.io.IOException)
+        assertEquals(setOf("root"), drive.files.keys)
+        assertNull(prefs.driveAppId.first())
+    }
+
+    @Test
+    fun ensureLayout_picksExactAppWhenDriveIgnoresCase() = runTest {
+        drive.caseInsensitiveNames = true
+        val older = com.tmm.mobile.fake.FakeFile(name = "App", parents = mutableListOf("root"), mimeType = FakeDrive.FOLDER, modifiedTime = "2000-01-01T00:00:00Z")
+        drive.files[older.id] = older
+        transport.ensureLayout()
+        assertEquals(FakeDrive.APP_ID, prefs.driveAppId.first())
+    }
+
+    @Test
+    fun poll_ignoresSameNamedFilesOutsideMailbox() = runTest {
+        transport.ensureLayout()
+        // Dossier d'une autre application, hors de APP/TranslateMyManga/jobs.
+        val foreign = testCreateFolder(drive, "root", "job-x")
+        clockIso = clockIso.plusSeconds(10)
+        val status = StatusJson(jobId = "job-x", updatedAt = clockIso.toString(), mode = "translate", state = "processing")
+        val decoy = com.tmm.mobile.fake.FakeFile(
+            name = "status.json", parents = mutableListOf(foreign), mimeType = "application/json",
+            modifiedTime = clockIso.toString(), bytes = ProtocolJson.encodeToString(StatusJson.serializer(), status).toByteArray(),
+        )
+        drive.files[decoy.id] = decoy
+
+        val result = transport.poll(null)
+        assertTrue(result.statuses.isEmpty())
     }
 
     private fun emptyJob(jobId: String) = com.tmm.mobile.data.db.JobEntity(

@@ -105,18 +105,45 @@ class DriveApi(
         return execute(attempt + 1, build, onResponse)
     }
 
+    // Le plus ancien d'abord, comme le PC : en cas de doublon, les deux retombent sur le meme dossier.
+    // Le nom est recompare ici car "name =" de Drive ne distingue pas forcement "App" de "APP".
     suspend fun findChild(parentId: String, name: String, folder: Boolean): DriveFile? {
         val escapedName = name.replace("'", "\\'")
         var q = "name = '$escapedName' and '$parentId' in parents and trashed = false"
         if (folder) q += " and mimeType = 'application/vnd.google-apps.folder'"
         return execute(build = {
             Request.Builder().url(
-                url("drive/v3/files", mapOf("q" to q, "fields" to "files(id,name,modifiedTime,size)", "spaces" to "drive")),
+                url(
+                    "drive/v3/files",
+                    mapOf("q" to q, "fields" to "files(id,name,modifiedTime,size)", "spaces" to "drive", "orderBy" to "createdTime"),
+                ),
             ).get().build()
         }) { response ->
             val body = driveJson.decodeFromString(DriveFilesResponse.serializer(), response.body!!.string())
-            body.files.firstOrNull()?.toDriveFile()
+            body.files.firstOrNull { it.name == name }?.toDriveFile()
         }
+    }
+
+    /** Ids des sous-dossiers directs de `parentId` (toutes les pages). */
+    suspend fun listChildFolderIds(parentId: String): Set<String> {
+        val q = "'$parentId' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'"
+        val ids = HashSet<String>()
+        var pageToken: String? = null
+        do {
+            val query = buildMap {
+                put("q", q)
+                put("fields", "nextPageToken,files(id,name)")
+                put("pageSize", "1000")
+                put("spaces", "drive")
+                pageToken?.let { put("pageToken", it) }
+            }
+            pageToken = execute(build = { Request.Builder().url(url("drive/v3/files", query)).get().build() }) { response ->
+                val decoded = driveJson.decodeFromString(DriveFilesResponse.serializer(), response.body!!.string())
+                decoded.files.mapTo(ids) { it.id }
+                decoded.nextPageToken
+            }
+        } while (pageToken != null)
+        return ids
     }
 
     suspend fun createFolder(parentId: String, name: String): String {
@@ -199,8 +226,10 @@ class DriveApi(
         }
     }
 
-    suspend fun listChanged(sinceIso: String, pageToken: String?): ChangesPage {
-        val q = "modifiedTime > '$sinceIso' and trashed = false"
+    // Avec l'acces Drive complet, sans filtre de nom on listerait tout fichier modifie du compte.
+    suspend fun listChanged(sinceIso: String, pageToken: String?, names: List<String>): ChangesPage {
+        val nameClause = names.joinToString(" or ") { "name = '$it'" }
+        val q = "modifiedTime > '$sinceIso' and trashed = false and ($nameClause)"
         val query = buildMap {
             put("q", q)
             put("fields", "nextPageToken,files(id,name,parents,modifiedTime,size)")
