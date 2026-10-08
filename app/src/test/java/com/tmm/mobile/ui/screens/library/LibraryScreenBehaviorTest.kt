@@ -46,6 +46,9 @@ class LibraryScreenBehaviorTest {
         LibraryEvent.TogglePicking -> state.copy(picking = !state.picking, selected = emptySet())
         is LibraryEvent.SelectCategory -> state.copy(category = event.name)
         is LibraryEvent.SelectView -> state.copy(view = event.view)
+        is LibraryEvent.SelectSort -> state.copy(sort = event.sort)
+        LibraryEvent.OpenFilters -> state.copy(filtersOpen = true)
+        LibraryEvent.CloseFilters -> state.copy(filtersOpen = false)
         is LibraryEvent.ToggleSelected -> state.copy(
             selected = state.selected.toMutableSet().apply {
                 if (!add(event.title)) remove(event.title)
@@ -99,6 +102,33 @@ class LibraryScreenBehaviorTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Dandadan").assertExists()
         composeRule.onNodeWithText("Blue Lock").assertDoesNotExist()
+    }
+
+    @Test
+    fun filterButton_opensSheetAndSortAppliesImmediately() {
+        val currentState = setState(MockupData.library)
+        composeRule.onNodeWithContentDescription("Trier et filtrer").performClick()
+        composeRule.waitForIdle()
+        assertEquals(true, currentState().filtersOpen)
+        composeRule.onNodeWithText("Ajoutées récemment").assertExists()
+        composeRule.onNodeWithText("À traduire d'abord").performClick()
+        composeRule.waitForIdle()
+        assertEquals(LibrarySort.ToTranslateFirst, currentState().sort)
+        assertEquals(listOf("Sakamoto Days", "Kagurabachi", "Blue Lock"), currentState().visibleSeries.take(3).map { it.title })
+        // La feuille reste ouverte : les choix suivants s'enchainent sans la rouvrir.
+        assertEquals(true, currentState().filtersOpen)
+    }
+
+    @Test
+    fun sort_titleAndRecentlyAdded() {
+        val dated = MockupData.library.copy(
+            allSeries = MockupData.library.allSeries.mapIndexed { i, s -> s.copy(dateAdded = i.toLong()) },
+        )
+        assertEquals("Chainsaw Man", dated.visibleSeries.first().title)
+        assertEquals(
+            dated.allSeries.map { it.title }.sortedBy { it.lowercase() },
+            dated.copy(sort = LibrarySort.Title).visibleSeries.map { it.title },
+        )
     }
 
     @Test

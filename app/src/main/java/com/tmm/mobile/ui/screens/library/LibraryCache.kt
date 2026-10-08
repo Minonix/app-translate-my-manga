@@ -129,6 +129,7 @@ internal fun buildLibrarySnapshot(
             onPc = summary.onPc,
             toTranslate = translation.count,
             toRetranslate = translation.alreadyTranslated,
+            dateAdded = series.dateAdded,
         )
     }
     return LibrarySnapshot(categories = chips, series = mockSeries)

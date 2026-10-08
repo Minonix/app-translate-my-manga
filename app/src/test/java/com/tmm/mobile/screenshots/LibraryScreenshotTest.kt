@@ -56,7 +56,12 @@ class LibraryScreenshotTest {
     }
 
     @Test
-    fun libraryScreen_toast() = capture("LibraryScreen_toast") {
+    fun libraryScreen_filtersSheet() = capture("LibraryScreen_filtersSheet") {
+        LibraryScreen(state = MockupData.library.copy(filtersOpen = true), onEvent = {})
+    }
+
+    @Test
+    fun libraryScreen_toast()= capture("LibraryScreen_toast") {
         LibraryScreen(state = MockupData.library.copy(toast = LibraryToast.Sent(4)), onEvent = {})
     }
 }

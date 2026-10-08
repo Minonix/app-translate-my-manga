@@ -39,6 +39,8 @@ class LibraryViewModel(
         val selected: Set<String> = emptySet(),
         val category: String = "Tous",
         val view: LibraryViewFilter = LibraryViewFilter.All,
+        val sort: LibrarySort = LibrarySort.RecentlyAdded,
+        val filtersOpen: Boolean = false,
         val confirmRetranslate: Boolean = false,
         val toast: LibraryToast? = null,
     )
@@ -56,6 +58,8 @@ class LibraryViewModel(
             category = u.category,
             categories = d.categories,
             view = u.view,
+            sort = u.sort,
+            filtersOpen = u.filtersOpen,
             allSeries = d.series,
             confirmRetranslate = u.confirmRetranslate,
             toast = u.toast,
@@ -77,6 +81,9 @@ class LibraryViewModel(
             LibraryEvent.TogglePicking -> ui.update { it.copy(picking = !it.picking, selected = emptySet()) }
             is LibraryEvent.SelectCategory -> ui.update { it.copy(category = event.name) }
             is LibraryEvent.SelectView -> ui.update { it.copy(view = event.view) }
+            is LibraryEvent.SelectSort -> ui.update { it.copy(sort = event.sort) }
+            LibraryEvent.OpenFilters -> ui.update { it.copy(filtersOpen = true) }
+            LibraryEvent.CloseFilters -> ui.update { it.copy(filtersOpen = false) }
             is LibraryEvent.ToggleSelected -> ui.update {
                 it.copy(selected = it.selected.toMutableSet().apply { if (!add(event.title)) remove(event.title) })
             }

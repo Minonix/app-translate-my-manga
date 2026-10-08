@@ -9,7 +9,6 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.tmm.mobile.TmmApp
-import com.tmm.mobile.ui.nav.CatalogRoute
 import com.tmm.mobile.ui.nav.QueueRoute
 import com.tmm.mobile.ui.nav.SeriesRoute
 
@@ -28,7 +27,6 @@ fun LibraryRoute(nav: NavController, categoryOrder: Long?) {
     LibraryScreen(
         state = state,
         onEvent = vm::onEvent,
-        onOpenCatalog = { nav.navigate(CatalogRoute) },
         onOpenSeries = { seriesKey -> nav.navigate(SeriesRoute(seriesKey)) },
         onOpenQueue = { nav.navigate(QueueRoute) },
     )

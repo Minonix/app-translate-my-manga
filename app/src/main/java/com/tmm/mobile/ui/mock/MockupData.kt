@@ -60,6 +60,8 @@ data class MockSeries(
     // Bouton "Traduire"/"Retraduire" (planTranslation) : cibles, dont celles deja traduites.
     val toTranslate: Int = 0,
     val toRetranslate: Int = 0,
+    // Date d'ajout Mihon (SeriesEntity.dateAdded) : tri "Ajoutees recemment".
+    val dateAdded: Long = 0L,
 )
 
 object MockupData {

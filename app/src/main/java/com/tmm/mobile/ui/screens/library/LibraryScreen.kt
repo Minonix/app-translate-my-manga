@@ -7,6 +7,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.Cover
+import com.tmm.mobile.ui.components.SectionLabel
 import com.tmm.mobile.ui.components.StatusBadge
 import com.tmm.mobile.ui.components.TmmActionButton
 import com.tmm.mobile.ui.components.TmmButton
@@ -58,14 +62,13 @@ import com.tmm.mobile.ui.theme.TmmType
 fun LibraryScreen(
     state: LibraryState,
     onEvent: (LibraryEvent) -> Unit,
-    onOpenCatalog: () -> Unit = {},
     onOpenSeries: (String) -> Unit = {},
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.background(TmmColors.paper)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            LibraryHeader(state = state, onEvent = onEvent, onOpenCatalog = onOpenCatalog)
+            LibraryHeader(state = state, onEvent = onEvent)
             Box(modifier = Modifier.weight(1f)) {
                 LibraryGrid(state = state, onEvent = onEvent, onOpenSeries = onOpenSeries)
             }
@@ -73,6 +76,7 @@ fun LibraryScreen(
                 SelectionActionBar(state = state, onEvent = onEvent)
             }
         }
+        LibraryFiltersSheet(state = state, onEvent = onEvent)
         LibraryConfirmSheet(state = state, onEvent = onEvent)
         val toastMessage = when (val toast = state.toast) {
             is LibraryToast.Sent -> pluralStringResource(R.plurals.library_toast_sent, toast.chapterCount, toast.chapterCount)
@@ -96,7 +100,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, onOpenCatalog: () -> Unit) {
+private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit) {
     Column(
         modifier = Modifier.padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -126,17 +130,18 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!state.picking) {
-                        val categoriesCd = stringResource(R.string.library_categories_cd)
+                        // Ecart a la maquette (lien vers Catalog.dc.html) : ouvre la feuille Trier et filtrer.
+                        val filtersCd = stringResource(R.string.library_filters_title)
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(TmmColors.surface)
                                 .border(1.dp, TmmColors.track, RoundedCornerShape(10.dp))
-                                .clickable(onClick = onOpenCatalog),
+                                .clickable { onEvent(LibraryEvent.OpenFilters) },
                             contentAlignment = Alignment.Center,
                         ) {
-                            TmmIcon(TmmIconId.Filter, size = 16.dp, contentDescription = categoriesCd)
+                            TmmIcon(TmmIconId.Filter, size = 16.dp, contentDescription = filtersCd)
                         }
                     }
                     val pickLabel = if (state.picking) stringResource(R.string.library_finish_button) else stringResource(R.string.library_select_button)
@@ -175,13 +180,7 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
         }
         if (!state.picking) {
             TmmSegmented(
-                options = listOf(
-                    LibraryViewFilter.All to stringResource(R.string.library_view_all),
-                    LibraryViewFilter.Todo to stringResource(R.string.library_view_todo),
-                    LibraryViewFilter.Downloaded to stringResource(R.string.library_view_downloaded),
-                    LibraryViewFilter.OnPc to stringResource(R.string.library_view_on_pc),
-                    LibraryViewFilter.Absent to stringResource(R.string.library_view_absent),
-                ),
+                options = viewFilterOptions(),
                 selected = state.view,
                 onSelect = { onEvent(LibraryEvent.SelectView(it)) },
             )
@@ -371,6 +370,59 @@ private fun ActionTile(
         ""
     }
     TmmActionButton(icon = icon, label = label, hint = hint, count = count, onClick = onClick, primary = primary, modifier = modifier)
+}
+
+/** Options "Afficher" partagees par le segmente de l'en-tete et la feuille Trier et filtrer. */
+@Composable
+private fun viewFilterOptions(): List<Pair<LibraryViewFilter, String>> = listOf(
+    LibraryViewFilter.All to stringResource(R.string.library_view_all),
+    LibraryViewFilter.Todo to stringResource(R.string.library_view_todo),
+    LibraryViewFilter.Downloaded to stringResource(R.string.library_view_downloaded),
+    LibraryViewFilter.OnPc to stringResource(R.string.library_view_on_pc),
+    LibraryViewFilter.Absent to stringResource(R.string.library_view_absent),
+)
+
+/**
+ * Feuille Trier et filtrer (bouton filtre de l'en-tete). Aucune maquette ne la decrit : elle reprend
+ * TmmSheet, SectionLabel et TmmChip. Chaque choix s'applique tout de suite, la feuille reste ouverte.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LibraryFiltersSheet(state: LibraryState, onEvent: (LibraryEvent) -> Unit) {
+    TmmSheet(
+        visible = state.filtersOpen,
+        onDismiss = { onEvent(LibraryEvent.CloseFilters) },
+        title = stringResource(R.string.library_filters_title),
+    ) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            val sorts = listOf(
+                LibrarySort.RecentlyAdded to stringResource(R.string.library_sort_recent),
+                LibrarySort.Title to stringResource(R.string.library_sort_title),
+                LibrarySort.ToTranslateFirst to stringResource(R.string.library_sort_todo_first),
+            )
+            SectionLabel(text = stringResource(R.string.library_sort_section), modifier = Modifier.padding(top = 8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                sorts.forEach { (sort, label) ->
+                    TmmChip(label = label, selected = state.sort == sort, onClick = { onEvent(LibraryEvent.SelectSort(sort)) })
+                }
+            }
+            SectionLabel(text = stringResource(R.string.library_view_section), modifier = Modifier.padding(top = 8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                viewFilterOptions().forEach { (view, label) ->
+                    TmmChip(label = label, selected = state.view == view, onClick = { onEvent(LibraryEvent.SelectView(view)) })
+                }
+            }
+            SectionLabel(text = stringResource(R.string.library_categories_cd), modifier = Modifier.padding(top = 8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                state.categories.forEach { (name, count) ->
+                    TmmChip(label = name, selected = state.category == name, count = count, onClick = { onEvent(LibraryEvent.SelectCategory(name)) })
+                }
+            }
+        }
+    }
 }
 
 @Composable

@@ -60,6 +60,13 @@
     <string name="library_view_downloaded">Téléchargées</string>
     <string name="library_view_on_pc">Sur le PC</string>
     <string name="library_view_absent">Non téléchargées</string>
+    <!-- Feuille Trier et filtrer (bouton filtre de l'en-tete, hors maquette) -->
+    <string name="library_filters_title">Trier et filtrer</string>
+    <string name="library_sort_section">Trier</string>
+    <string name="library_sort_recent">Ajoutées récemment</string>
+    <string name="library_sort_title">Titre A-Z</string>
+    <string name="library_sort_todo_first">À traduire d\'abord</string>
+    <string name="library_view_section">Afficher</string>
     <string name="library_picking_hint">Touchez les séries à inclure</string>
     <string name="library_select_all_fmt">Tout cocher (%1$d)</string>
     <string name="library_deselect_all">Tout décocher</string>
