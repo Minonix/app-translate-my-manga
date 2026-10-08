@@ -98,6 +98,29 @@ class MainScreenBehaviorTest {
     }
 
     @Test
+    fun emptyHome_hidesTodoCard_queueAndRecentSections() {
+        setState(
+            MockupData.main.copy(
+                toSendCount = 0,
+                toGetCount = 0,
+                queueCount = 0,
+                queueJobs = emptyList(),
+                recentChapters = emptyList(),
+            ),
+        )
+        composeRule.onNodeWithContentDescription("Décalage entre Mihon et le PC").assertDoesNotExist()
+        composeRule.onNodeWithText("Sur le PC en ce moment").assertDoesNotExist()
+        composeRule.onNodeWithText("Derniers chapitres traduits").assertDoesNotExist()
+        composeRule.onNodeWithText("Nouvelle traduction").assertExists()
+    }
+
+    @Test
+    fun todoCard_staysVisibleWhileFetching_evenWithZeroCounts() {
+        setState(MockupData.main.copy(toSendCount = 0, toGetCount = 0, getState = BusyState.Busy))
+        composeRule.onNodeWithContentDescription("Décalage entre Mihon et le PC").assertExists()
+    }
+
+    @Test
     fun online_hidesOfflineNotice() {
         setState(MockupData.main.copy(pcTone = PcTone.Online))
         composeRule.onNodeWithText("PC hors ligne depuis 2 jours.").assertDoesNotExist()

@@ -68,10 +68,16 @@ fun MainScreen(
         ) {
             MainHeader(state = state, onEvent = onEvent, onOpenSettings = onOpenSettings)
             if (state.isOffline && state.offlineSinceLabel != null) OfflineNotice(state.offlineSinceLabel)
-            TodoSection(state = state, onEvent = onEvent, onOpenQueue = onOpenQueue)
-            OnPcNowSection(state = state, onOpenQueue = onOpenQueue)
+            // Sections vides masquees : spacedBy n'espace que les enfants emis, donc pas de trou.
+            // La carte "A faire" reste visible pendant un envoi/une recuperation en cours (sinon
+            // elle disparaitrait au milieu de la barre de progression, toGetCount baissant a chaque
+            // installation) ; l'etat Done ne revenant jamais a Idle, il ne compte pas.
+            if (state.toSendCount > 0 || state.toGetCount > 0 || state.sendState == BusyState.Busy || state.getState == BusyState.Busy) {
+                TodoSection(state = state, onEvent = onEvent, onOpenQueue = onOpenQueue)
+            }
+            if (state.queueJobs.isNotEmpty() || state.queueCount > 0) OnPcNowSection(state = state, onOpenQueue = onOpenQueue)
             QuickActionsGrid(onOpenNewTranslation = onOpenNewTranslation, onOpenSync = onOpenSync, lastScanLabel = state.lastScanLabel)
-            RecentChaptersSection(state = state, onOpenSync = onOpenSync, onOpenSeries = onOpenSeries)
+            if (state.recentChapters.isNotEmpty()) RecentChaptersSection(state = state, onOpenSync = onOpenSync, onOpenSeries = onOpenSeries)
         }
         val toastMessage = when (val toast = state.toast) {
             is MainToast.Sent -> stringResource(R.string.home_toast_sent_fmt, toast.count)
