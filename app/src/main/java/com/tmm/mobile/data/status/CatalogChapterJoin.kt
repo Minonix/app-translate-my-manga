@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.combine
  * job par chapitre. Limite connue : si le dossier reel differe de cette reconstruction (renommage
  * manuel cote PC, source dont le nom differe de SeriesEntity.sourceName), le rapprochement echoue
  * silencieusement et le chapitre reste CATALOG_ONLY au lieu de NOT_TRANSLATED/TO_FETCH.
+ * La reconstruction ne connait pas la langue de la source (" (EN)" que Mihon ajoute au dossier) :
+ * la recherche retombe donc sur un chemin dont la source est privee de ce suffixe.
  */
 data class ChapterJoinRow(
     val seriesKey: String,
@@ -66,6 +68,15 @@ class ChapterJoinIndex(inputs: ChapterJoinInputs) {
     internal val indexByPath = inputs.pcIndex.associateBy { it.mihonPath }
     internal val chaptersBySeries = inputs.chapters.groupBy { it.seriesKey }
     internal val downloadedBySeries = inputs.downloaded.groupBy { it.seriesKey }
+    internal val latestJobByLoosePath = latestJobByPath.mapKeys { (path, _) -> loosePath(path) }
+    internal val localFrLoosePaths = localFrPaths.mapTo(HashSet()) { loosePath(it) }
+    internal val indexByLoosePath = indexByPath.mapKeys { (path, _) -> loosePath(path) }
+}
+
+/** Chemin "source/serie/chapitre" dont la source est privee du suffixe de langue Mihon (" (EN)"). */
+internal fun loosePath(flat: String): String {
+    val slash = flat.indexOf('/')
+    return if (slash < 0) flat else MihonNaming.stripSourceLang(flat.substring(0, slash)) + flat.substring(slash)
 }
 
 /**
@@ -100,12 +111,13 @@ fun buildChapterJoinRows(
             )
         }
         val flat = mihonPath.flatten()
+        val loose = if (downloaded == null) loosePath(flat) else null
         val facts = ChapterFacts(
             downloaded = downloaded != null,
             inCatalog = chapter != null,
-            index = index.indexByPath[flat],
-            latestJob = index.latestJobByPath[flat],
-            localFr = flat in index.localFrPaths,
+            index = index.indexByPath[flat] ?: loose?.let { index.indexByLoosePath[it] },
+            latestJob = index.latestJobByPath[flat] ?: loose?.let { index.latestJobByLoosePath[it] },
+            localFr = flat in index.localFrPaths || (loose != null && loose in index.localFrLoosePaths),
         )
         return ChapterJoinRow(seriesKey, chapter, downloaded, mihonPath, facts, deriveStatus(facts))
     }

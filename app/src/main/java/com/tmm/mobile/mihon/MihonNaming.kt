@@ -35,6 +35,14 @@ object MihonNaming {
 
     fun getSourceDirName(sourceName: String): String = buildValidFilename(sourceName)
 
+    // HttpSource.toString() = "$name (${lang.uppercase()})" : Mihon range ses telechargements sous
+    // "MangaDex (EN)", "Comick (PT-BR)", "Komga (ALL)"... alors que la sauvegarde .tachibk ne porte
+    // que le nom ("MangaDex"), sans la langue.
+    private val LANG_SUFFIX = Regex(""" \(([A-Z]{2,3}(-[A-Z0-9]{2,8})?)\)$""")
+
+    /** Nom de dossier source sans le suffixe de langue Mihon (" (EN)"), ou tel quel s'il n'en a pas. */
+    fun stripSourceLang(sourceDirName: String): String = sourceDirName.replace(LANG_SUFFIX, "")
+
     fun getMangaDirName(title: String): String = buildValidFilename(title)
 
     fun getChapterDirName(chapterName: String, scanlator: String?, chapterUrl: String): String {

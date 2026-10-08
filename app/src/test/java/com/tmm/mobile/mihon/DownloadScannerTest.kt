@@ -176,6 +176,16 @@ class DownloadScannerTest {
         assertEquals("sk1", db.downloadedChapterDao().observeAll().first().single().seriesKey)
     }
 
+    // Dossier source reel de Mihon : "Nom (LANGUE)", la sauvegarde ne porte que "Nom".
+    @Test fun scanDownloads_matchesSourceDirWithMihonLangSuffix() = runTest {
+        seedSeries()
+        chapter(File(File(root, "MangaSource (EN)"), "One Piece").apply { mkdirs() }, "Chapitre 1")
+
+        DownloadScanner(FakeMihonFs(root), db).scanDownloads(root.absolutePath)
+
+        assertEquals("sk1", db.downloadedChapterDao().observeAll().first().single().seriesKey)
+    }
+
     @Test fun scanLocal_removesDeletedFiles_keepsUnchangedFolderViaCache() = runTest {
         val localRoot = File(root, "local").apply { mkdirs() }
         val folder = File(localRoot, "OnePiece").apply { mkdirs() }

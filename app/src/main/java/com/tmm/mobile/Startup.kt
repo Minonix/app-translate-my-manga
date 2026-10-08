@@ -101,8 +101,13 @@ class Startup(
     private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean) {
         val scanner = DownloadScanner(fs, db)
         fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId) }
-        if (rematch) scanner.rematch()
+        val matcherOutdated = prefs.matcherVersion.first() < MATCHER_VERSION
+        if (rematch || matcherOutdated) scanner.rematch()
+        if (matcherOutdated) prefs.setMatcherVersion(MATCHER_VERSION)
         fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
         prefs.setLastScanAt(System.currentTimeMillis())
     }
 }
+
+// 1 : Matcher tolere le suffixe de langue des dossiers source Mihon ("MangaDex (EN)").
+private const val MATCHER_VERSION = 1

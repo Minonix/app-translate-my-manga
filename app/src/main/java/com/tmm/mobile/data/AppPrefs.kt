@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -47,6 +48,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val DIRECT_DEVICE_ID = stringPreferencesKey("direct_device_id")
         val DIRECT_PC_NAME = stringPreferencesKey("direct_pc_name")
         val DIRECT_PAIRING_EXPIRED = booleanPreferencesKey("direct_pairing_expired")
+        val MATCHER_VERSION = intPreferencesKey("matcher_version")
     }
 
     val onboardingDone: Flow<Boolean> = dataStore.data.map { it[Keys.ONBOARDING_DONE] ?: false }
@@ -146,6 +148,11 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     // Vrai apres un 401 du PC : le jeton a ete efface, l'ecran Reglages affiche "Appairage expire".
     val directPairingExpired: Flow<Boolean> = dataStore.data.map { it[Keys.DIRECT_PAIRING_EXPIRED] ?: false }
     suspend fun setDirectPairingExpired(value: Boolean) = set(Keys.DIRECT_PAIRING_EXPIRED, value)
+
+    // Version des regles de rapprochement (Matcher) deja appliquees aux telechargements connus :
+    // Startup refait un rematch() une fois quand elle augmente (le cache de scan ne les relit pas).
+    val matcherVersion: Flow<Int> = dataStore.data.map { it[Keys.MATCHER_VERSION] ?: 0 }
+    suspend fun setMatcherVersion(value: Int) = set(Keys.MATCHER_VERSION, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         dataStore.edit { it[key] = value }

@@ -7,8 +7,13 @@ package com.tmm.mobile.mihon
 // 4. echec -> chapitre "hors catalogue" mais reste utilisable via mihonPath.
 object Matcher {
 
-    fun matchSourceName(sourceDirName: String, sourceName: String): Boolean =
-        sourceDirName == MihonNaming.getSourceDirName(sourceName)
+    // ponytail: la langue est ignoree ; une meme serie suivie dans deux langues d'une meme source
+    // ("MangaDex (EN)" et "MangaDex (FR)") se rattache a la premiere SeriesEntity trouvee. A revoir
+    // si la sauvegarde expose un jour la langue de la source.
+    fun matchSourceName(sourceDirName: String, sourceName: String): Boolean {
+        val expected = MihonNaming.getSourceDirName(sourceName)
+        return sourceDirName == expected || MihonNaming.stripSourceLang(sourceDirName) == expected
+    }
 
     fun matchSeries(seriesDirName: String, seriesTitle: String): Boolean =
         seriesDirName == MihonNaming.getMangaDirName(seriesTitle)
