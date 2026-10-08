@@ -61,7 +61,7 @@ class QueueScreenBehaviorTest {
         val getState = setState(MockupData.queue)
         composeRule.onNodeWithText("File").assertExists()
         composeRule.onNodeWithText("Traductions et vérifications envoyées au PC").assertExists()
-        composeRule.onNodeWithText("Actives").assertExists()
+        composeRule.onNodeWithText("En cours").assertExists()
         composeRule.onNodeWithText("Terminées").assertExists()
         composeRule.onNodeWithText("Échecs").assertExists()
         composeRule.onNodeWithText("Solo Leveling · Ch. 201").assertExists()

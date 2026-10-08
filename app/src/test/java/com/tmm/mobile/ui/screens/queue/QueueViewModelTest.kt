@@ -1,7 +1,9 @@
 package com.tmm.mobile.ui.screens.queue
 
 import com.tmm.mobile.data.db.ChapterQualityEntity
+import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
+import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.QueueCounts
@@ -41,6 +43,12 @@ class QueueViewModelTest {
         statusUpdatedAt = null, resultJson = null, resultFileId = null,
         createdAt = env.clock.millis, updatedAt = env.clock.millis, finishedAt = null, installedAt = null, installedPath = null,
         receivedWrittenAt = null, cancelWrittenAt = null, driveDeletedAt = null,
+    )
+
+    private fun downloaded(mihonPath: String) = DownloadedChapterEntity(
+        mihonPath = mihonPath, sourceDir = "Mihon", seriesDir = mihonPath.split("/")[1], chapterDir = mihonPath.split("/")[2],
+        documentUri = "doc://$mihonPath", isCbz = true, sizeBytes = 1_000L, lastModified = 0L, pageCount = 10,
+        seriesKey = mihonPath.split("/")[1], chapterKey = null, number = null,
     )
 
     private fun heartbeatJson(activeJobIds: List<String>) = ProtocolJson.encodeToString(
@@ -85,6 +93,8 @@ class QueueViewModelTest {
 
     @Test
     fun state_listsFailedJobs_untilANewerJobExistsForSameChapter() = runTest {
+        // Chapitre telecharge : l'echec est relancable, donc affiche.
+        env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/138"))
         env.db.jobDao().upsert(baseJob("job-4", "Mihon/frieren/138", "FAILED").copy(pcErrorMessage = "moteur indisponible", pcErrorPage = 5))
 
         val vm = QueueViewModel(env.container)
@@ -98,6 +108,33 @@ class QueueViewModelTest {
         val afterRetry = vm.state.first { it.failedJobs.isEmpty() }
         assertTrue(afterRetry.failedJobs.isEmpty())
         assertEquals(2, env.db.jobDao().observeAll().first().size)
+    }
+
+    // Echecs herites des anciennes versions (chapitre jamais telecharge) : masques a l'affichage,
+    // compteur compris, sans toucher a la base ; un chapitre telecharge ou en original sur le PC reste.
+    @Test
+    fun state_hidesFailedJobs_thatCanNoLongerBeRetried() = runTest {
+        env.db.jobDao().upsert(
+            baseJob("job-gone", "Mihon/frieren/10", "FAILED")
+                .copy(failedStep = "send", errorMessage = "chapitre telecharge introuvable: Mihon/frieren/10"),
+        )
+        env.db.jobDao().upsert(baseJob("job-src", "Mihon/frieren/11", "FAILED").copy(pcErrorCode = "source_missing"))
+        env.db.jobDao().upsert(baseJob("job-dl", "Mihon/frieren/12", "FAILED").copy(pcErrorMessage = "moteur indisponible"))
+        env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/12"))
+        env.db.jobDao().upsert(baseJob("job-pc", "Mihon/frieren/13", "FAILED").copy(pcErrorMessage = "moteur indisponible"))
+        env.db.pcIndexChapterDao().insertAll(
+            listOf(
+                PcIndexChapterEntity("Mihon/frieren/13", original = true, fr = false),
+                PcIndexChapterEntity("Mihon/frieren/11", original = false, fr = false),
+            ),
+        )
+
+        val vm = QueueViewModel(env.container)
+        val state = vm.state.first { it.failedJobs.size >= 2 }
+
+        assertEquals(setOf("job-dl", "job-pc"), state.failedJobs.map { it.jobId }.toSet())
+        assertEquals(2, state.failCount)
+        assertEquals(4, env.db.jobDao().observeAll().first().size)
     }
 
     @Test

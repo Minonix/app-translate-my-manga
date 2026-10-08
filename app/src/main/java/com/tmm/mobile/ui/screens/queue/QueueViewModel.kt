@@ -8,6 +8,7 @@ import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
+import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.isFailed
@@ -48,16 +49,19 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         val quality: List<ChapterQualityEntity>,
         val seriesList: List<SeriesEntity>,
         val downloaded: List<DownloadedChapterEntity>,
+        val pcIndex: List<PcIndexChapterEntity>,
         val heartbeatJson: String?,
     )
 
+    // combine() type s'arrete a 5 flux : les trois premiers sont regroupes en amont.
     private val raw = combine(
-        db.jobDao().observeAll(),
-        db.chapterQualityDao().observeAll(),
-        db.seriesDao().observeAll(),
+        combine(db.jobDao().observeAll(), db.chapterQualityDao().observeAll(), db.seriesDao().observeAll(), ::Triple),
         db.downloadedChapterDao().observeAll(),
+        db.pcIndexChapterDao().observeAll(),
         prefs.heartbeatJson,
-    ) { jobs, quality, seriesList, downloaded, heartbeatJson -> Raw(jobs, quality, seriesList, downloaded, heartbeatJson) }
+    ) { (jobs, quality, seriesList), downloaded, pcIndex, heartbeatJson ->
+        Raw(jobs, quality, seriesList, downloaded, pcIndex, heartbeatJson)
+    }
 
     private val _ui = MutableStateFlow(QueueUi())
 
@@ -119,7 +123,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             else -> QueueJobType.Translation
         }
 
-        // Actives : jobs que le PC traduit reellement en ce moment (heartbeat.activeJobIds, dans l'ordre PC).
+        // En cours : jobs que le PC traduit reellement en ce moment (heartbeat.activeJobIds, dans l'ordre PC).
         val activeJobs = activeJobIds.mapNotNull { id -> jobsById[id] }.map { job ->
             ActiveJob(
                 title = jobLabel(job),
@@ -191,8 +195,14 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             }
 
         // Echecs : jobs en echec sans job plus recent sur le meme mihonPath (= pas encore relances).
+        // Filtre d'affichage seulement (aucune ligne supprimee) : un echec dont le chapitre n'est ni
+        // telecharge ni present en original sur le PC est masque, retry() le refuserait (createJobs).
+        // Ce sont surtout les envois de chapitres non telecharges des versions < 1.0.6 (~1800 lignes).
+        // Ensembles calcules une fois : pas de requete ni de parcours de r.jobs par echec.
+        val pcOriginalPaths = r.pcIndex.asSequence().filter { it.original }.mapTo(HashSet()) { it.mihonPath }
         val failedJobs = r.jobs.filter { it.isFailed() }
-            .filterNot { failed -> r.jobs.any { it.mihonPath == failed.mihonPath && it.createdAt > failed.createdAt } }
+            .filter { failed -> latestJobByPath.getValue(failed.mihonPath).createdAt <= failed.createdAt }
+            .filter { failed -> failed.mihonPath in downloadedByPath || failed.mihonPath in pcOriginalPaths }
             .sortedByDescending { it.updatedAt }
             .map { job ->
                 val page = job.pcErrorPage

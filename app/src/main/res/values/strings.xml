@@ -247,7 +247,7 @@
     <string name="queue_subtitle">Traductions et vérifications envoyées au PC</string>
     <string name="queue_new_translation_cd">Nouvelle traduction</string>
     <string name="queue_tablist_cd">État des traductions</string>
-    <string name="queue_tab_active">Actives</string>
+    <string name="queue_tab_active">En cours</string>
     <string name="queue_tab_done">Terminées</string>
     <string name="queue_tab_fail">Échecs</string>
     <string name="queue_parallel_on_pc_fmt">en parallèle sur %1$s</string>
