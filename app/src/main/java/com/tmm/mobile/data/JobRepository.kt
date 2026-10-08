@@ -1,9 +1,11 @@
 package com.tmm.mobile.data
 
 import androidx.room.withTransaction
+import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Clock
+import com.tmm.mobile.data.db.CHANNEL_DRIVE
 import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -37,6 +39,10 @@ data class JobTarget(
 
 data class CreateJobsResult(val createdJobIds: List<String>, val refused: Int)
 
+// Delai avant de considerer qu'un job Drive SENT n'a jamais ete vu par le PC (aucun status.json) :
+// laisse au PC le temps d'un cycle de lecture Drive avant de renvoyer le chapitre en direct.
+const val STALLED_SENT_MILLIS = 10 * 60 * 1000L
+
 // PLAN_GEMINI.md 5.17. Le verrou est global (pas par mihonPath) : createJobs() n'est appele qu'en
 // rafales courtes (bouton UI ou auto-translate au demarrage), jamais a haute frequence.
 class JobRepository(
@@ -47,6 +53,9 @@ class JobRepository(
     private val clock: Clock,
 ) {
     private val mutex = Mutex()
+    // Envois Drive deja relances dans ce processus : RefreshCoordinator appelle toutes les ~5 s, un
+    // REPLACE a chaque fois couperait sans cesse le worker en cours.
+    private val relaunchedSends = mutableSetOf<String>()
 
     suspend fun createJobs(
         mode: String,
@@ -165,8 +174,42 @@ class JobRepository(
         }
     }
 
+    /**
+     * Appele quand le PC repond en direct : les jobs restes sur Drive sans reponse du PC y passent.
+     * - PREPARING/UPLOADING : le worker est relance (REPLACE, sinon il attendrait son backoff) et
+     *   bascule lui-meme en direct, request.json n'ayant pas encore ete ecrit.
+     * - SENT sans aucun statut PC depuis STALLED_SENT_MILLIS : SENT -> PREPARING est interdit, le job
+     *   est donc supprime (dossier Drive compris, en best-effort, pour que le PC ne le traite pas une
+     *   seconde fois) puis recree, comme retry().
+     */
+    suspend fun resendStalledDriveJobs() {
+        val driveJobs = db.jobDao().observeAll().first().filter { it.channel == CHANNEL_DRIVE }
+        val wifiOnly = prefs.wifiOnly.first()
+        driveJobs
+            .filter { (it.phoneState == "PREPARING" || it.phoneState == "UPLOADING") && relaunchedSends.add(it.jobId) }
+            .forEach { workManager.enqueueSendJob(it.jobId, wifiOnly, ExistingWorkPolicy.REPLACE) }
+
+        val now = clock.nowMillis()
+        val unseen = driveJobs.filter { it.phoneState == "SENT" && it.pcState == null && now - it.updatedAt >= STALLED_SENT_MILLIS }
+        for (job in unseen) {
+            try {
+                router.forJob(job).deleteJobFolder(job)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("JobRepository", "dossier Drive du job non supprime : ${e.message}")
+            }
+            db.jobDao().delete(job)
+            recreate(job)
+        }
+        if (unseen.isNotEmpty()) AppLog.d("JobRepository", "${unseen.size} job(s) Drive sans reponse renvoye(s) en direct")
+    }
+
     suspend fun retry(jobId: String) {
-        val old = db.jobDao().get(jobId) ?: return
+        recreate(db.jobDao().get(jobId) ?: return)
+    }
+
+    private suspend fun recreate(old: JobEntity) {
         val flatPath = old.mihonPath
         val indexEntry = db.pcIndexChapterDao().get(flatPath)
         val newMode = if (old.mode == JobMode.TRANSLATE && indexEntry?.original == true) {

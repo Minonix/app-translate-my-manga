@@ -11,6 +11,8 @@ import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.db.CHANNEL_DIRECT
+import com.tmm.mobile.data.db.CHANNEL_DRIVE
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.mihon.CbzPacker
@@ -63,6 +65,9 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
             // leur tour deja en foreground (pas de limite de 10 min, pas de tentative consommee).
             sendSlots.withPermit { send(jobId, container) }
         } catch (e: AuthExpiredException) {
+            // Sans ce drapeau, l'envoi Drive reessayait en silence a l'infini, sans jamais proposer
+            // de renouveler le consentement Google.
+            container.prefs.setAuthExpired(true)
             Result.retry()
         } catch (e: SessionExpiredException) {
             // Session resumable Drive perimee (404/410) : on en ouvrira une neuve au prochain essai.
@@ -86,14 +91,20 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         // Relu apres l'attente du creneau : le job a pu etre annule entre-temps.
         var job = db.jobDao().get(jobId) ?: return Result.success()
         if (job.phoneState != "PREPARING" && job.phoneState != "UPLOADING") return Result.success()
-        // Le canal se decide une seule fois, avant le premier octet envoye (PREPARING) : direct si le PC
-        // repond au health-check, sinon Drive. Ensuite le job y reste jusqu'au resultat.
-        if (job.phoneState == "PREPARING") {
+        // Le canal se decide avant le premier octet envoye (PREPARING) : direct si le PC repond au
+        // health-check, sinon Drive. Un envoi Drive encore en cours (UPLOADING, request.json pas ecrit,
+        // donc invisible du PC) bascule aussi en direct des que le PC repond. Une fois request.json
+        // ecrit, le job reste sur son canal jusqu'au resultat.
+        val driveUpload = job.phoneState == "UPLOADING" && job.channel == CHANNEL_DRIVE
+        if (job.phoneState == "PREPARING" || driveUpload) {
             val channel = container.router.activeChannel()
-            if (channel != job.channel) {
+            if (channel != job.channel && (!driveUpload || channel == CHANNEL_DIRECT)) {
                 // Nouvel essai sur l'autre canal : l'id de dossier/session du precedent n'y vaut rien
                 // (le direct stocke le jobId comme "dossier", inconnu de Drive).
-                job = job.copy(channel = channel, driveFolderId = null, uploadSessionUrl = null, updatedAt = clock.nowMillis())
+                job = job.copy(
+                    channel = channel, driveFolderId = null, uploadSessionUrl = null,
+                    transferredBytes = 0L, transferTotal = 0L, updatedAt = clock.nowMillis(),
+                )
                 db.jobDao().upsert(job)
             }
         }

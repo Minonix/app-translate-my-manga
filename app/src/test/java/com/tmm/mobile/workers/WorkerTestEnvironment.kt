@@ -137,7 +137,10 @@ class FakeAppContainer(
     private val scope: CoroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, router, workManager, clock) }
     override val refreshCoordinator: RefreshCoordinator by lazy {
-        RefreshCoordinator(db, prefs, router, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
+        RefreshCoordinator(
+            db, prefs, router, workManager, clock, scope,
+            resendStalledDriveJobs = { jobRepository.resendStalledDriveJobs() },
+        ) { runAutoTranslate(db, jobRepository) }
     }
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }

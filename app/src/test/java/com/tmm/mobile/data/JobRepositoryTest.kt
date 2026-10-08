@@ -107,6 +107,32 @@ class JobRepositoryTest {
         assertEquals("INSTALLED", env.db.jobDao().get("job-3")!!.phoneState)
     }
 
+    // Job Drive SENT jamais vu par le PC (aucun statut) : supprime avec son dossier Drive et recree.
+    @Test fun resendStalledDriveJobs_recreatesUnseenSentJob() = runTest {
+        val folder = FakeFile(name = "job-4", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.google-apps.folder", modifiedTime = "2026-01-01T00:00:00Z")
+        env.drive.files[folder.id] = folder
+        env.db.jobDao().upsert(job(jobId = "job-4", phoneState = "SENT", driveFolderId = folder.id))
+        env.clock.millis += STALLED_SENT_MILLIS
+
+        env.container.jobRepository.resendStalledDriveJobs()
+
+        assertNull(env.db.jobDao().get("job-4"))
+        assertFalse(env.drive.files.containsKey(folder.id))
+        val recreated = env.db.jobDao().observeAll().first().single()
+        assertEquals("PREPARING", recreated.phoneState)
+        assertEquals("MangaSource/Titre/Chapitre 1", recreated.mihonPath)
+    }
+
+    @Test fun resendStalledDriveJobs_keepsSentJobSeenByPc_orTooRecent() = runTest {
+        env.db.jobDao().upsert(job(jobId = "job-5", phoneState = "SENT").copy(pcState = "queued", mihonPath = "S/T/C5"))
+        env.db.jobDao().upsert(job(jobId = "job-6", phoneState = "SENT").copy(mihonPath = "S/T/C6"))
+        env.clock.millis += STALLED_SENT_MILLIS - 1
+
+        env.container.jobRepository.resendStalledDriveJobs()
+
+        assertEquals(listOf("job-5", "job-6"), env.db.jobDao().observeAll().first().map { it.jobId }.sorted())
+    }
+
     private fun job(jobId: String, phoneState: String, driveFolderId: String? = null) = JobEntity(
         jobId = jobId, mode = "translate", pages = null, translate = true,
         mihonPath = "MangaSource/Titre/Chapitre 1", sourceDir = "MangaSource", seriesDir = "Titre", chapterDir = "Chapitre 1",

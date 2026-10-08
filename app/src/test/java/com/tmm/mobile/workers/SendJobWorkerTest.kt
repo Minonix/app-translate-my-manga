@@ -5,7 +5,14 @@ import androidx.work.Data
 import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.db.CHANNEL_DIRECT
 import com.tmm.mobile.data.db.JobEntity
+import com.tmm.mobile.transport.DirectTokenStore
+import java.io.File
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -90,5 +97,52 @@ class SendJobWorkerTest {
         val updated = env.db.jobDao().get("job-3")!!
         assertEquals("FAILED", updated.phoneState)
         assertEquals("send", updated.failedStep)
+    }
+
+    // Envoi Drive reste en UPLOADING (request.json jamais ecrit) : des que le PC repond en direct,
+    // le worker bascule sur ce canal au lieu de reessayer Drive. Verifie aussi les methodes HTTP :
+    // DirectTransport envoyait tout en GET (405 cote PC), ce qui bloquait les transferts directs.
+    @Test fun doWork_driveUploadInProgress_switchesToDirectWhenPcReachable() = runTest {
+        val paths = mutableListOf<String>()
+        val pc = MockWebServer().apply {
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse {
+                    synchronized(paths) {
+                        paths += "${request.method} ${request.url.encodedPath}"
+                        request.headers["X-Sha256"]?.let { paths += "X-Sha256 $it" }
+                    }
+                    return if (request.url.encodedPath.endsWith("/health")) {
+                        MockResponse(code = 200, body = """{"pcName":"PC","appVersion":"1"}""")
+                    } else {
+                        MockResponse(code = 200, body = "{}")
+                    }
+                }
+            }
+            start()
+        }
+        try {
+            env.prefs.setDirectUrl(pc.url("/").toString())
+            DirectTokenStore(env.prefs, FakeTokenCipher).set("jeton")
+            env.prefs.setMihonTreeUri("content://mihon/tree")
+            val cbz = File.createTempFile("source", ".cbz").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+            env.db.jobDao().upsert(
+                job("job-4", phoneState = "UPLOADING", mode = JobMode.TRANSLATE).copy(
+                    driveFolderId = "dossier-drive", uploadSessionUrl = "https://session",
+                    cachePath = cbz.absolutePath, sha256 = "abc", sizeBytes = 3L, transferredBytes = 1L, transferTotal = 3L,
+                ),
+            )
+
+            val result = buildWorker("job-4").doWork()
+
+            assertEquals(Result.success(), result)
+            val updated = env.db.jobDao().get("job-4")!!
+            assertEquals("SENT", updated.phoneState)
+            assertEquals(CHANNEL_DIRECT, updated.channel)
+            assertEquals(paths.toString(), true, paths.contains("PUT /api/remote/v1/jobs/job-4/source"))
+            assertEquals(paths.toString(), true, paths.contains("POST /api/remote/v1/jobs/job-4"))
+            assertEquals(paths.toString(), true, paths.contains("X-Sha256 abc"))
+        } finally {
+            pc.close()
+        }
     }
 }

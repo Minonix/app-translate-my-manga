@@ -53,6 +53,7 @@ class RefreshCoordinator(
     private val workManager: WorkManager,
     private val clock: Clock,
     private val scope: CoroutineScope,
+    private val resendStalledDriveJobs: suspend () -> Unit = {},
     private val autoTranslate: suspend () -> Unit,
 ) {
     private val mutex = Mutex()
@@ -83,6 +84,15 @@ class RefreshCoordinator(
                     // IOException, mais aussi reponse illisible (SerializationException) : repli sur Drive.
                     AppLog.d("RefreshCoordinator", "poll direct impossible, repli sur Drive : ${e.message}")
                     false
+                }
+            }
+            if (directOk) {
+                try {
+                    resendStalledDriveJobs()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("RefreshCoordinator", "renvoi en direct impossible : ${e.javaClass.simpleName} ${e.message}")
                 }
             }
             val driveActive = db.jobDao().observeAll().first().any { it.channel == CHANNEL_DRIVE && it.isActive() }

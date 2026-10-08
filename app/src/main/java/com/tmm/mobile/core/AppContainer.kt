@@ -101,7 +101,10 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, router, workManager, clock) }
 
     override val refreshCoordinator: RefreshCoordinator by lazy {
-        RefreshCoordinator(db, prefs, router, workManager, clock, scope) { runAutoTranslate(db, jobRepository) }
+        RefreshCoordinator(
+            db, prefs, router, workManager, clock, scope,
+            resendStalledDriveJobs = { jobRepository.resendStalledDriveJobs() },
+        ) { runAutoTranslate(db, jobRepository) }
     }
 
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }

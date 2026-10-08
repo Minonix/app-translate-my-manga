@@ -228,10 +228,10 @@ class DirectTransport(
         return request.newBuilder().header("Authorization", "Bearer $token").build()
     }
 
-    private suspend fun call(path: String, build: Request.Builder.() -> Request.Builder): String {
-        val request = Request.Builder().url(endpoint(requireBase(), path)).build().let { base ->
-            authorized(base.newBuilder().apply { build() }.build())
-        }
+    private suspend fun call(path: String, configure: Request.Builder.() -> Request.Builder): String {
+        // Ne pas nommer ce parametre "build" : dans un bloc a receveur Request.Builder, "build()"
+        // appelait Request.Builder.build() et ignorait put/post, d'ou des GET sans corps (405 cote PC).
+        val request = authorized(Request.Builder().url(endpoint(requireBase(), path)).configure().build())
         return execute(request, authed = true) { it.body.string() }
     }
 
