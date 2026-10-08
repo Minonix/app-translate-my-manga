@@ -9,7 +9,13 @@ import com.tmm.mobile.protocol.Quality
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.RequestOptions
 import com.tmm.mobile.protocol.SeriesRef
+import com.tmm.mobile.transport.DirectTokenStore
+import com.tmm.mobile.workers.FakeTokenCipher
 import com.tmm.mobile.workers.WorkerTestEnvironment
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -78,6 +84,33 @@ class RefreshCoordinatorTest {
         assertEquals(env.drive.childOf(rootId, "jobs")!!.id, env.prefs.driveJobsId.first())
         assertEquals(1, env.prefs.driveLayoutVersion.first())
         assertEquals(false, env.prefs.authExpired.first())
+    }
+
+    // Le PC repond en direct et aucun job Drive n'est actif : Drive doit quand meme etre interroge
+    // pour confirmer le nouveau consentement, sinon le bandeau "Reconnecter" ne disparait jamais.
+    @Test fun refresh_clearsAuthExpired_evenWhenDirectChannelAnswers() = runTest {
+        val pc = MockWebServer().apply {
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse =
+                    if (request.url.encodedPath.endsWith("/health")) {
+                        MockResponse(code = 200, body = """{"pcName":"PC","appVersion":"1"}""")
+                    } else {
+                        MockResponse(code = 200, body = "{}")
+                    }
+            }
+            start()
+        }
+        try {
+            env.prefs.setDirectUrl(pc.url("/").toString())
+            DirectTokenStore(env.prefs, FakeTokenCipher).set("jeton")
+            env.prefs.setAuthExpired(true)
+
+            env.container.refreshCoordinator.refresh()
+
+            assertEquals(false, env.prefs.authExpired.first())
+        } finally {
+            pc.close()
+        }
     }
 
     @Test fun refresh_updatesPcState_forOwnJob() = runTest {

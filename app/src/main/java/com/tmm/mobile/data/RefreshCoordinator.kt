@@ -99,8 +99,11 @@ class RefreshCoordinator(
                 }
             }
             val driveActive = db.jobDao().observeAll().first().any { it.channel == CHANNEL_DRIVE && it.isActive() }
+            // Apres un nouveau consentement, seul un poll Drive reussi fait tomber authExpired : sans lui,
+            // le bandeau "Reconnecter" restait affiche tant que le direct suffisait.
+            val authExpired = prefs.authExpired.first()
             var driveResult: PollResult? = null
-            if (!directOk || driveActive) driveResult = pollDrive()
+            if (!directOk || driveActive || authExpired) driveResult = pollDrive()
             autoTranslate()
             // Le curseur direct n'est pas celui de Drive : seul le poll Drive le fait avancer.
             driveResult?.let { prefs.setLastChangesCursor(it.cursor) }
