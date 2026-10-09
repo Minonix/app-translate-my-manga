@@ -2,6 +2,8 @@ package com.tmm.mobile.data
 
 import androidx.work.WorkManager
 import com.tmm.mobile.core.AppLog
+import com.tmm.mobile.protocol.DeletePayload
+import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.SettingsCommand
@@ -57,6 +59,30 @@ class SettingsSync(
             createdAt = Instant.now().toString(),
             baseVersion = settings.version,
             changes = JsonObject(mapOf(key to JsonPrimitive(value))),
+        )
+        writePending(readPending() + PendingCommand(command))
+        workManager.enqueueOutbox(prefs.wifiOnly.first())
+        return command.cmdId
+    }
+
+    // Suppression des fichiers PC (original et traduction) de ces chapitres : meme canal pc/commands
+    // que les reglages, type "delete" et changes vide (applyPending n'y change donc rien). Le PC acquitte
+    // via settings.json (version+1) et republie index.json : rien n'est marque supprime cote telephone
+    // avant ce nouvel index (un vieux PC ignore la commande). Retourne null sans rien mettre en file
+    // si la liste est vide ou sans settings_json (aucune baseVersion connue).
+    // ponytail: comme pour un reglage, la commande reste dans pending_commands_json (sent = true)
+    // jusqu'au prochain awaitConfirmation()/removeConfirmed() de l'ecran Reglages ; sans effet sur
+    // values() puisque changes est vide. A nettoyer a la reception de settings.json si la liste grossit.
+    suspend fun enqueueDelete(chapters: List<MihonPath>): String? {
+        if (chapters.isEmpty()) return null
+        val settings = readSettings() ?: return null
+        val command = SettingsCommand(
+            cmdId = UUID.randomUUID().toString(),
+            createdAt = Instant.now().toString(),
+            type = "delete",
+            baseVersion = settings.version,
+            changes = JsonObject(emptyMap()),
+            delete = DeletePayload(chapters = chapters, original = true, fr = true),
         )
         writePending(readPending() + PendingCommand(command))
         workManager.enqueueOutbox(prefs.wifiOnly.first())

@@ -7,8 +7,10 @@ import com.tmm.mobile.protocol.SettingsValues
 import com.tmm.mobile.workers.WorkerTestEnvironment
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -55,6 +57,20 @@ class SettingsSyncTest {
         assertEquals(3, command.baseVersion)
         assertEquals(setOf("targetLanguage"), command.changes.keys)
         assertEquals("\"ENG\"", command.changes.getValue("targetLanguage").toString())
+    }
+
+    // Le champ "delete" (commandes de suppression) est omis du JSON d'un reglage, pas ecrit a null.
+    @Test fun change_commandJson_hasNoDeleteKey() = runTest {
+        seedSettings(version = 3)
+
+        val cmdId = env.container.settingsSync.change("targetLanguage", "ENG")
+        env.container.settingsSync.sendPendingCommands()
+
+        val commandsId = requireNotNull(env.prefs.driveCommandsId.first())
+        val file = requireNotNull(env.drive.childOf(commandsId, "$cmdId.json"))
+        val json = ProtocolJson.parseToJsonElement(String(file.bytes)).jsonObject
+        assertFalse(json.containsKey("delete"))
+        assertEquals("\"settings\"", json.getValue("type").toString())
     }
 
     @Test fun awaitConfirmation_appliedByFakePc_returnsApplied() = runTest {

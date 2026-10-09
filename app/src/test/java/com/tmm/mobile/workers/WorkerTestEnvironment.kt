@@ -14,6 +14,7 @@ import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.ui.screens.library.LibraryCache
 import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.AppPrefs
+import com.tmm.mobile.data.ChapterDeleter
 import com.tmm.mobile.data.JobRepository
 import com.tmm.mobile.data.RefreshCoordinator
 import com.tmm.mobile.data.SettingsSync
@@ -21,6 +22,7 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.fake.FakeDrive
 import com.tmm.mobile.fake.FakePc
+import com.tmm.mobile.mihon.MihonFs
 import com.tmm.mobile.transport.DirectTokenStore
 import com.tmm.mobile.transport.DirectTransport
 import com.tmm.mobile.transport.DriveApi
@@ -143,6 +145,9 @@ class FakeAppContainer(
         ) { runAutoTranslate(db, jobRepository) }
     }
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }
+    // Arbre Mihon substituable (FakeMihonFs) ; null = aucun arbre SAF configure.
+    var mihonFs: MihonFs? = null
+    override val chapterDeleter: ChapterDeleter by lazy { ChapterDeleter(db, settingsSync) { mihonFs } }
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
     // Fichier neuf par test : un instantane d'un test precedent ne doit pas s'afficher dans le suivant.
     override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(kotlin.io.path.createTempDirectory().toFile(), "library_snapshot.json")) }

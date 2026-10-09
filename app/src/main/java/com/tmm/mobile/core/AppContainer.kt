@@ -1,15 +1,18 @@
 package com.tmm.mobile.core
 
 import android.content.Context
+import android.net.Uri
 import androidx.work.WorkManager
 import com.tmm.mobile.Startup
 import com.tmm.mobile.data.AppPrefs
+import com.tmm.mobile.data.ChapterDeleter
 import com.tmm.mobile.data.JobRepository
 import com.tmm.mobile.data.RefreshCoordinator
 import com.tmm.mobile.data.SettingsSync
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.data.tmmDataStore
+import com.tmm.mobile.mihon.MihonTree
 import com.tmm.mobile.transport.AuthExpiredException
 import com.tmm.mobile.transport.DirectTokenStore
 import com.tmm.mobile.transport.DirectTransport
@@ -23,6 +26,7 @@ import com.tmm.mobile.ui.screens.library.LibraryCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -41,6 +45,7 @@ interface AppContainer {
     val jobRepository: JobRepository
     val refreshCoordinator: RefreshCoordinator
     val settingsSync: SettingsSync
+    val chapterDeleter: ChapterDeleter
     val startup: Startup
     val libraryCache: LibraryCache
 }
@@ -108,6 +113,12 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     }
 
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }
+
+    override val chapterDeleter: ChapterDeleter by lazy {
+        ChapterDeleter(db, settingsSync) {
+            prefs.mihonTreeUri.first()?.let { MihonTree(context.contentResolver, Uri.parse(it)) }
+        }
+    }
 
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
 

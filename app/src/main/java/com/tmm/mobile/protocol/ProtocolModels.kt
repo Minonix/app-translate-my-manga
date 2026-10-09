@@ -1,5 +1,7 @@
 package com.tmm.mobile.protocol
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
@@ -183,6 +185,20 @@ data class SettingsCommand(
     val type: String = "settings",
     val baseVersion: Int,
     val changes: JsonObject,
+    // Commande type "delete" seulement. Omis du JSON quand null : ProtocolJson ecrit les null
+    // explicites (explicitNulls) et les valeurs par defaut (encodeDefaults), d'ou EncodeDefault.NEVER.
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val delete: DeletePayload? = null,
+)
+
+// Charge utile d'une commande "delete" : fichiers PC a supprimer pour ces chapitres (original et/ou
+// traduction). Le PC acquitte comme un reglage (settings.json) puis republie index.json.
+@Serializable
+data class DeletePayload(
+    val chapters: List<MihonPath>,
+    val original: Boolean,
+    val fr: Boolean,
 )
 
 @Serializable
