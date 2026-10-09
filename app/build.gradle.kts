@@ -74,6 +74,8 @@ android {
             isIncludeAndroidResources = true
             all {
                 it.systemProperty("robolectric.graphicsMode", "NATIVE")
+                // Les 512 Mo par defaut ne suffisent plus a la suite Compose/Robolectric (OOM).
+                it.maxHeapSize = "2g"
                 // Sans le plugin Gradle Roborazzi, captureRoboImage n'ecrit rien : les captures se
                 // produisent avec -Proborazzi.test.record=true (dans app/build/outputs/roborazzi/).
                 providers.gradleProperty("roborazzi.test.record").orNull?.let { v ->
