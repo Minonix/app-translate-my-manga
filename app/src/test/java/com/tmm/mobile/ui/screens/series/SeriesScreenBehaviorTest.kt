@@ -84,6 +84,23 @@ class SeriesScreenBehaviorTest {
             val count = (state.sheet as? SeriesSheet.Confirm)?.chapterCount ?: state.selectionToTranslate
             state.copy(toast = SeriesToast.Retranslated(count), sheet = SeriesSheet.None, selected = emptySet())
         }
+        SeriesEvent.RequestDelete -> if (state.selectionToDelete == 0) {
+            state
+        } else {
+            state.copy(sheet = SeriesSheet.Delete(state.selectionToDelete, state.selectionDeleteSkipped))
+        }
+        is SeriesEvent.ToggleDeleteTarget -> (state.sheet as? SeriesSheet.Delete)?.let { sheet ->
+            state.copy(
+                sheet = when (event.target) {
+                    DeleteTarget.LocalFr -> sheet.copy(localFr = !sheet.localFr)
+                    DeleteTarget.Mihon -> sheet.copy(mihon = !sheet.mihon)
+                    DeleteTarget.Pc -> sheet.copy(pc = !sheet.pc)
+                },
+            )
+        } ?: state
+        SeriesEvent.ConfirmDelete -> (state.sheet as? SeriesSheet.Delete)?.takeIf { it.anyChecked }?.let { sheet ->
+            state.copy(toast = SeriesToast.Deleted(sheet.chapterCount), sheet = SeriesSheet.None, selected = emptySet())
+        } ?: state
         SeriesEvent.DismissToast -> state.copy(toast = null)
     }
 
@@ -154,6 +171,31 @@ class SeriesScreenBehaviorTest {
         val toast = getState().toast
         assertTrue(toast is SeriesToast.Retranslated)
         assertEquals(2, (toast as SeriesToast.Retranslated).chapterCount)
+    }
+
+    @Test
+    fun deleteAction_opensSheet_confirmDisabledWithoutChoice_thenDeletes() {
+        val getState = setState(MockupData.seriesDetail.copy(selectionToDelete = 2, selectionDeleteSkipped = 1))
+        composeRule.onAllNodesWithText("Supprimer (2)").onFirst().performClick()
+        composeRule.waitForIdle()
+        assertEquals(SeriesSheet.Delete(chapterCount = 2, skippedCount = 1), getState().sheet)
+        composeRule.onNodeWithText("1 chapitre ignoré : traitement en cours.").assertExists()
+
+        // Seule la case "Traduction sur le telephone" est cochee par defaut : la decocher bloque la confirmation.
+        composeRule.onNodeWithText("Traduction sur le téléphone").performClick()
+        composeRule.waitForIdle()
+        assertFalse((getState().sheet as SeriesSheet.Delete).anyChecked)
+        composeRule.onAllNodesWithText("Supprimer").onFirst().performClick()
+        composeRule.waitForIdle()
+        assertTrue(getState().sheet is SeriesSheet.Delete)
+
+        composeRule.onNodeWithText("Fichiers sur le PC (original et traduction)").performClick()
+        composeRule.waitForIdle()
+        assertTrue((getState().sheet as SeriesSheet.Delete).pc)
+        composeRule.onAllNodesWithText("Supprimer").onFirst().performClick()
+        composeRule.waitForIdle()
+        assertEquals(SeriesToast.Deleted(2), getState().toast)
+        assertTrue(getState().selected.isEmpty())
     }
 
     @Test

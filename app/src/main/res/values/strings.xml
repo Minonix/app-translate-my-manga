@@ -149,6 +149,17 @@
     <string name="series_action_hint_verify">Corrige les oublis</string>
     <string name="series_action_hint_retranslate">Refait tout</string>
     <string name="series_action_hint_translate">Depuis l\'original</string>
+    <string name="series_action_delete_label">Supprimer</string>
+    <string name="series_action_hint_delete">Téléphone, Mihon, PC</string>
+    <string name="series_delete_title_fmt">Supprimer %1$s ?</string>
+    <string name="series_delete_option_fr_label">Traduction sur le téléphone</string>
+    <string name="series_delete_option_fr_hint">Le CBZ français installé dans la bibliothèque locale de Mihon</string>
+    <string name="series_delete_option_mihon_label">Téléchargement Mihon</string>
+    <string name="series_delete_option_mihon_warning">Irréversible. Mihon peut garder le chapitre en cache tant que sa bibliothèque n\'est pas rafraîchie.</string>
+    <string name="series_delete_option_pc_label">Fichiers sur le PC (original et traduction)</string>
+    <string name="series_delete_option_pc_hint">Supprimés par le PC à sa prochaine synchronisation</string>
+    <string name="series_toast_delete_failed">Certains fichiers n\'ont pas pu être supprimés.</string>
+    <string name="series_toast_delete_pc_unavailable">PC jamais synchronisé : rien n\'a été demandé au PC.</string>
     <string name="series_sheet_action_send_label">Envoyer ce qui manque</string>
     <string name="series_sheet_action_send_hint">Chapitres du téléphone absents du PC</string>
     <string name="series_sheet_action_get_label">Récupérer les traductions</string>
@@ -197,6 +208,14 @@
     <plurals name="series_toast_translated">
         <item quantity="one">%1$d chapitre ajouté à la file en traduction.</item>
         <item quantity="other">%1$d chapitres ajoutés à la file en traduction.</item>
+    </plurals>
+    <plurals name="series_toast_deleted">
+        <item quantity="one">%1$d chapitre supprimé.</item>
+        <item quantity="other">%1$d chapitres supprimés.</item>
+    </plurals>
+    <plurals name="series_delete_skipped">
+        <item quantity="one">%1$d chapitre ignoré : traitement en cours.</item>
+        <item quantity="other">%1$d chapitres ignorés : traitement en cours.</item>
     </plurals>
 
     <!-- Sync.dc.html (E4.4) -->

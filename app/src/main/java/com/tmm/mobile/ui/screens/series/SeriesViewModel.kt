@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Formatters
+import com.tmm.mobile.data.ChapterDeleter
+import com.tmm.mobile.data.DeleteOptions
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.db.CategoryEntity
@@ -107,7 +109,9 @@ class SeriesViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
 
     val state: StateFlow<SeriesState> = combine(ui, dataState) { u, d ->
-        val plan = planTranslation(d.rows.filter { it.number in u.selected })
+        val selectedRows = d.rows.filter { it.number in u.selected }
+        val plan = planTranslation(selectedRows)
+        val deleteSkipped = selectedRows.count { ChapterDeleter.isSkipped(it) }
         SeriesState(
             title = d.title,
             categoryLabel = d.categoryLabel,
@@ -125,6 +129,8 @@ class SeriesViewModel(
             toast = u.toast,
             selectionToTranslate = plan.count,
             selectionRetranslates = plan.retranslate,
+            selectionToDelete = selectedRows.size - deleteSkipped,
+            selectionDeleteSkipped = deleteSkipped,
         )
     }.stateIn(
         viewModelScope,
@@ -176,7 +182,38 @@ class SeriesViewModel(
             } else {
                 performJobs(selected = false, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
             }
+            SeriesEvent.RequestDelete -> {
+                val current = state.value
+                if (current.selectionToDelete > 0) {
+                    ui.update { it.copy(sheet = SeriesSheet.Delete(current.selectionToDelete, current.selectionDeleteSkipped)) }
+                }
+            }
+            is SeriesEvent.ToggleDeleteTarget -> ui.update {
+                val sheet = it.sheet as? SeriesSheet.Delete ?: return@update it
+                it.copy(
+                    sheet = when (event.target) {
+                        DeleteTarget.LocalFr -> sheet.copy(localFr = !sheet.localFr)
+                        DeleteTarget.Mihon -> sheet.copy(mihon = !sheet.mihon)
+                        DeleteTarget.Pc -> sheet.copy(pc = !sheet.pc)
+                    },
+                )
+            }
+            SeriesEvent.ConfirmDelete -> performDelete()
             SeriesEvent.DismissToast -> ui.update { it.copy(toast = null) }
+        }
+    }
+
+    /** Feuille "Supprimer" : ChapterDeleter ignore lui-meme les chapitres a job actif. */
+    private fun performDelete() {
+        val sheet = ui.value.sheet as? SeriesSheet.Delete ?: return
+        if (!sheet.anyChecked) return
+        viewModelScope.launch {
+            val outcome = container.chapterDeleter.delete(
+                rowsFor(selected = true) { true },
+                DeleteOptions(localFr = sheet.localFr, mihon = sheet.mihon, pc = sheet.pc),
+            )
+            // Les flux Room (local_fr_chapter, downloaded_chapter) rafraichissent la liste d'eux-memes.
+            showToast(SeriesToast.Deleted(outcome.chapters, outcome.failed, outcome.pcUnavailable))
         }
     }
 

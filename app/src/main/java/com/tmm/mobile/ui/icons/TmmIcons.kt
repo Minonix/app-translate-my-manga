@@ -81,6 +81,8 @@ enum class TmmIconId(val defaultStrokeWidth: Float, val elements: List<IconEleme
     PhoneDevice(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2"))),
     CloudDevice(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M7 18a4 4 0 0 1-.6-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"))),
     MonitorDevice(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 21h8M12 17v4"))),
+    // Corbeille du bouton "Supprimer" de la Fiche serie (absente des maquettes, tracee a la main).
+    Trash(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"))),
 }
 
 private val vectorCache = HashMap<Triple<TmmIconId, Int, Float>, ImageVector>()

@@ -92,13 +92,19 @@ fun SeriesScreen(
             is SeriesToast.Verified -> pluralStringResource(R.plurals.series_toast_verified, toast.chapterCount, toast.chapterCount)
             is SeriesToast.Translated -> pluralStringResource(R.plurals.series_toast_translated, toast.chapterCount, toast.chapterCount)
             is SeriesToast.Retranslated -> pluralStringResource(R.plurals.series_toast_retranslated, toast.chapterCount, toast.chapterCount)
+            is SeriesToast.Deleted -> listOfNotNull(
+                pluralStringResource(R.plurals.series_toast_deleted, toast.chapterCount, toast.chapterCount),
+                if (toast.failed > 0) stringResource(R.string.series_toast_delete_failed) else null,
+                if (toast.pcUnavailable) stringResource(R.string.series_toast_delete_pc_unavailable) else null,
+            ).joinToString(" ")
             null -> ""
         }
         TmmToast(
             visible = state.toast != null,
             message = toastMessage,
             onDismiss = { onEvent(SeriesEvent.DismissToast) },
-            actionLabel = stringResource(R.string.library_toast_action),
+            // Une suppression n'ajoute rien a la file : pas de lien "Voir la file".
+            actionLabel = if (state.toast is SeriesToast.Deleted) null else stringResource(R.string.library_toast_action),
             onAction = onOpenQueue,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -607,6 +613,22 @@ private fun SeriesSelectionActionBar(state: SeriesState, onEvent: (SeriesEvent) 
                 modifier = Modifier.weight(1f),
             )
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Ouvre la feuille de suppression ; les chapitres a job actif ne comptent pas.
+            SeriesActionButton(
+                label = stringResource(R.string.series_action_delete_label),
+                count = state.selectionToDelete,
+                hint = stringResource(R.string.series_action_hint_delete),
+                icon = TmmIconId.Trash,
+                primary = false,
+                onClick = { onEvent(SeriesEvent.RequestDelete) },
+                modifier = Modifier.weight(1f),
+            )
+            Box(modifier = Modifier.weight(1f))
+        }
     }
 }
 
@@ -769,6 +791,124 @@ private fun SeriesSheetContent(state: SeriesState, onEvent: (SeriesEvent) -> Uni
                     }
                 }
             }
+        }
+        is SeriesSheet.Delete -> SeriesDeleteSheet(sheet = sheet, onEvent = onEvent)
+    }
+}
+
+/** Feuille "Supprimer" : trois cases, bouton de confirmation inactif tant qu'aucune n'est cochee. */
+@Composable
+private fun SeriesDeleteSheet(sheet: SeriesSheet.Delete, onEvent: (SeriesEvent) -> Unit) {
+    TmmSheet(
+        visible = true,
+        onDismiss = { onEvent(SeriesEvent.CloseSheet) },
+        title = stringResource(R.string.series_delete_title_fmt, pluralStringResource(R.plurals.series_chapters_count, sheet.chapterCount, sheet.chapterCount)),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (sheet.skippedCount > 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(TmmColors.infoBg)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    TmmIcon(TmmIconId.Info, size = 16.dp, tint = TmmColors.info)
+                    TmmText(
+                        text = pluralStringResource(R.plurals.series_delete_skipped, sheet.skippedCount, sheet.skippedCount),
+                        style = TmmType.sans(12, lineHeight = 17f),
+                        color = TmmColors.info,
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(TmmColors.surface)
+                    .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)),
+            ) {
+                SeriesDeleteOption(
+                    checked = sheet.localFr,
+                    label = stringResource(R.string.series_delete_option_fr_label),
+                    hint = stringResource(R.string.series_delete_option_fr_hint),
+                    hintColor = TmmColors.textMuted,
+                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(DeleteTarget.LocalFr)) },
+                )
+                SeriesDeleteOption(
+                    checked = sheet.mihon,
+                    label = stringResource(R.string.series_delete_option_mihon_label),
+                    hint = stringResource(R.string.series_delete_option_mihon_warning),
+                    hintColor = TmmColors.dangerText,
+                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(DeleteTarget.Mihon)) },
+                )
+                SeriesDeleteOption(
+                    checked = sheet.pc,
+                    label = stringResource(R.string.series_delete_option_pc_label),
+                    hint = stringResource(R.string.series_delete_option_pc_hint),
+                    hintColor = TmmColors.textMuted,
+                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(DeleteTarget.Pc)) },
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(TmmColors.surface)
+                        .border(1.dp, TmmColors.track, RoundedCornerShape(12.dp))
+                        .clickable { onEvent(SeriesEvent.CloseSheet) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TmmText(text = stringResource(R.string.common_cancel), style = TmmType.sans(15, weight = 600), color = TmmColors.ink)
+                }
+                val enabled = sheet.anyChecked
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (enabled) TmmColors.accent else TmmColors.track)
+                        .clickable(enabled = enabled) { onEvent(SeriesEvent.ConfirmDelete) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TmmText(
+                        text = stringResource(R.string.series_action_delete_label),
+                        style = TmmType.sans(15, weight = 600),
+                        color = if (enabled) TmmColors.surface else TmmColors.textMuted,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SeriesDeleteOption(
+    checked: Boolean,
+    label: String,
+    hint: String,
+    hintColor: Color,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TmmCheckbox(checked = checked, onCheckedChange = { onToggle() })
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            TmmText(text = label, style = TmmType.sans(15, weight = 600), color = TmmColors.ink)
+            TmmText(text = hint, style = TmmType.sans(12, lineHeight = 17f), color = hintColor)
         }
     }
 }

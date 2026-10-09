@@ -52,6 +52,14 @@ class SeriesScreenshotTest {
     }
 
     @Test
+    fun seriesScreen_deleteSheet() = capture("SeriesScreen_deleteSheet") {
+        SeriesScreen(
+            state = MockupData.seriesDetail.copy(selectionToDelete = 2, selectionDeleteSkipped = 1, sheet = SeriesSheet.Delete(2, 1)),
+            onEvent = {},
+        )
+    }
+
+    @Test
     fun seriesScreen_toast() = capture("SeriesScreen_toast") {
         SeriesScreen(
             state = MockupData.seriesDetail.copy(toast = SeriesToast.Sent(1)),

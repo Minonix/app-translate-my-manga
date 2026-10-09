@@ -6,6 +6,7 @@ import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.flatten
+import com.tmm.mobile.mihon.FakeMihonFs
 import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.QualityAlert
@@ -152,5 +153,30 @@ class SeriesViewModelTest {
 
         assertEquals(SeriesToast.Sent(1), state.toast)
         assertEquals(1, env.db.jobDao().observeAll().first().size)
+    }
+
+    @Test fun confirmDelete_removesLocalFr_andLeavesSelectionMode() = runTest {
+        seedSeries()
+        seedUpToDateChapterWithAlert(number = 2)
+        val root = kotlin.io.path.createTempDirectory("mihon").toFile()
+        val frFile = java.io.File(root, "2.cbz").apply { writeBytes(byteArrayOf(1)) }
+        env.db.localFrChapterDao().upsert(env.db.localFrChapterDao().observeAll().first().single().copy(documentUri = frFile.absolutePath))
+        env.container.mihonFs = FakeMihonFs(root)
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        vm.state.first { it.chapters.isNotEmpty() }
+        vm.onEvent(SeriesEvent.ToggleChapter(2))
+        vm.state.first { it.selectionToDelete == 1 }
+        vm.onEvent(SeriesEvent.RequestDelete)
+        assertEquals(SeriesSheet.Delete(chapterCount = 1, skippedCount = 0), vm.state.first { it.sheet is SeriesSheet.Delete }.sheet)
+
+        vm.onEvent(SeriesEvent.ConfirmDelete)
+        val state = vm.state.first { it.toast != null && it.frCount == 0 }
+
+        assertEquals(SeriesToast.Deleted(1), state.toast)
+        assertEquals(SeriesSheet.None, state.sheet)
+        assertEquals(emptySet<Int>(), state.selected)
+        assertEquals(false, frFile.exists())
+        root.deleteRecursively()
     }
 }

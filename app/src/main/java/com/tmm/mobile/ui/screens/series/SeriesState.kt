@@ -36,7 +36,24 @@ sealed interface SeriesSheet {
     data object None : SeriesSheet
     data object SeriesActions : SeriesSheet
     data class Confirm(val chapterCount: Int) : SeriesSheet
+
+    /**
+     * Feuille "Supprimer" de la selection : chapitres traites, chapitres ignores (job actif) et les
+     * trois cases. Le telechargement Mihon (irreversible) et le PC sont decoches par defaut.
+     */
+    data class Delete(
+        val chapterCount: Int,
+        val skippedCount: Int,
+        val localFr: Boolean = true,
+        val mihon: Boolean = false,
+        val pc: Boolean = false,
+    ) : SeriesSheet {
+        val anyChecked: Boolean get() = localFr || mihon || pc
+    }
 }
+
+/** Case de la feuille "Supprimer". */
+enum class DeleteTarget { LocalFr, Mihon, Pc }
 
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
 sealed interface SeriesToast {
@@ -45,6 +62,8 @@ sealed interface SeriesToast {
     data class Verified(val chapterCount: Int) : SeriesToast
     data class Translated(val chapterCount: Int) : SeriesToast
     data class Retranslated(val chapterCount: Int) : SeriesToast
+    // failed : fichiers SAF non supprimes ; pcUnavailable : commande PC non mise en file.
+    data class Deleted(val chapterCount: Int, val failed: Int = 0, val pcUnavailable: Boolean = false) : SeriesToast
 }
 
 data class SeriesState(
@@ -66,6 +85,9 @@ data class SeriesState(
     // lignes (planTranslation), les tons de SeriesChapter ne suffisant pas (original sur le PC, job actif).
     val selectionToTranslate: Int = 0,
     val selectionRetranslates: Boolean = false,
+    // Bouton "Supprimer" : chapitres selectionnes sans job actif, et ceux ignores (ChapterDeleter).
+    val selectionToDelete: Int = 0,
+    val selectionDeleteSkipped: Int = 0,
 ) {
     val gapChapter: SeriesChapter? get() = chapters.firstOrNull { it.kind == StatusTone.Gap }
 
@@ -97,5 +119,8 @@ sealed interface SeriesEvent {
     data object SeriesVerifyAll : SeriesEvent
     data object SeriesRequestRetranslateAll : SeriesEvent
     data object ConfirmRetranslate : SeriesEvent
+    data object RequestDelete : SeriesEvent
+    data class ToggleDeleteTarget(val target: DeleteTarget) : SeriesEvent
+    data object ConfirmDelete : SeriesEvent
     data object DismissToast : SeriesEvent
 }
