@@ -11,6 +11,20 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.2.0] - 2026-10-09
+
+### Ajoute
+- Suppression de chapitres depuis la Fiche serie : traduction locale, telechargement Mihon, fichiers sur le PC (commande `delete`, ignoree par un PC plus ancien).
+- Bibliotheque : feuille Trier et filtrer (tri, affichage, categories) a la place du lien vers le Catalogue.
+- File : le bouton + ouvre la Bibliotheque en mode selection.
+- Le bouton Retraduire devient Traduire quand aucun chapitre de la selection n'a ete traduit.
+
+### Corrige
+- Accueil : carte "A faire" et sections vides masquees.
+- File : onglet "En cours" ; echecs des chapitres non telecharges masques et traduction refusee pour eux.
+- Couvertures : en-tetes navigateur et URL normalisee.
+- Reconnexion Drive (bandeau Reconnecter) et dossier `APP/TranslateMyManga`.
+
 ## [1.1.0] - 2026-10-05
 
 Renumerotation de la v1.0.6 : elle ajoutait des fonctionnalites et aurait du etre une version mineure. Le code est identique a la v1.0.6.
