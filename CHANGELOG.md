@@ -11,6 +11,21 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.3.0] - 2026-10-11
+
+### Ajoute
+- Remise a plat unique au premier lancement : traductions en cours et en file annulees, chapitres deja envoyes gardes sur le PC (non traduits), traductions terminees conservees.
+- Parametres : la version affichee est celle de l'application installee.
+
+### Modifie
+- "Traduire a l'arrivee" est desactive par defaut, et la traduction automatique par serie est remise a zero : rien ne part en traduction sans demande.
+- Boite aux lettres Drive dans `App/TranslateMyManga` (TMM-Win a jour requis).
+
+### Corrige
+- Accueil : plus de clignotement a chaque actualisation (un etat Drive plus ancien n'ecrase plus l'etat recu en direct du PC).
+- Bandeau "Reconnecter Google Drive" qui restait affiche apres l'autorisation.
+- Bandeau hors ligne qui clignotait avec plusieurs reseaux actifs (Wi-Fi + VPN).
+
 ## [1.2.0] - 2026-10-09
 
 ### Ajoute
