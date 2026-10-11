@@ -176,6 +176,33 @@ class JobRepositoryTest {
         assertEquals(listOf("job-5", "job-6"), env.db.jobDao().observeAll().first().map { it.jobId }.sorted())
     }
 
+    // Remise a plat v1.3.0 : file videe, jobs termines gardes, plus aucun levier de traduction auto,
+    // dossiers Drive intacts (le PC les range en originaux), et une seule fois.
+    @Test fun resetPendingJobsOnce_dropsPendingJobs_keepsFinished_andRunsOnce() = runTest {
+        val folder = FakeFile(name = "job-s", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.google-apps.folder", modifiedTime = "2026-01-01T00:00:00Z")
+        env.drive.files[folder.id] = folder
+        val states = listOf("PREPARING", "UPLOADING", "SENT", "CANCEL_REQUESTED", "FAILED", "RESULT_READY", "DOWNLOADING", "INSTALLED")
+        states.forEachIndexed { i, state ->
+            env.db.jobDao().upsert(job(jobId = "job-$state", phoneState = state, driveFolderId = folder.id.takeIf { state == "SENT" }).copy(mihonPath = "S/T/C$i"))
+        }
+        env.db.seriesSettingsDao().upsert(com.tmm.mobile.data.db.SeriesSettingsEntity(seriesKey = "s1", autoTranslate = true))
+        env.prefs.setTranslateOnArrival(true)
+        val repo = env.container.jobRepository
+
+        repo.resetPendingJobsOnce()
+
+        assertEquals(listOf("job-DOWNLOADING", "job-INSTALLED", "job-RESULT_READY"), env.db.jobDao().observeAll().first().map { it.jobId }.sorted())
+        assertTrue(env.drive.files.containsKey(folder.id))
+        assertFalse(env.prefs.translateOnArrival.first())
+        assertTrue(env.db.seriesSettingsDao().autoTranslateSeriesKeys().isEmpty())
+
+        env.prefs.setTranslateOnArrival(true)
+        env.db.jobDao().upsert(job(jobId = "job-new", phoneState = "SENT").copy(mihonPath = "S/T/new"))
+        repo.resetPendingJobsOnce()
+        assertTrue(env.prefs.translateOnArrival.first())
+        assertTrue(env.db.jobDao().get("job-new") != null)
+    }
+
     private fun job(jobId: String, phoneState: String, driveFolderId: String? = null) = JobEntity(
         jobId = jobId, mode = "translate", pages = null, translate = true,
         mihonPath = "MangaSource/Titre/Chapitre 1", sourceDir = "MangaSource", seriesDir = "Titre", chapterDir = "Chapitre 1",

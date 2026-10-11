@@ -50,6 +50,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val DIRECT_PAIRING_EXPIRED = booleanPreferencesKey("direct_pairing_expired")
         val MATCHER_VERSION = intPreferencesKey("matcher_version")
         val DRIVE_LAYOUT_VERSION = intPreferencesKey("drive_layout_version")
+        val JOB_RESET_VERSION = intPreferencesKey("job_reset_version")
     }
 
     val onboardingDone: Flow<Boolean> = dataStore.data.map { it[Keys.ONBOARDING_DONE] ?: false }
@@ -127,7 +128,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     val wifiOnly: Flow<Boolean> = dataStore.data.map { it[Keys.WIFI_ONLY] ?: false }
     suspend fun setWifiOnly(value: Boolean) = set(Keys.WIFI_ONLY, value)
 
-    val translateOnArrival: Flow<Boolean> = dataStore.data.map { it[Keys.TRANSLATE_ON_ARRIVAL] ?: true }
+    val translateOnArrival: Flow<Boolean> = dataStore.data.map { it[Keys.TRANSLATE_ON_ARRIVAL] ?: false }
     suspend fun setTranslateOnArrival(value: Boolean) = set(Keys.TRANSLATE_ON_ARRIVAL, value)
 
     val protocolTooNew: Flow<Boolean> = dataStore.data.map { it[Keys.PROTOCOL_TOO_NEW] ?: false }
@@ -155,10 +156,14 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     val matcherVersion: Flow<Int> = dataStore.data.map { it[Keys.MATCHER_VERSION] ?: 0 }
     suspend fun setMatcherVersion(value: Int) = set(Keys.MATCHER_VERSION, value)
 
-    // Version de l'arborescence Drive (APP/TranslateMyManga depuis la 1) : RefreshCoordinator oublie
+    // Version de l'arborescence Drive (APP/TranslateMyManga a la 1, App/TranslateMyManga depuis la 2) : RefreshCoordinator oublie
     // une fois les ids de dossiers en cache quand elle augmente, pour les rechercher a nouveau.
     val driveLayoutVersion: Flow<Int> = dataStore.data.map { it[Keys.DRIVE_LAYOUT_VERSION] ?: 0 }
     suspend fun setDriveLayoutVersion(value: Int) = set(Keys.DRIVE_LAYOUT_VERSION, value)
+
+    // Version de la remise a plat des jobs deja appliquee (JobRepository.resetPendingJobsOnce).
+    val jobResetVersion: Flow<Int> = dataStore.data.map { it[Keys.JOB_RESET_VERSION] ?: 0 }
+    suspend fun setJobResetVersion(value: Int) = set(Keys.JOB_RESET_VERSION, value)
 
     /** Oublie les ids de dossiers/fichiers Drive et le curseur de poll (nouvelle arborescence). */
     suspend fun resetDriveLayout() {

@@ -72,7 +72,7 @@ class RefreshCoordinatorTest {
     )
 
     @Test fun refresh_relocatesMailboxOnce_andClearsAuthExpired() = runTest {
-        // Ids en cache de l'ancienne boite App/TranslateMyManga, version de layout jamais posee.
+        // Ids en cache de l'ancienne boite APP/TranslateMyManga, version de layout jamais posee.
         env.prefs.setDriveAppId("old-app")
         env.prefs.setDriveJobsId("old-jobs")
         env.prefs.setAuthExpired(true)
@@ -82,8 +82,24 @@ class RefreshCoordinatorTest {
         val rootId = env.drive.childOf(com.tmm.mobile.fake.FakeDrive.APP_ID, "TranslateMyManga")!!.id
         assertEquals(com.tmm.mobile.fake.FakeDrive.APP_ID, env.prefs.driveAppId.first())
         assertEquals(env.drive.childOf(rootId, "jobs")!!.id, env.prefs.driveJobsId.first())
-        assertEquals(1, env.prefs.driveLayoutVersion.first())
+        assertEquals(2, env.prefs.driveLayoutVersion.first())
         assertEquals(false, env.prefs.authExpired.first())
+    }
+
+    // Heartbeat direct plus recent deja connu : celui, plus ancien, lu sur Drive ne doit pas l'ecraser
+    // (l'accueil alternait sinon "PC en ligne"/"hors ligne" a chaque refresh).
+    @Test fun refresh_keepsFresherHeartbeat_overOlderDriveOne() = runTest {
+        env.container.transport.ensureLayout()
+        env.pc.writeHeartbeat()
+        val fresh = com.tmm.mobile.protocol.Heartbeat(
+            pcName = "PC-DIRECT", appVersion = "1", updatedAt = "2099-01-01T00:00:00Z", slots = 1,
+            activeJobIds = emptyList(), queue = com.tmm.mobile.protocol.QueueCounts(0, 0, 0),
+        )
+        env.prefs.setHeartbeatJson(com.tmm.mobile.protocol.ProtocolJson.encodeToString(com.tmm.mobile.protocol.Heartbeat.serializer(), fresh))
+
+        env.container.refreshCoordinator.refresh()
+
+        assertTrue(env.prefs.heartbeatJson.first()!!.contains("PC-DIRECT"))
     }
 
     // Le PC repond en direct et aucun job Drive n'est actif : Drive doit quand meme etre interroge

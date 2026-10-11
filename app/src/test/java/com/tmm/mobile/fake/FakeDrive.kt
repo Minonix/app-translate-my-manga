@@ -46,7 +46,7 @@ class FakeDrive(private val nowIso: () -> String) {
     init {
         files["root"] = FakeFile(id = "root", name = "root", parents = mutableListOf(), mimeType = FOLDER, modifiedTime = nowIso())
         // Dossier APP cree par l'utilisateur : l'app ne le cree jamais, elle s'y range.
-        files[APP_ID] = FakeFile(id = APP_ID, name = "APP", parents = mutableListOf("root"), mimeType = FOLDER, modifiedTime = nowIso())
+        files[APP_ID] = FakeFile(id = APP_ID, name = "App", parents = mutableListOf("root"), mimeType = FOLDER, modifiedTime = nowIso())
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse = handle(request)
         }

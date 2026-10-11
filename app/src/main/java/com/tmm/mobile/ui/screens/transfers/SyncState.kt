@@ -46,7 +46,7 @@ data class SyncState(
     val upSeries: List<SyncSeriesItem> = emptyList(),
     val otherSeriesCount: Int = 3,
     val otherChaptersCount: Int = 8,
-    val autoTranslate: Boolean = true,
+    val autoTranslate: Boolean = false,
     val downSeries: List<SyncFetchItem> = emptyList(),
     val scanning: Boolean = false,
     val scannedAgo: String = "il y a 4 min",

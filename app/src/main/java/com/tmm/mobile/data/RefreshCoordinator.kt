@@ -18,6 +18,7 @@ import com.tmm.mobile.transport.PollResult
 import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.workers.enqueueInstallJob
 import java.io.IOException
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -41,8 +42,8 @@ enum class RefreshError { NETWORK, DRIVE_QUOTA, AUTH }
 private const val DRIVE_COOLDOWN_SECONDS = 30
 private const val DIRECT_COOLDOWN_SECONDS = 5
 
-// 1 : boite aux lettres dans APP/TranslateMyManga (au lieu de App/TranslateMyManga).
-private const val DRIVE_LAYOUT_VERSION = 1
+// 1 : boite aux lettres dans APP/TranslateMyManga. 2 : retour dans App/TranslateMyManga.
+private const val DRIVE_LAYOUT_VERSION = 2
 
 // PLAN_GEMINI.md 5.15/CdC 11.3. autoTranslate est injectee (pas reimplementee ici) : Startup (5.16)
 // et refresh() appellent la meme etape de traduction automatique sur les memes chapitres TO_SEND.
@@ -132,7 +133,7 @@ class RefreshCoordinator(
 
     private suspend fun pollDrive(): PollResult {
         val drive = router.drive
-        // Boite aux lettres deplacee de App/ vers APP/ : les ids en cache pointent l'ancienne, on les
+        // Boite aux lettres deplacee (APP/ puis de nouveau App/) : les ids en cache pointent l'ancienne, on les
         // recherche une fois. Les dossiers de jobs gardent leur id quand le PC les deplace.
         val layoutOutdated = prefs.driveLayoutVersion.first() < DRIVE_LAYOUT_VERSION
         if (layoutOutdated) prefs.resetDriveLayout()
@@ -210,19 +211,41 @@ class RefreshCoordinator(
             }
         }
 
-        result.index?.let { index ->
+        // Un meme refresh peut lire le direct (frais) puis Drive (en retard, voire fige si le PC n'y
+        // ecrit plus) : sans ce garde, l'accueil alternait "PC en ligne"/"hors ligne" a chaque refresh.
+        result.index?.takeIf { isNotOlder(it.updatedAt, prefs.indexUpdatedAt.first()) }?.let { index ->
             db.pcIndexChapterDao().replaceAll(
                 index.chapters.map { PcIndexChapterEntity(it.mihonPath.flatten(), it.original, it.fr) },
             )
             prefs.setIndexUpdatedAt(index.updatedAt)
         }
-        result.heartbeat?.let { prefs.setHeartbeatJson(ProtocolJson.encodeToString(Heartbeat.serializer(), it)) }
-        result.settings?.let { prefs.setSettingsJson(ProtocolJson.encodeToString(PcSettings.serializer(), it)) }
+        result.heartbeat?.let { heartbeat ->
+            val known = prefs.heartbeatJson.first()
+                ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() }
+            if (isNotOlder(heartbeat.updatedAt, known?.updatedAt)) {
+                prefs.setHeartbeatJson(ProtocolJson.encodeToString(Heartbeat.serializer(), heartbeat))
+            }
+        }
+        result.settings?.let { settings ->
+            val known = prefs.settingsJson.first()
+                ?.let { runCatching { ProtocolJson.decodeFromString(PcSettings.serializer(), it) }.getOrNull() }
+            if (isNotOlder(settings.updatedAt, known?.updatedAt)) {
+                prefs.setSettingsJson(ProtocolJson.encodeToString(PcSettings.serializer(), settings))
+            }
+        }
 
         val wifiOnly = prefs.wifiOnly.first()
         db.jobDao().observeAll().first()
             .filter { it.phoneState == "RESULT_READY" }
             .forEach { workManager.enqueueInstallJob(it.jobId, wifiOnly) }
+    }
+
+    // Date illisible d'un cote ou de l'autre : on prend la nouvelle valeur (comportement d'avant).
+    private fun isNotOlder(candidate: String, known: String?): Boolean {
+        if (known == null) return true
+        val c = runCatching { Instant.parse(candidate) }.getOrNull() ?: return true
+        val k = runCatching { Instant.parse(known) }.getOrNull() ?: return true
+        return !c.isBefore(k)
     }
 
     private fun startCooldown() {

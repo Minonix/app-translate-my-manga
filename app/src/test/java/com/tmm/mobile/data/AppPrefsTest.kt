@@ -27,7 +27,7 @@ class AppPrefsTest {
     @Test fun defaults_matchPlanDefaults() = runTest {
         assertEquals(false, prefs.onboardingDone.first())
         assertEquals(false, prefs.wifiOnly.first())
-        assertEquals(true, prefs.translateOnArrival.first())
+        assertEquals(false, prefs.translateOnArrival.first())
         assertEquals(Retention.NEVER, prefs.retention.first())
     }
 

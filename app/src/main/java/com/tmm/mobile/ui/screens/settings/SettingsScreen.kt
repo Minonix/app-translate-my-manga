@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.tmm.mobile.BuildConfig
 import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.TmmSwitch
 import com.tmm.mobile.ui.components.TmmText
@@ -352,7 +353,7 @@ fun SettingsScreen(
 
                 // Footer version
                 TmmText(
-                    text = stringResource(R.string.settings_footer_app_version),
+                    text = stringResource(R.string.settings_footer_app_version, BuildConfig.VERSION_NAME),
                     style = TmmType.mono(12),
                     color = TmmColors.C9C9486,
                     textAlign = TextAlign.Center,

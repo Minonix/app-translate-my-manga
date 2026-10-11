@@ -133,7 +133,7 @@ class DriveTransportTest {
         transport.ensureLayout()
         assertEquals(FakeDrive.APP_ID, prefs.driveAppId.first())
         assertEquals(FakeDrive.APP_ID, drive.files[prefs.driveRootId.first()!!]!!.parents.single())
-        assertEquals(1, drive.files.values.count { it.name.equals("APP", ignoreCase = true) && "root" in it.parents })
+        assertEquals(1, drive.files.values.count { it.name.equals("App", ignoreCase = true) && "root" in it.parents })
     }
 
     @Test
@@ -148,7 +148,7 @@ class DriveTransportTest {
     @Test
     fun ensureLayout_picksExactAppWhenDriveIgnoresCase() = runTest {
         drive.caseInsensitiveNames = true
-        val older = com.tmm.mobile.fake.FakeFile(name = "App", parents = mutableListOf("root"), mimeType = FakeDrive.FOLDER, modifiedTime = "2000-01-01T00:00:00Z")
+        val older = com.tmm.mobile.fake.FakeFile(name = "APP", parents = mutableListOf("root"), mimeType = FakeDrive.FOLDER, modifiedTime = "2000-01-01T00:00:00Z")
         drive.files[older.id] = older
         transport.ensureLayout()
         assertEquals(FakeDrive.APP_ID, prefs.driveAppId.first())
@@ -157,7 +157,7 @@ class DriveTransportTest {
     @Test
     fun poll_ignoresSameNamedFilesOutsideMailbox() = runTest {
         transport.ensureLayout()
-        // Dossier d'une autre application, hors de APP/TranslateMyManga/jobs.
+        // Dossier d'une autre application, hors de App/TranslateMyManga/jobs.
         val foreign = testCreateFolder(drive, "root", "job-x")
         clockIso = clockIso.plusSeconds(10)
         val status = StatusJson(jobId = "job-x", updatedAt = clockIso.toString(), mode = "translate", state = "processing")

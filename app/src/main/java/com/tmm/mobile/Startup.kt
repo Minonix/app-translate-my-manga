@@ -62,6 +62,8 @@ class Startup(
         } catch (e: Exception) {
             AppLog.d("Startup", "scan Mihon interrompu : ${e.javaClass.simpleName} ${e.message}")
         }
+        // Avant toute traduction automatique ou poll : sinon le premier refresh relancerait la file.
+        jobRepository.resetPendingJobsOnce()
         runAutoTranslate(db, jobRepository)
         refreshCoordinator.refresh()
         StartupResult.DONE

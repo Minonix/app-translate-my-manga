@@ -24,8 +24,8 @@ import kotlinx.coroutines.flow.first
 
 private const val CHUNK_SIZE = 8 * 1024 * 1024
 
-// Dossier racine de l'utilisateur, casse exacte (un ancien "App" cree par l'app existe a cote).
-const val APP_FOLDER = "APP"
+// Dossier racine de l'utilisateur, casse exacte (un ancien "APP" peut exister a cote).
+const val APP_FOLDER = "App"
 
 private val PC_FILES = listOf("heartbeat.json", "index.json", "settings.json", "remote.json")
 private val JOB_FILES = listOf("status.json", "result.json")
@@ -40,8 +40,8 @@ class DriveTransport(
         var created = false
         var appId = prefs.driveAppId.first()
         if (appId == null) {
-            // "APP" appartient a l'utilisateur (un sous-dossier par application) : jamais cree ici, un
-            // second APP a la racine serait un clone. Introuvable = portee insuffisante ou dossier absent.
+            // "App" appartient a l'utilisateur (un sous-dossier par application) : jamais cree ici, un
+            // second App a la racine serait un clone. Introuvable = portee insuffisante ou dossier absent.
             appId = driveApi.findChild("root", APP_FOLDER, folder = true)?.id
                 ?: throw IOException("Dossier $APP_FOLDER introuvable a la racine du Drive")
             prefs.setDriveAppId(appId)

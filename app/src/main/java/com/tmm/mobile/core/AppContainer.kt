@@ -76,6 +76,9 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
         val result = googleAuth.authorize()
         val token = result.accessToken ?: throw AuthExpiredException("consentement Google requis")
         cachedToken = token
+        // Jeton obtenu = consentement valide : le bandeau "Reconnecter" tombe tout de suite, sans
+        // attendre un poll Drive complet qu'une autre erreur (dossier, reseau) pouvait bloquer.
+        if (prefs.authExpired.first()) prefs.setAuthExpired(false)
         token
     }
 

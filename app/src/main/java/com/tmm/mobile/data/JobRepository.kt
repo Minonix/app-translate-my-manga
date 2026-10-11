@@ -43,6 +43,10 @@ data class CreateJobsResult(val createdJobIds: List<String>, val refused: Int)
 // laisse au PC le temps d'un cycle de lecture Drive avant de renvoyer le chapitre en direct.
 const val STALLED_SENT_MILLIS = 10 * 60 * 1000L
 
+// 1 : remise a plat de la v1.3.0 (traductions lancees sans demande par les versions precedentes).
+private const val JOB_RESET_VERSION = 1
+private val FINISHED_PHONE_STATES = setOf("RESULT_READY", "DOWNLOADING", "INSTALLED")
+
 // PLAN_GEMINI.md 5.17. Le verrou est global (pas par mihonPath) : createJobs() n'est appele qu'en
 // rafales courtes (bouton UI ou auto-translate au demarrage), jamais a haute frequence.
 class JobRepository(
@@ -186,6 +190,24 @@ class JobRepository(
      *   est donc supprime (dossier Drive compris, en best-effort, pour que le PC ne le traite pas une
      *   seconde fois) puis recree, comme retry().
      */
+    /**
+     * Remise a plat unique : plus rien en file ni en cours, rien ne se traduit sans demande. Les jobs
+     * termines (resultat pret, telechargement, installe) sont gardes ; les autres sont oublies cote
+     * telephone sans toucher a leur dossier Drive (le PC les range en originaux non traduits).
+     */
+    suspend fun resetPendingJobsOnce() {
+        if (prefs.jobResetVersion.first() >= JOB_RESET_VERSION) return
+        prefs.setTranslateOnArrival(false)
+        db.seriesSettingsDao().clearAutoTranslate()
+        val pending = db.jobDao().observeAll().first().filter { it.phoneState !in FINISHED_PHONE_STATES }
+        for (job in pending) {
+            workManager.cancelUniqueWork(sendWorkName(job.jobId))
+            db.jobDao().delete(job)
+        }
+        prefs.setJobResetVersion(JOB_RESET_VERSION)
+        AppLog.d("JobRepository", "remise a plat : ${pending.size} job(s) non termine(s) oublie(s)")
+    }
+
     suspend fun resendStalledDriveJobs() {
         val driveJobs = db.jobDao().observeAll().first().filter { it.channel == CHANNEL_DRIVE }
         val wifiOnly = prefs.wifiOnly.first()

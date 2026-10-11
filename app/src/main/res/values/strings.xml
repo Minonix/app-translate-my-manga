@@ -381,7 +381,7 @@
     <string name="settings_wifi_only_off_desc">Envois aussi en données mobiles</string>
     <string name="settings_row_logs">Journaux</string>
     <string name="settings_action_export">Exporter</string>
-    <string name="settings_footer_app_version">TMM Mobile 1.0.0 · protocole v1</string>
+    <string name="settings_footer_app_version">TMM Mobile %1$s · protocole v1</string>
     <string name="settings_toast_choose_account">Choix du compte Google</string>
     <string name="settings_toast_folder_picker">Sélecteur de dossier Android</string>
     <string name="settings_toast_logs_ready">Journaux prêts à partager</string>

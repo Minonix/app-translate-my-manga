@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.nav
 
+import android.app.Activity
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -98,30 +99,34 @@ fun TmmRoot() {
     // Un refresh seul ne pouvait pas aboutir : sans consentement (nouvelle portee Drive, jeton revoque),
     // authorize() renvoie un ecran Google a afficher, ce qu'un worker ou un refresh ne sait pas faire.
     val googleAuth = remember { GoogleAuth(context) }
-    fun refreshAfterConsent() {
+    fun refreshAfterConsent(granted: Boolean) {
         scope.launch {
+            // Consentement accorde : le bandeau tombe meme si refresh() est en recharge (cooldown) ou
+            // echoue pour une autre raison.
+            if (granted) container.prefs.setAuthExpired(false)
             container.refreshCoordinator.refresh()
             reconnecting = false
         }
     }
     val consentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
-        refreshAfterConsent()
+        refreshAfterConsent(granted = it.resultCode == Activity.RESULT_OK)
     }
 
     val bannerState = when {
         authExpired -> OfflineBannerState.TokenExpired(reconnecting = reconnecting) {
             reconnecting = true
             scope.launch {
-                val pending = try {
-                    googleAuth.pendingIntent(googleAuth.authorize())
+                val result = try {
+                    googleAuth.authorize()
                 } catch (e: Exception) {
                     AppLog.d("TmmRoot", "authorize() a echoue : ${e.message}")
                     null
                 }
+                val pending = result?.let { googleAuth.pendingIntent(it) }
                 if (pending != null) {
                     consentLauncher.launch(IntentSenderRequest.Builder(pending).build())
                 } else {
-                    refreshAfterConsent()
+                    refreshAfterConsent(granted = result?.accessToken != null)
                 }
             }
         }
@@ -229,11 +234,22 @@ private fun rememberNetworkOnline(context: Context): androidx.compose.runtime.St
 // (wifi_only est gere par les workers, pas par ce bandeau).
 private fun networkOnlineFlow(context: Context): Flow<Boolean> = callbackFlow {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    // Un etat par reseau : avec plusieurs reseaux (Wi-Fi + donnees + VPN Tailscale), la perte ou la
+    // revalidation de l'un d'eux faisait clignoter le bandeau "hors ligne" alors qu'un autre restait valide.
+    val validated = mutableMapOf<Network, Boolean>()
+    fun emit() = trySend(validated.values.any { it })
     val callback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) { trySend(true) }
-        override fun onLost(network: Network) { trySend(false) }
+        override fun onAvailable(network: Network) {
+            synchronized(validated) { validated.getOrPut(network) { true }; emit() }
+        }
+        override fun onLost(network: Network) {
+            synchronized(validated) { validated.remove(network); emit() }
+        }
         override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-            trySend(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+            synchronized(validated) {
+                validated[network] = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                emit()
+            }
         }
     }
     val request = NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()

@@ -448,7 +448,7 @@ Settings.dc.html	Associer	STR	settings_action_pair
 Settings.dc.html	Oublier ce PC	STR	settings_action_forget
 Settings.dc.html	PC associé	STR	settings_toast_paired
 Settings.dc.html	Association impossible, vérifiez l'adresse et le code	STR	settings_toast_pair_failed
-Settings.dc.html	TMM Mobile 1.0.0 · protocole v1	STR	settings_footer_app_version
+Settings.dc.html	TMM Mobile 1.0.0 · protocole v1	FMT	settings_footer_app_version		["1.0.0"]
 TranslationSettings.dc.html	Retour aux réglages	STR	trans_settings_back_cd
 TranslationSettings.dc.html	Traduction sur le PC	STR	trans_settings_title
 TranslationSettings.dc.html	Les mêmes réglages que dans TMM-Win	STR	trans_settings_subtitle

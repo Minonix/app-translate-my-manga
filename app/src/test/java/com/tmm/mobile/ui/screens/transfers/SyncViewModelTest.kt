@@ -109,12 +109,12 @@ class SyncViewModelTest {
     fun toggleAutoTranslate_flipsPref() = runTest {
         val vm = SyncViewModel(env.container)
         val initial = vm.state.first { true }
-        assertEquals(true, initial.autoTranslate)
+        assertEquals(false, initial.autoTranslate)
 
         vm.onEvent(SyncEvent.ToggleAutoTranslate)
-        val state = vm.state.first { !it.autoTranslate }
+        val state = vm.state.first { it.autoTranslate }
 
-        assertEquals(false, state.autoTranslate)
+        assertEquals(true, state.autoTranslate)
     }
 
     @Test
