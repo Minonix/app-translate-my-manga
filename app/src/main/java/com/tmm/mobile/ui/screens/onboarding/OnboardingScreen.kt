@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
+import com.tmm.mobile.core.LocalReducedMotion
 import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.icons.TmmIcon
 import com.tmm.mobile.ui.icons.TmmIconId
@@ -178,15 +179,21 @@ fun OnboardingScreen(
 
                 val btnBg = if (state.step == 1 && !state.isGoogleConnected) TmmColors.C2B4C7E else TmmColors.ink
 
-                val infiniteTransition = rememberInfiniteTransition(label = "spin")
-                val spinAngle by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 360f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 900, easing = LinearEasing),
-                    ),
-                    label = "spinAngle",
-                )
+                // Transition creee seulement pendant le travail : sinon elle demandait une frame a
+                // chaque vsync tant que l'ecran restait affiche (batterie, et boucle infinie du
+                // looper Robolectric qui faisait durer SmokeTest 30 a 60 min).
+                val spinAngle = if (state.isWorking && !LocalReducedMotion.current) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "spin")
+                    val angle by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 900, easing = LinearEasing),
+                        ),
+                        label = "spinAngle",
+                    )
+                    angle
+                } else 0f
 
                 Box(
                     modifier = Modifier
