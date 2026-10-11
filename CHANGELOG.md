@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.3.1] - 2026-10-11
+
+### Corrige
+- Crash au lancement apres la mise a jour 1.3.0 (remise a plat sur une grosse file de traductions).
+
 ## [1.3.0] - 2026-10-11
 
 ### Ajoute
