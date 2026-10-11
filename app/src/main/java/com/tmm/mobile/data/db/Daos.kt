@@ -158,6 +158,10 @@ interface LocalFrChapterDao {
 
 @Dao
 interface JobDao {
+    // Lecture en transaction : au-dela de ~600 jobs la table depasse une fenetre de curseur (2 Mo) ;
+    // sans transaction, une ecriture entre deux fenetres faisait planter la lecture
+    // ("Couldn't read row N from CursorWindow").
+    @Transaction
     @Query("SELECT * FROM job")
     fun observeAll(): Flow<List<JobEntity>>
 
@@ -178,6 +182,12 @@ interface JobDao {
 
     @Delete
     suspend fun delete(job: JobEntity)
+
+    @Query("SELECT jobId FROM job WHERE phoneState NOT IN (:states)")
+    suspend fun jobIdsNotIn(states: List<String>): List<String>
+
+    @Query("DELETE FROM job WHERE phoneState NOT IN (:states)")
+    suspend fun deleteNotIn(states: List<String>): Int
 }
 
 @Dao

@@ -199,13 +199,14 @@ class JobRepository(
         if (prefs.jobResetVersion.first() >= JOB_RESET_VERSION) return
         prefs.setTranslateOnArrival(false)
         db.seriesSettingsDao().clearAutoTranslate()
-        val pending = db.jobDao().observeAll().first().filter { it.phoneState !in FINISHED_PHONE_STATES }
-        for (job in pending) {
-            workManager.cancelUniqueWork(sendWorkName(job.jobId))
-            db.jobDao().delete(job)
-        }
+        // Une seule requete DELETE : supprimer job par job relancait la lecture de toute la table a
+        // chaque ligne, et faisait planter les lectures concurrentes sur une grosse file.
+        val states = FINISHED_PHONE_STATES.toList()
+        val pendingIds = db.jobDao().jobIdsNotIn(states)
+        pendingIds.forEach { workManager.cancelUniqueWork(sendWorkName(it)) }
+        val deleted = db.jobDao().deleteNotIn(states)
         prefs.setJobResetVersion(JOB_RESET_VERSION)
-        AppLog.d("JobRepository", "remise a plat : ${pending.size} job(s) non termine(s) oublie(s)")
+        AppLog.d("JobRepository", "remise a plat : $deleted job(s) non termine(s) oublie(s)")
     }
 
     suspend fun resendStalledDriveJobs() {
