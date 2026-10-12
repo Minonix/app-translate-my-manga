@@ -4,6 +4,7 @@ import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
+import com.tmm.mobile.data.status.GlobalCounts
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.QueueCounts
@@ -55,6 +56,26 @@ class QueueViewModelTest {
         Heartbeat.serializer(),
         Heartbeat(pcName = "PC-BUREAU", appVersion = "1.0", updatedAt = "2026-01-01T00:00:00Z", slots = 4, activeJobIds = activeJobIds, queue = QueueCounts(0, 0, 0)),
     )
+
+    @Test
+    fun activity_excludesStaleHeartbeatAndFailedJobs_andCountsTransfersOnce() = runTest {
+        val jobs = listOf(
+            baseJob("sent", "Mihon/s/1", "SENT"),
+            baseJob("upload", "Mihon/s/2", "UPLOADING").copy(transferredBytes = 98, transferTotal = 100),
+            baseJob("download", "Mihon/s/3", "DOWNLOADING"),
+            baseJob("done", "Mihon/s/4", "INSTALLED"),
+            baseJob("failed", "Mihon/s/5", "SENT").copy(pcState = "failed"),
+            baseJob("cancel", "Mihon/s/6", "CANCEL_REQUESTED"),
+        )
+        jobs.forEach { env.db.jobDao().upsert(it) }
+        env.prefs.setHeartbeatJson(heartbeatJson(jobs.map { it.jobId } + "sent"))
+        val state = QueueViewModel(env.container).state.first { it.transfers.size == 2 && it.activeJobs.size == 2 }
+        assertEquals(4, state.activeCount)
+        assertEquals(2, state.slotsCount)
+        assertTrue(state.waitingJobs.isEmpty())
+        assertEquals(98, state.transfers.first { it.isUpload }.percent)
+        assertEquals(state.activeCount, GlobalCounts.activityBadgeCount(env.db).first())
+    }
 
     @Test
     fun state_usesHeartbeatActiveJobIds_forActiveTab_andRestForWaiting() = runTest {

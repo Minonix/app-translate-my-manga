@@ -110,11 +110,10 @@ private fun TmmBottomBarPreview() {
     TmmTheme {
         TmmBottomBar(
             items = listOf(
-                TmmBottomBarItem(TmmIconId.Home, "Accueil"),
-                TmmBottomBarItem(TmmIconId.Grid, "Bibliothèque"),
-                TmmBottomBarItem(TmmIconId.Sync, "Transferts", badgeCount = 20),
-                TmmBottomBarItem(TmmIconId.List, "File"),
-                TmmBottomBarItem(TmmIconId.Inbox, "Catalogue"),
+                TmmBottomBarItem(TmmIconId.V2Home, "Accueil"),
+                TmmBottomBarItem(TmmIconId.V2Grid, "Bibliothèque"),
+                TmmBottomBarItem(TmmIconId.V2Pulse, "Activité", badgeCount = 3),
+                TmmBottomBarItem(TmmIconId.V2Gear, "Réglages"),
             ),
             selectedIndex = 1,
             onSelect = {},

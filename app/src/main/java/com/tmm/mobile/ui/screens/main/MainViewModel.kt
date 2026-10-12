@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
-import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
@@ -14,18 +13,28 @@ import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.status.ChapterFacts
 import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.deriveStatus
+import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.protocol.Heartbeat
-import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
+import com.tmm.mobile.data.status.ChapterJoinIndex
+import com.tmm.mobile.data.status.buildChapterJoinRows
+import com.tmm.mobile.data.status.deriveSeriesSummary
+import com.tmm.mobile.data.status.joinInputsFlow
+import com.tmm.mobile.data.status.toAggregateInputs
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -38,19 +47,21 @@ import kotlinx.coroutines.launch
  * les prefs (heartbeat, dernier rafraichissement/scan) en un MainState pret a afficher ; l'envoi
  * et la recuperation passent par le vrai JobRepository (pas de simulation avec delay()).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(private val container: AppContainer) : ViewModel() {
     private val db = container.db
 
     // PLAN_GEMINI.md 5.20 : les etats ephemeres (busy/done des deux boutons, toast) ne viennent
     // pas de Room - ils sont pilotes par onEvent et fusionnes avec l'etat derive ci-dessous.
     private data class Ephemeral(
-        val sendState: BusyState = BusyState.Idle,
         val getState: BusyState = BusyState.Idle,
         val getFraction: Float = 0f,
+        val installTotal: Int = 0,
         val toast: MainToast? = null,
     )
 
     private val ephemeral = MutableStateFlow(Ephemeral())
+    private var refreshJob: Job? = null
 
     private data class RoomSnapshot(
         val jobs: List<JobEntity>,
@@ -85,72 +96,76 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         buildState(room, prefsSnap, series)
     }.flowOn(Dispatchers.Default)
 
-    val state: StateFlow<MainState> = combine(derived, ephemeral) { base, eph ->
-        base.copy(sendState = eph.sendState, getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast)
+    private val followed = combine(db.seriesDao().observeAll(), db.seriesSettingsDao().observeAutoTranslateSeriesKeys()) { series, keys ->
+        val followedKeys = keys.toSet()
+        series.filter { it.seriesKey in followedKeys }.sortedBy { it.title }
+            .map { MainFollowedSeries(it.seriesKey, it.title) }
+    }
+
+    // Même calcul que la fiche série ; seuls les trous candidats observent leurs exclusions.
+    private val gaps = combine(joinInputsFlow(db), db.seriesDao().observeAll()) { inputs, series ->
+        val index = ChapterJoinIndex(inputs)
+        series.mapNotNull { item ->
+            val rows = buildChapterJoinRows(item.seriesKey, item.sourceName, item.title, index)
+            val missing = deriveSeriesSummary(item.seriesKey, rows.toAggregateInputs(), emptySet()).missing
+            if (missing.isEmpty()) null else MainGap(item.seriesKey, item.title, missing)
+        }
+    }.flowOn(Dispatchers.Default).distinctUntilChanged().flatMapLatest { candidates ->
+        if (candidates.isEmpty()) flowOf(emptyList()) else combine(candidates.map { gap ->
+            db.ignoredGapDao().observeForSeries(gap.seriesKey).map { ignored ->
+                gap.copy(numbers = gap.numbers - ignored.map { it.number }.toSet())
+            }
+        }) { rows -> rows.filter { it.numbers.isNotEmpty() } }
+    }
+
+    val state: StateFlow<MainState> = combine(derived, ephemeral, followed, gaps) { base, eph, followedSeries, missing ->
+        base.copy(getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast, installTotal = eph.installTotal, followedSeries = followedSeries, gaps = missing)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainState(
-        pcTone = PcTone.Offline, toSendCount = 0, toSendSummary = "", toGetCount = 0, toGetSummary = "",
+        pcTone = PcTone.Offline, toSendCount = 0, toSendSeriesCount = 0, toGetCount = 0, toGetSummary = "",
         queueCount = 0, queueParallelCount = 0, queueMachineName = "PC", queueNextCount = 0,
         queueJobs = emptyList(), lastScanLabel = "", recentChapters = emptyList(),
     ))
 
     fun onEvent(event: MainEvent) {
         when (event) {
-            MainEvent.Refresh -> viewModelScope.launch { container.refreshCoordinator.refresh() }
+            MainEvent.Refresh -> {
+                if (refreshJob?.isActive != true) {
+                    // Startup scanne Mihon avant runAutoTranslate puis refresh, comme au démarrage.
+                    refreshJob = viewModelScope.launch { container.startup.run() }
+                }
+            }
             // ponytail: RefreshButton anime son spin/anneau localement (pas pilote par
             // RefreshCoordinator.state) - composant partage, hors peripherie de cet ecran.
             MainEvent.RefreshFinished -> {}
-            MainEvent.SendPending -> sendPending()
             MainEvent.FetchTranslated -> fetchTranslated()
             MainEvent.DismissToast -> ephemeral.update { it.copy(toast = null) }
         }
     }
 
-    private fun sendPending() {
-        if (ephemeral.value.sendState != BusyState.Idle) return
-        ephemeral.update { it.copy(sendState = BusyState.Busy) }
-        viewModelScope.launch {
-            val room = roomSnapshotOnce()
-            val seriesByKey = db.seriesDao().observeAll().first().associateBy { it.seriesKey }
-            val toSend = room.downloaded.filter { statusFor(it, room) == ChapterStatus.TO_SEND }
-            val translateOnArrival = container.prefs.translateOnArrival.first()
-            val targets = toSend.map { dl ->
-                JobTarget(
-                    mihonPath = MihonPath(dl.sourceDir, dl.seriesDir, dl.chapterDir),
-                    downloaded = dl,
-                    series = dl.seriesKey?.let { seriesByKey[it] },
-                    chapter = dl.chapterKey?.let { db.chapterDao().get(it) },
-                )
-            }
-            val result = container.jobRepository.createJobs(JobMode.TRANSLATE, targets, translate = translateOnArrival)
-            ephemeral.update { it.copy(sendState = BusyState.Done, toast = MainToast.Sent(result.createdJobIds.size)) }
-        }
-    }
-
     private fun fetchTranslated() {
-        if (ephemeral.value.getState != BusyState.Idle) return
+        if (ephemeral.value.getState == BusyState.Busy) return
         ephemeral.update { it.copy(getState = BusyState.Busy, getFraction = 0f) }
         viewModelScope.launch {
             val ids = db.jobDao().observeAll().first().filter { it.phoneState == "RESULT_READY" }.map { it.jobId }
-            container.jobRepository.fetch(ids)
             val total = ids.size
+            ephemeral.update { it.copy(installTotal = total) }
+            container.jobRepository.fetch(ids)
             if (total == 0) {
                 ephemeral.update { it.copy(getState = BusyState.Done, toast = MainToast.Received(0)) }
                 return@launch
             }
-            db.jobDao().observeAll()
-                .map { all -> ids.count { id -> all.firstOrNull { job -> job.jobId == id }?.phoneState == "INSTALLED" } }
+            // Set des ids et flowOn : l'ancien firstOrNull par id etait O(ids x jobs) sur le thread
+            // principal, a chaque ecriture en base pendant toute la recuperation.
+            val idSet = ids.toHashSet()
+            db.jobDao().observeAll().ignoringProgress()
+                .map { all -> all.count { job -> job.jobId in idSet && job.phoneState == "INSTALLED" } }
+                .distinctUntilChanged()
+                .flowOn(Dispatchers.Default)
                 .takeWhile { it < total }
                 .collect { installed -> ephemeral.update { it.copy(getFraction = installed / total.toFloat()) } }
             ephemeral.update { it.copy(getState = BusyState.Done, getFraction = 1f, toast = MainToast.Received(total)) }
         }
     }
-
-    private suspend fun roomSnapshotOnce() = RoomSnapshot(
-        jobs = db.jobDao().observeAll().first(),
-        downloaded = db.downloadedChapterDao().observeAll().first(),
-        localFrPaths = db.localFrChapterDao().observeAll().first().mapNotNull { it.mihonPath }.toSet(),
-        pcIndex = db.pcIndexChapterDao().observeAll().first(),
-    )
 
     private fun statusFor(dl: DownloadedChapterEntity, room: RoomSnapshot): ChapterStatus {
         return deriveStatus(
@@ -169,12 +184,15 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val seriesByKey = series.associateBy { it.seriesKey }
         val downloadedByPath = room.downloaded.associateBy { it.mihonPath }
 
-        val toSendChapters = room.downloaded.filter { dl -> statusFor(dl, room) == ChapterStatus.TO_SEND }
+        // Même périmètre que la feuille Traduire (TranslateViewModel) : un chapitre dont le dossier
+        // Mihon ne correspond à aucune série connue n'y est pas proposé, il ne compte donc pas ici.
+        val toSendChapters = room.downloaded.filter { dl ->
+            dl.seriesKey in seriesByKey && statusFor(dl, room) == ChapterStatus.TO_SEND
+        }
         val toSendSeriesCount = toSendChapters.mapNotNull { it.seriesKey }.distinct().size
-        val toSendSizeBytes = toSendChapters.sumOf { it.sizeBytes }
 
         val toFetchJobs = room.jobs.filter { it.phoneState == "RESULT_READY" }
-        val toGetSeriesCount = toFetchJobs.mapNotNull { it.seriesKey }.distinct().size
+        val toGetTitles = toFetchJobs.map { seriesByKey[it.seriesKey]?.title ?: it.seriesDir }.distinct()
 
         val heartbeat = prefsSnap.heartbeatJson?.let { json ->
             runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), json) }.getOrNull()
@@ -192,7 +210,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val activeIds = heartbeat?.activeJobIds.orEmpty()
         val jobsById = room.jobs.associateBy { it.jobId }
         val localActiveCount = room.jobs.count { it.isActive() }
-        val queueJobs = activeIds.mapNotNull { jobsById[it] }.take(4).map { job -> job.toQueueJob(seriesByKey, downloadedByPath) }
+        val queueJobs = (activeIds.mapNotNull { jobsById[it] }.filter { it.isActive() } +
+            room.jobs.filter { it.isActive() && it.pcState == "running" }).distinctBy { it.jobId }.take(2).map { job -> job.toQueueJob(seriesByKey, downloadedByPath) }
 
         return MainState(
             pcTone = pcTone,
@@ -200,9 +219,9 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             lastCheckLabel = if (prefsSnap.lastRefreshAt == 0L) null else Formatters.relativeFr(prefsSnap.lastRefreshAt, now),
             offlineSinceLabel = offlineSinceLabel,
             toSendCount = toSendChapters.size,
-            toSendSummary = seriesSummary(toSendSeriesCount) + " · environ " + Formatters.sizeFr(toSendSizeBytes),
+            toSendSeriesCount = toSendSeriesCount,
             toGetCount = toFetchJobs.size,
-            toGetSummary = seriesSummary(toGetSeriesCount) + " · vers Mihon/local",
+            toGetSummary = toGetTitles.joinToString(", "),
             queueCount = heartbeat?.let { it.queue.active + it.queue.waiting } ?: localActiveCount,
             queueParallelCount = heartbeat?.activeJobIds?.size ?: localActiveCount,
             queueMachineName = heartbeat?.pcName ?: "PC",
@@ -215,13 +234,13 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     private fun JobEntity.toQueueJob(seriesByKey: Map<String, SeriesEntity>, downloadedByPath: Map<String, DownloadedChapterEntity>): MainQueueJob {
         val key = seriesKey ?: seriesDir
-        val title = (seriesByKey[key]?.title ?: key) + " · " + fmtNumber(downloadedByPath[mihonPath]?.number ?: 0f)
+        val title = (seriesByKey[key]?.title ?: key) + " · ch. " + (downloadedByPath[mihonPath]?.number?.let(::fmtNumber) ?: chapterDir)
         val type = when (mode) {
             JobMode.VERIFY -> MainJobType.Verification
             JobMode.RETRANSLATE -> MainJobType.Retranslation
             else -> MainJobType.Translation
         }
-        return MainQueueJob(title = title, color = colorFor(key), type = type, progressFraction = translatingPercent(this) / 100f)
+        return MainQueueJob(title = title, color = colorFor(key), type = type, progressFraction = translatingPercent(this) / 100f, page = pcPage, pages = pcPages)
     }
 
     private fun recentChapters(
@@ -243,7 +262,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             val inMihon = jobsForSeries.all { it.phoneState == "INSTALLED" }
             MainRecentChapter(
                 title = seriesByKey[key]?.title ?: key,
-                chapterLabel = Formatters.chapterRangeFr(numbers),
+                // Maquette v2 : « ch. 140 · dans Mihon », minuscule dans la vignette.
+                chapterLabel = Formatters.chapterRangeFr(numbers).replaceFirstChar { it.lowercase() },
                 color = colorFor(key),
                 inMihon = inMihon,
                 onPc = !inMihon,
@@ -252,7 +272,6 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    private fun seriesSummary(count: Int): String = if (count <= 1) "$count série" else "$count séries"
 
     // ponytail: relativeFr() prefixe "il y a" ; home_pc_seen_fmt attend la duree seule (%1$s dans
     // "PC vu il y a %1$s", cf mockup_texts.tsv ligne 6) - on retire le prefixe plutot que dupliquer

@@ -75,7 +75,7 @@ class SettingsViewModelTest {
         assertEquals("PC-BUREAU", state.pcName)
         assertTrue(state.pcVersionProtocol.contains("1.2.0"))
         assertTrue(state.isPcOnline)
-        assertTrue(state.pcLastSignalText.contains("il y a"))
+        assertTrue(state.pcLastSignalText.startsWith("Allumé · vu "))
         assertEquals("martiniclement06@gmail.com", state.googleAccount)
         assertEquals(DriveRetention.Days30, state.driveRetention)
         assertTrue(state.wifiOnly)

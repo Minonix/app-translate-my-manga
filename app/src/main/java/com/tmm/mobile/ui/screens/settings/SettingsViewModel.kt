@@ -10,11 +10,16 @@ import com.tmm.mobile.data.db.BackupImportEntity
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.SettingsValues
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.tmm.mobile.mihon.MihonTree
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +44,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         SettingsState(
             pcName = "PC", pcVersionProtocol = "PC", isPcOnline = false, pcLastSignalText = "Aucun signal reçu",
             googleAccount = "", mihonFolder = "", lastBackupInfo = "", pcTranslationSummary = "", logsInfo = "",
+            languageSummary = "", engineSummary = "",
         ),
     )
     val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -55,6 +61,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { observeLogsInfo() }
         viewModelScope.launch { loadTranslationSummary() }
         viewModelScope.launch { observeDirect() }
+        viewModelScope.launch {
+            combine(container.db.seriesDao().observeAll(), container.db.seriesSettingsDao().observeAutoTranslateSeriesKeys()) { series, keys ->
+                series.filter { it.seriesKey in keys }.map { FollowedSeries(it.seriesKey, it.title) }.sortedBy { it.title }
+            }.collect { followed -> _state.update { it.copy(followedSeries = followed) } }
+        }
     }
 
     // URL connue (publiee par le PC ou deja associee) pre-remplie ; l'etat suit l'appairage et un
@@ -130,7 +141,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         val updatedAt = runCatching { Instant.parse(heartbeat.updatedAt).toEpochMilli() }.getOrNull()
             ?: return "Aucun signal reçu"
         val relative = Formatters.relativeFr(updatedAt, container.clock.nowMillis())
-        return "Dernier signal $relative · le PC écrit sur Drive toutes les minutes"
+        // Maquette v2 : "Allumé · vu il y a 17 s" ; au-dela de 5 min, meme vocabulaire que l'Accueil ("PC éteint").
+        val power = if (isOnline(heartbeat)) "Allumé" else "Éteint"
+        return "$power · vu $relative"
     }
 
     private suspend fun observeAccount() {
@@ -176,14 +189,21 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
 
     private suspend fun observeBackupInfo() {
         container.db.backupImportDao().observe().collect { backup ->
-            _state.update { it.copy(lastBackupInfo = backupInfoText(backup)) }
+            _state.update { it.copy(lastBackupInfo = backupInfoText(backup), backupFileName = backup?.name.orEmpty()) }
         }
     }
 
     private suspend fun backupInfoText(backup: BackupImportEntity?): String {
         if (backup == null) return "Aucune sauvegarde lue" // ajouté, aucune sauvegarde encore importee
         val seriesCount = container.db.seriesDao().observeAll().first().size
-        return "${importedAtFr(backup.importedAt)} · $seriesCount séries"
+        // Maquette v2 : « Lue aujourd'hui 03:00 · 142 séries, 7 catégories ».
+        val categoryCount = container.db.categoryDao().observeAll().first().size
+        val categories = when (categoryCount) {
+            0 -> ""
+            1 -> ", 1 catégorie"
+            else -> ", $categoryCount catégories"
+        }
+        return "${importedAtFr(backup.importedAt)} · $seriesCount séries$categories"
     }
 
     // PLAN_GEMINI.md 7.6 : aujourd'hui HH:mm, hier HH:mm, sinon le jj/mm.
@@ -228,11 +248,22 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     private suspend fun loadTranslationSummary() {
         val values = container.settingsSync.values()
         val summary = if (values != null) translationSummary(values) else "Réglages non reçus du PC" // ajouté
-        _state.update { it.copy(pcTranslationSummary = summary) }
+        _state.update { it.copy(pcTranslationSummary = summary,
+            languageSummary = values?.let { "${Formatters.langLabelFr(it.sourceLanguage)} vers ${Formatters.langLabelFr(it.targetLanguage)}" } ?: summary,
+            engineSummary = values?.let { com.tmm.mobile.ui.screens.translationsettings.TranslationProvider.entries.find { p -> p.id == it.translationProvider }?.label ?: engineShort(it.translationProvider) } ?: summary) }
     }
 
     fun onEvent(event: SettingsEvent) {
         when (event) {
+            SettingsEvent.ToggleAdvanced -> _state.update { it.copy(advancedExpanded = !it.advancedExpanded) }
+            SettingsEvent.OpenDirect -> _state.update { it.copy(directOpen = true) }
+            SettingsEvent.CloseDirect -> _state.update { it.copy(directOpen = false) }
+            SettingsEvent.ToggleFollowed -> _state.update { it.copy(followedExpanded = !it.followedExpanded) }
+            is SettingsEvent.Unfollow -> viewModelScope.launch {
+                val dao = container.db.seriesSettingsDao()
+                dao.observe(event.seriesKey).first()?.let { dao.upsert(it.copy(autoTranslate = false)) }
+            }
+            SettingsEvent.Reimport -> reimport()
             // BLOQUÉ (E10) : re-authentifier un autre compte Google necessite GoogleAuth, non expose
             // par AppContainer (interface figee) - reste un stub visuel jusqu'a exposition explicite.
             SettingsEvent.ChangeGoogleAccount -> showToast(SettingsToast.ChooseAccount)
@@ -258,6 +289,33 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             SettingsEvent.ForgetPc -> viewModelScope.launch {
                 container.router.direct.forget()
                 _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = "") }
+            }
+        }
+    }
+
+    private var reimportJob: Job? = null
+
+    private fun reimport() {
+        if (reimportJob?.isActive == true) return
+        _state.update { it.copy(importError = false, importStep = BackupImportStep.ReadingFile) }
+        reimportJob = viewModelScope.launch {
+            try {
+                val uri = container.prefs.mihonTreeUri.first() ?: error("Dossier Mihon absent")
+                var imported = false
+                withContext(Dispatchers.IO) {
+                    val tree = uri.toUri()
+                    importReimportSequence(MihonTree(container.context.contentResolver, tree), DocumentsContract.getTreeDocumentId(tree), container.db, container.clock) { step ->
+                        _state.update { it.copy(importStep = step) }
+                        if (step == BackupImportStep.Comparing) imported = true
+                    }
+                }
+                if (!imported) error("Sauvegarde absente")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(importError = true) }
+            } finally {
+                _state.update { it.copy(importStep = BackupImportStep.Idle) }
             }
         }
     }

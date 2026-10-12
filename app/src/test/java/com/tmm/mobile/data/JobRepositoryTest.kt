@@ -186,20 +186,18 @@ class JobRepositoryTest {
             env.db.jobDao().upsert(job(jobId = "job-$state", phoneState = state, driveFolderId = folder.id.takeIf { state == "SENT" }).copy(mihonPath = "S/T/C$i"))
         }
         env.db.seriesSettingsDao().upsert(com.tmm.mobile.data.db.SeriesSettingsEntity(seriesKey = "s1", autoTranslate = true))
-        env.prefs.setTranslateOnArrival(true)
         val repo = env.container.jobRepository
 
         repo.resetPendingJobsOnce()
 
         assertEquals(listOf("job-DOWNLOADING", "job-INSTALLED", "job-RESULT_READY"), env.db.jobDao().observeAll().first().map { it.jobId }.sorted())
         assertTrue(env.drive.files.containsKey(folder.id))
-        assertFalse(env.prefs.translateOnArrival.first())
         assertTrue(env.db.seriesSettingsDao().autoTranslateSeriesKeys().isEmpty())
 
-        env.prefs.setTranslateOnArrival(true)
+        env.db.seriesSettingsDao().upsert(com.tmm.mobile.data.db.SeriesSettingsEntity(seriesKey = "s1", autoTranslate = true))
         env.db.jobDao().upsert(job(jobId = "job-new", phoneState = "SENT").copy(mihonPath = "S/T/new"))
         repo.resetPendingJobsOnce()
-        assertTrue(env.prefs.translateOnArrival.first())
+        assertEquals(listOf("s1"), env.db.seriesSettingsDao().autoTranslateSeriesKeys())
         assertTrue(env.db.jobDao().get("job-new") != null)
     }
 

@@ -83,6 +83,41 @@ enum class TmmIconId(val defaultStrokeWidth: Float, val elements: List<IconEleme
     MonitorDevice(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 21h8M12 17v4"))),
     // Corbeille du bouton "Supprimer" de la Fiche serie (absente des maquettes, tracee a la main).
     Trash(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"))),
+
+    // Icones de la maquette v2 (maquettes/v2-simplifiee/index.html), transcrites telles quelles
+    // depuis les <symbol> (stroke-width 1.8). Les points pleins (more, wifi) sont rendus en trait.
+    V2Home(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"))),
+    V2Grid(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Rect(4f, 4f, 7f, 7f, 1.5f), IconElement.Rect(13f, 4f, 7f, 7f, 1.5f), IconElement.Rect(4f, 13f, 7f, 7f, 1.5f), IconElement.Rect(13f, 13f, 7f, 7f, 1.5f))),
+    V2Pulse(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M3 12h4l2.5-6 5 12L17 12h4"))),
+    V2Gear(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Circle(12f, 12f, 3f), IconElement.Path("M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"))),
+    V2Search(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Circle(11f, 11f, 6.5f), IconElement.Path("m20 20-4.2-4.2"))),
+    V2Sliders(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 7h10M18 7h2M4 17h4M12 17h8"), IconElement.Circle(16f, 7f, 2f), IconElement.Circle(10f, 17f, 2f))),
+    V2Chev(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("m9 6 6 6-6 6"))),
+    V2Chevd(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("m6 9 6 6 6-6"))),
+    V2Back(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("m15 5-7 7 7 7"))),
+    V2More(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Circle(5f, 12f, 1.3f), IconElement.Circle(12f, 12f, 1.3f), IconElement.Circle(19f, 12f, 1.3f))),
+    V2Check(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("m5 12.5 4.5 4.5L19 7.5"))),
+    V2X(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M6 6l12 12M18 6 6 18"))),
+    V2Plus(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M12 5v14M5 12h14"))),
+    V2Refresh(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M20 12a8 8 0 1 1-2.3-5.6"), IconElement.Path("M20 4v5h-5"))),
+    V2Bolt(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M13 3 5 13.5h6L10 21l8-10.5h-6z"))),
+    V2Phone(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Rect(7f, 3f, 10f, 18f, 2.5f), IconElement.Path("M11 18h2"))),
+    V2Pc(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Rect(3f, 4f, 18f, 12f, 2f), IconElement.Path("M9 20h6M12 16v4"))),
+    V2Cloud(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"))),
+    V2Translate(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 5h8M8 3v2M10.5 5c-.6 3.5-3 6.5-6.5 8M6 8.5c1 2 2.6 3.6 4.5 4.5"), IconElement.Path("m13 21 4-10 4 10M14.4 17.5h5.2"))),
+    V2Down(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M12 4v12M6 11l6 6 6-6M5 20h14"))),
+    V2Up(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M12 20V8M6 13l6-6 6 6M5 4h14"))),
+    V2Shield(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M12 3 5 6v5.5c0 4.3 3 8 7 9.5 4-1.5 7-5.2 7-9.5V6z"), IconElement.Path("m9 12 2 2 4-4"))),
+    V2Redo(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 12a8 8 0 0 0 13.7 5.6"), IconElement.Path("M20 12A8 8 0 0 0 6.3 6.4"), IconElement.Path("M4 4v4h4M20 20v-4h-4"))),
+    V2Copy(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Rect(8f, 8f, 12f, 12f, 2f), IconElement.Path("M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"))),
+    V2Trash(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"))),
+    V2Warn(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M12 4 2.8 20h18.4z"), IconElement.Path("M12 10v4.5M12 17.5v.3"))),
+    V2Info(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Circle(12f, 12f, 9f), IconElement.Path("M12 11v6M12 7.5v.3"))),
+    V2Folder(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"))),
+    V2Wifi(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.6 16a5 5 0 0 1 6.8 0"), IconElement.Circle(12f, 19f, 0.8f))),
+    V2User(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Circle(12f, 8f, 4f), IconElement.Path("M4 21a8 8 0 0 1 16 0"))),
+    V2Book(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M4 5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2z"), IconElement.Path("M4 20a2 2 0 0 0 2 2h14v-4"))),
+    V2List(defaultStrokeWidth = 1.8f, elements = listOf(IconElement.Path("M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"))),
 }
 
 private val vectorCache = HashMap<Triple<TmmIconId, Int, Float>, ImageVector>()

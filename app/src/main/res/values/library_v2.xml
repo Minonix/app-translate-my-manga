@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_v2_subtitle">%1$d séries · %2$d non téléchargées</string>
+    <string name="library_v2_category">Catégorie : %1$s ▾</string>
+    <string name="library_v2_all_categories">toutes</string>
+    <string name="library_v2_mihon_category">Catégorie Mihon</string>
+    <string name="library_v2_followed">Suivies</string>
+    <string name="library_v2_followed_series">Série suivie automatiquement</string>
+    <string name="library_v2_progress">%1$d sur %2$d en VF</string>
+    <string name="library_v2_busy">Traduction</string>
+    <string name="library_v2_install">%1$d à installer</string>
+    <string name="library_v2_translate">%1$d à traduire</string>
+    <string name="library_v2_absent">Absente</string>
+    <string name="library_v2_current">À jour</string>
+    <plurals name="library_v2_failures">
+        <item quantity="one">%d échec</item>
+        <item quantity="other">%d échecs</item>
+    </plurals>
+    <plurals name="library_v2_more_categories">
+        <item quantity="one">+ %d autre</item>
+        <item quantity="other">+ %d autres</item>
+    </plurals>
+    <string name="library_v2_filters_note_today_fmt">Catégories lues dans la sauvegarde Mihon du jour (%1$s). La relire : Réglages, Mihon.</string>
+    <string name="library_v2_filters_note_date_fmt">Catégories lues dans la sauvegarde Mihon du %1$s (%2$s). La relire : Réglages, Mihon.</string>
+    <string name="library_v2_filters_note_none">Catégories lues dans la sauvegarde Mihon. La relire : Réglages, Mihon.</string>
+    <string name="library_v2_follow_label">Suivre ces séries</string>
+    <string name="library_v2_follow_hint">Leurs chapitres téléchargés partent au PC, les prochains aussi</string>
+    <plurals name="library_v2_toast_followed">
+        <item quantity="one">Suivi activé sur %1$s. %2$d chapitre part au PC.</item>
+        <item quantity="other">Suivi activé sur %1$s. %2$d chapitres partent au PC.</item>
+    </plurals>
+    <string name="library_v2_toast_followed_none_fmt">Suivi activé sur %1$s.</string>
+</resources>

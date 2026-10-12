@@ -23,7 +23,10 @@ class IconCoverageTest {
             .toSet()
 
         val mockupDir = File("../maquettes")
-        val missing = mockupDir.listFiles { f -> f.name.endsWith(".dc.html") }!!
+        // Maquettes v1 encore en vigueur + maquette v2 (maquettes/v2-simplifiee).
+        val mockups = mockupDir.listFiles { f -> f.name.endsWith(".dc.html") }!!.toList() +
+            File(mockupDir, "v2-simplifiee/index.html")
+        val missing = mockups
             .flatMap { file ->
                 pathAttrPattern.findAll(file.readText()).map { it.groupValues[1] }
             }

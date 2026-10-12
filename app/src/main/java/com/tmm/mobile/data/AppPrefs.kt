@@ -41,7 +41,6 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val LAST_SCAN_AT = longPreferencesKey("last_scan_at")
         val RETENTION = stringPreferencesKey("retention")
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
-        val TRANSLATE_ON_ARRIVAL = booleanPreferencesKey("translate_on_arrival")
         val PROTOCOL_TOO_NEW = booleanPreferencesKey("protocol_too_new")
         val DIRECT_URL = stringPreferencesKey("direct_url")
         val DIRECT_TOKEN_ENC = stringPreferencesKey("direct_token_enc")
@@ -127,9 +126,6 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
 
     val wifiOnly: Flow<Boolean> = dataStore.data.map { it[Keys.WIFI_ONLY] ?: false }
     suspend fun setWifiOnly(value: Boolean) = set(Keys.WIFI_ONLY, value)
-
-    val translateOnArrival: Flow<Boolean> = dataStore.data.map { it[Keys.TRANSLATE_ON_ARRIVAL] ?: false }
-    suspend fun setTranslateOnArrival(value: Boolean) = set(Keys.TRANSLATE_ON_ARRIVAL, value)
 
     val protocolTooNew: Flow<Boolean> = dataStore.data.map { it[Keys.PROTOCOL_TOO_NEW] ?: false }
     suspend fun setProtocolTooNew(value: Boolean) = set(Keys.PROTOCOL_TOO_NEW, value)

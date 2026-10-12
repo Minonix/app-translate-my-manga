@@ -7,6 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.ListenableWorker.Result
 import androidx.work.WorkerParameters
+import com.tmm.mobile.R
 import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Clock
@@ -48,7 +49,7 @@ private val sendSlots = Semaphore(SEND_PARALLELISM)
 class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
-        transferForegroundInfo(applicationContext, NOTIFICATION_ID_SEND, "Envoi en cours")
+        transferForegroundInfo(applicationContext, NOTIFICATION_ID_SEND, R.string.notification_sending)
 
     override suspend fun doWork(): Result {
         val jobId = inputData.getString(KEY_JOB_ID) ?: return Result.failure()

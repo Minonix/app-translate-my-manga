@@ -97,11 +97,31 @@ class MainViewModelTest {
         val state = vm.state.first { it.toSendCount == 1 }
 
         assertEquals(1, state.toSendCount)
-        assertEquals("1 série · environ 50 Mo", state.toSendSummary)
+        assertEquals(1, state.toSendSeriesCount)
         assertEquals(PcTone.Online, state.pcTone)
         assertEquals(1, state.recentChapters.size)
         assertEquals("One Piece", state.recentChapters.first().title)
-        assertEquals("Ch. 1120", state.recentChapters.first().chapterLabel)
+        assertEquals("ch. 1120", state.recentChapters.first().chapterLabel)
         assertEquals(true, state.recentChapters.first().inMihon)
+    }
+
+    @Test
+    fun toSendCount_ignoresChaptersWithoutKnownSeries() = runTest {
+        env.db.seriesDao().upsert(series("frieren", "Frieren"))
+        fun dl(path: String, seriesKey: String?) = DownloadedChapterEntity(
+            mihonPath = path, sourceDir = "Mihon", seriesDir = path.split("/")[1], chapterDir = path.substringAfterLast("/"),
+            documentUri = "doc://$path", isCbz = true, sizeBytes = 1L, lastModified = 0L, pageCount = 1,
+            seriesKey = seriesKey, chapterKey = null, number = null,
+        )
+        env.db.downloadedChapterDao().upsert(dl("Mihon/frieren/140", "frieren"))
+        // Dossier Mihon sans serie correspondante (DownloadScanner : seriesKey null) : absent de la feuille Traduire.
+        env.db.downloadedChapterDao().upsert(dl("Mihon/inconnue/1", null))
+        // Cle orpheline, sans SeriesEntity : absente elle aussi de la feuille Traduire.
+        env.db.downloadedChapterDao().upsert(dl("Mihon/orpheline/1", "orpheline"))
+
+        val state = MainViewModel(env.container).state.first { it.toSendCount > 0 }
+
+        assertEquals(1, state.toSendCount)
+        assertEquals(1, state.toSendSeriesCount)
     }
 }

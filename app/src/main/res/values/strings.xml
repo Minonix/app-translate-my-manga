@@ -7,51 +7,22 @@
     <string name="common_refresh_cooldown_cd_fmt">Rafraîchir, disponible dans %1$d secondes</string>
 
     <!-- Main.dc.html (E4.1) -->
-    <string name="home_settings_cd">Réglages</string>
     <string name="home_title">Accueil</string>
-    <string name="home_last_check_fmt">Vérifié %1$s</string>
-    <string name="home_pc_online">PC en ligne</string>
     <string name="home_pc_seen_fmt">PC vu il y a %1$s</string>
-    <string name="home_pc_offline">PC hors ligne</string>
-    <string name="home_offline_bold">PC hors ligne %1$s.</string>
     <string name="home_offline_rest">Vos envois attendent sur Google Drive et partiront dès qu\'il se rallume.</string>
-    <string name="home_todo_section_label">À faire · Mihon ↔ PC</string>
-    <string name="home_todo_section_cd">Décalage entre Mihon et le PC</string>
-    <string name="home_details">Détails</string>
-    <string name="home_send_label">chapitres à envoyer au PC</string>
-    <string name="home_send_button">Envoyer</string>
-    <string name="home_send_in_progress_cd">Envoi en cours</string>
-    <string name="home_send_done">En file</string>
-    <string name="home_get_label">traductions à récupérer</string>
-    <string name="home_get_button">Récupérer</string>
     <string name="home_get_progress_fmt">%1$d / %2$d</string>
-    <string name="home_status_on_pc">Sur le PC</string>
-    <string name="home_status_in_mihon">Dans Mihon</string>
-    <string name="home_now_on_pc_title">Sur le PC en ce moment</string>
-    <string name="home_queue_link_fmt">File (%1$d)</string>
-    <string name="home_parallel_status_fmt">%1$d chapitres en parallèle sur %2$s</string>
-    <string name="home_next_fmt">+%1$d ensuite</string>
     <string name="home_job_type_translation">Traduction</string>
     <string name="home_job_type_verification">Vérification</string>
     <string name="home_job_type_retranslation">Retraduction</string>
-    <string name="home_new_translation_title">Nouvelle traduction</string>
-    <string name="home_new_translation_subtitle">Choisir des chapitres</string>
-    <string name="home_scan_mihon_title">Scanner Mihon</string>
-    <string name="home_recent_title">Derniers chapitres traduits</string>
     <string name="home_see_all">Tout voir</string>
-    <string name="home_toast_sent_fmt">%1$d chapitres partent vers le PC via Google Drive.</string>
     <string name="home_toast_received_fmt">%1$d chapitres traduits rangés dans Mihon/local.</string>
     <string name="home_toast_action">Voir</string>
 
     <!-- Partagé (E4.2+) -->
     <string name="common_cancel">Annuler</string>
-    <string name="common_not_applicable">Non applicable</string>
 
     <!-- Library.dc.html (E4.2) -->
     <string name="library_title">Bibliothèque</string>
-    <string name="library_subtitle_default">142 séries · 7 catégories Mihon</string>
-    <string name="library_categories_cd">Catégories</string>
-    <string name="library_categories_tablist_cd">Catégories Mihon</string>
     <string name="library_select_button">Sélectionner</string>
     <string name="library_finish_button">Terminer</string>
     <string name="library_search_placeholder">Rechercher une série</string>
@@ -72,85 +43,120 @@
     <string name="library_deselect_all">Tout décocher</string>
     <string name="library_empty_title">Aucune série ici</string>
     <string name="library_empty_subtitle">Essayez une autre catégorie ou un autre filtre.</string>
-    <string name="library_fr_progress_fmt">FR %1$d/%2$d</string>
     <string name="library_fr_mihon_only">Dans Mihon seulement</string>
-    <string name="library_action_send_label">Envoyer au PC</string>
-    <string name="library_action_get_label">Récupérer</string>
-    <string name="library_action_verify_label">Vérifier</string>
-    <string name="library_action_retranslate_label">Retraduire</string>
     <string name="library_action_translate_label">Traduire</string>
-    <string name="library_action_hint_send">absents du PC</string>
-    <string name="library_action_hint_get">vers Mihon</string>
-    <string name="library_action_hint_verify">corrige les oublis</string>
-    <string name="library_action_hint_retranslate">refait tout</string>
-    <string name="library_action_hint_translate">depuis l\'original</string>
-    <string name="library_confirm_title_fmt">Retraduire %1$s ?</string>
-    <string name="library_confirm_text_fmt">Sur %1$s. Les versions françaises actuelles restent lisibles dans Mihon jusqu\'à ce que les nouvelles soient prêtes.</string>
-    <string name="library_confirm_info">Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.</string>
-    <string name="library_toast_action">Voir la file</string>
 
-    <plurals name="library_chapters_count">
-        <item quantity="one">%1$d chapitre</item>
-        <item quantity="other">%1$d chapitres</item>
-    </plurals>
     <plurals name="library_series_count">
         <item quantity="one">%1$d série</item>
         <item quantity="other">%1$d séries</item>
-    </plurals>
-    <plurals name="library_categories_count">
-        <item quantity="one">%1$d catégorie</item>
-        <item quantity="other">%1$d catégories</item>
     </plurals>
     <plurals name="library_series_selected">
         <item quantity="one">%1$d série sélectionnée</item>
         <item quantity="other">%1$d séries sélectionnées</item>
     </plurals>
-    <plurals name="library_toast_sent">
-        <item quantity="one">%1$d chapitre envoyé au PC.</item>
-        <item quantity="other">%1$d chapitres envoyés au PC.</item>
-    </plurals>
-    <plurals name="library_toast_received">
-        <item quantity="one">%1$d traduction en téléchargement.</item>
-        <item quantity="other">%1$d traductions en téléchargement.</item>
-    </plurals>
-    <plurals name="library_toast_verified">
-        <item quantity="one">%1$d chapitre ajouté en vérification.</item>
-        <item quantity="other">%1$d chapitres ajoutés en vérification.</item>
-    </plurals>
-    <plurals name="library_toast_retranslated">
-        <item quantity="one">%1$d chapitre ajouté en retraduction.</item>
-        <item quantity="other">%1$d chapitres ajoutés en retraduction.</item>
-    </plurals>
-    <plurals name="library_toast_translated">
-        <item quantity="one">%1$d chapitre ajouté en traduction.</item>
-        <item quantity="other">%1$d chapitres ajoutés en traduction.</item>
-    </plurals>
 
-    <!-- Series.dc.html (E4.3) -->
+    <!-- Fiche serie (maquette v2, ecrans 3 a 5) -->
+    <string name="series_back_label">Bibliothèque</string>
     <string name="series_back_cd">Retour à la bibliothèque</string>
-    <string name="series_location_stats_cd">Où sont les chapitres</string>
-    <string name="series_sheet_title">Toute la série</string>
-    <string name="series_legend_phone">Téléphone</string>
-    <string name="series_legend_pc">PC</string>
-    <string name="series_legend_fr">Français</string>
-    <string name="series_legend_absent">Absent</string>
-    <string name="series_stat_pc_original">PC original</string>
-    <string name="series_stat_translated_label">Traduits</string>
-    <string name="series_stat_fr_tag">FR</string>
-    <string name="series_chapters_title">Chapitres</string>
-    <string name="series_select_todo_button">Tout ce qui reste à faire</string>
-    <string name="series_deselect_all">Désélectionner</string>
-    <string name="series_gap_rest">Il manque partout. Téléchargez-le dans Mihon ou ignorez-le.</string>
+    <string name="series_more_cd">Actions sur toute la série</string>
+    <string name="series_followed_tag">Suivie</string>
+    <plurals name="series_progress_title">
+        <item quantity="one">%1$d chapitre en VF sur %2$d</item>
+        <item quantity="other">%1$d chapitres en VF sur %2$d</item>
+    </plurals>
+    <string name="series_progress_percent_fmt">%1$d %%</string>
+    <string name="series_legend_in_mihon_fmt">%1$d dans Mihon</string>
+    <string name="series_legend_ready_fmt">%1$d à installer</string>
+    <string name="series_legend_busy_fmt">%1$d en cours</string>
+    <string name="series_legend_to_translate_fmt">%1$d à traduire</string>
+    <plurals name="series_legend_not_downloaded">
+        <item quantity="one">%1$d pas téléchargé</item>
+        <item quantity="other">%1$d pas téléchargés</item>
+    </plurals>
+    <string name="series_follow_title">Suivre cette série</string>
+    <string name="series_follow_desc">Chaque nouveau chapitre téléchargé dans Mihon partira en traduction tout seul.</string>
+    <string name="series_followed_title">Série suivie</string>
+    <string name="series_followed_desc_fmt">Prochain chapitre attendu : %1$d. Il partira à la prochaine ouverture de TMM après son téléchargement.</string>
+    <string name="series_sent_on_follow_one_fmt">Ch. %1$s envoyé au PC à l\'activation</string>
+    <string name="series_sent_on_follow_many_fmt">Ch. %1$s envoyés au PC à l\'activation</string>
+    <string name="series_sent_on_follow_see">Voir</string>
+    <string name="series_translate_one_fmt">Traduire le ch. %1$d</string>
+    <plurals name="series_translate_many">
+        <item quantity="one">Traduire %1$d chapitre</item>
+        <item quantity="other">Traduire %1$d chapitres</item>
+    </plurals>
+    <plurals name="series_install_many">
+        <item quantity="one">Installer %1$d chapitre</item>
+        <item quantity="other">Installer %1$d chapitres</item>
+    </plurals>
+    <string name="series_gap_bold_one_fmt">Ch. %1$s manquant partout.</string>
+    <string name="series_gap_bold_many_fmt">Ch. %1$s manquants partout.</string>
+    <string name="series_gap_hint_one">Téléchargez-le dans Mihon.</string>
+    <string name="series_gap_hint_many">Téléchargez-les dans Mihon.</string>
     <string name="series_gap_dismiss">Ignorer</string>
-    <string name="series_confirm_text">La version française actuelle sera remplacée une fois la nouvelle prête. Elle reste lisible dans Mihon en attendant.</string>
-    <string name="series_confirm_kicker">Confirmation</string>
-    <string name="series_action_hint_send">Absents du PC</string>
-    <string name="series_action_hint_get">Vers Mihon/local</string>
-    <string name="series_action_hint_verify">Corrige les oublis</string>
-    <string name="series_action_hint_retranslate">Refait tout</string>
-    <string name="series_action_hint_translate">Depuis l\'original</string>
+    <string name="series_chapters_title">Chapitres</string>
+    <string name="series_select">Sélectionner</string>
+    <string name="series_select_done">Terminer</string>
+    <string name="series_chapter_number_fmt">Ch. %1$d</string>
+    <string name="series_chapter_range_fmt">Ch. %1$d à %2$d</string>
+    <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$d</string>
+    <string name="series_status_to_translate">À traduire</string>
+    <string name="series_status_on_pc">Sur le PC, pas traduit</string>
+    <string name="series_status_waiting">En attente du PC</string>
+    <string name="series_status_translating_fmt">Traduction %1$d %%</string>
+    <string name="series_status_failed">Échec</string>
+    <string name="series_status_failed_page_fmt">Échec page %1$d</string>
+    <string name="series_status_ready">Prête à installer</string>
+    <string name="series_status_in_mihon">Dans Mihon</string>
+    <string name="series_status_not_downloaded_one">Pas téléchargé</string>
+    <string name="series_status_not_downloaded_many">Pas téléchargés</string>
+    <string name="series_status_missing">Manquant</string>
+    <string name="series_chip_pages_fmt">%1$d/%2$d pages</string>
+    <plurals name="series_chip_bubbles">
+        <item quantity="one">%1$d bulle</item>
+        <item quantity="other">%1$d bulles</item>
+    </plurals>
+    <plurals name="series_chip_left_in_vo">
+        <item quantity="one">%1$d restée en VO</item>
+        <item quantity="other">%1$d restées en VO</item>
+    </plurals>
+    <string name="series_chip_sfx_fmt">%1$d SFX gardés</string>
+    <string name="series_chip_verified_fmt">Vérifié le %1$s</string>
+    <string name="series_selection_bar_action">Que faire ?</string>
+    <plurals name="series_chapters_selected">
+        <item quantity="one">%1$d chapitre sélectionné</item>
+        <item quantity="other">%1$d chapitres sélectionnés</item>
+    </plurals>
+    <string name="series_sheet_kicker_fmt">%1$s · %2$s</string>
+    <string name="series_sheet_all_series">Toute la série</string>
+    <string name="series_sheet_more_title">Que faire ?</string>
+    <string name="series_action_install_label">Installer dans Mihon</string>
+    <string name="series_action_install_hint">Traduction prête, pas encore dans Mihon</string>
+    <string name="series_action_verify_label">Corriger les oublis</string>
+    <string name="series_action_verify_hint">Ne retraduit que les bulles restées en VO. Rapide.</string>
+    <string name="series_action_retranslate_label">Retraduire de zéro</string>
+    <string name="series_action_retranslate_hint">La VF actuelle reste lisible jusqu\'à la nouvelle</string>
+    <string name="series_action_copy_label">Copier sur le PC sans traduire</string>
+    <string name="series_action_copy_hint">Pour traduire plus tard depuis TMM-Win</string>
+    <string name="series_action_delete_more_label">Supprimer…</string>
+    <string name="series_action_delete_hint">Choisir : VF du téléphone, téléchargement Mihon, PC</string>
     <string name="series_action_delete_label">Supprimer</string>
-    <string name="series_action_hint_delete">Téléphone, Mihon, PC</string>
+    <string name="series_locked_note_one_fmt">Le ch. %1$s est en cours de traduction : il n\'est pas sélectionnable.</string>
+    <string name="series_locked_note_many_fmt">Les ch. %1$s sont en cours de traduction : ils ne sont pas sélectionnables.</string>
+    <string name="series_follow_sheet_title">Suivre cette série ?</string>
+    <string name="series_follow_step1_title">Mihon télécharge un nouveau chapitre</string>
+    <string name="series_follow_step1_desc">Comme d\'habitude, rien à changer.</string>
+    <string name="series_follow_step2_title">TMM l\'envoie au PC</string>
+    <string name="series_follow_step2_desc">À la prochaine ouverture de TMM ou actualisation.</string>
+    <string name="series_follow_step3_title">La VF arrive dans Mihon</string>
+    <string name="series_follow_step3_desc">Bibliothèque locale, sans rien toucher.</string>
+    <plurals name="series_follow_catchup_bold">
+        <item quantity="one">%1$d chapitre déjà téléchargé partira aussi</item>
+        <item quantity="other">%1$d chapitres déjà téléchargés partiront aussi</item>
+    </plurals>
+    <string name="series_follow_catchup_rest_one_fmt">(ch. %1$s), car il n\'est pas encore traduit.</string>
+    <string name="series_follow_catchup_rest_many_fmt">(ch. %1$s), car ils ne sont pas encore traduits.</string>
+    <string name="series_follow_confirm_fmt">Suivre %1$s</string>
     <string name="series_delete_title_fmt">Supprimer %1$s ?</string>
     <string name="series_delete_option_fr_label">Traduction sur le téléphone</string>
     <string name="series_delete_option_fr_hint">Le CBZ français installé dans la bibliothèque locale de Mihon</string>
@@ -158,224 +164,129 @@
     <string name="series_delete_option_mihon_warning">Irréversible. Mihon peut garder le chapitre en cache tant que sa bibliothèque n\'est pas rafraîchie.</string>
     <string name="series_delete_option_pc_label">Fichiers sur le PC (original et traduction)</string>
     <string name="series_delete_option_pc_hint">Supprimés par le PC à sa prochaine synchronisation</string>
-    <string name="series_toast_delete_failed">Certains fichiers n\'ont pas pu être supprimés.</string>
-    <string name="series_toast_delete_pc_unavailable">PC jamais synchronisé : rien n\'a été demandé au PC.</string>
-    <string name="series_sheet_action_send_label">Envoyer ce qui manque</string>
-    <string name="series_sheet_action_send_hint">Chapitres du téléphone absents du PC</string>
-    <string name="series_sheet_action_get_label">Récupérer les traductions</string>
-    <string name="series_sheet_action_get_hint">Traduites mais pas encore dans Mihon</string>
-    <string name="series_sheet_action_verify_label">Vérifier toute la série</string>
-    <string name="series_sheet_action_verify_hint">Relit tout, ne corrige que les oublis</string>
-    <string name="series_sheet_action_retranslate_label">Retraduire toute la série</string>
-    <string name="series_sheet_action_retranslate_hint">Refait la traduction de zéro</string>
-    <string name="series_chip_never_verified">Jamais vérifié</string>
-    <string name="series_gap_bold_fmt">Trou dans la suite : ch. %1$d.</string>
-    <string name="series_chapter_number_fmt">Ch. %1$d</string>
-    <string name="series_chapter_aria_fmt">Chapitre %1$d, %2$s</string>
-    <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$d</string>
-    <string name="series_sheet_kicker_fmt">%1$s · %2$s</string>
-    <string name="series_sheet_count_fmt">%1$d ch.</string>
-    <string name="series_chip_pages_fmt">%1$d/%2$d pages</string>
-    <string name="series_chip_bubbles_translated_fmt">%1$d bulles traduites</string>
-    <string name="series_chip_bubbles_untranslated_fmt">%1$d non traduites</string>
-    <string name="series_chip_sfx_fmt">%1$d SFX gardés</string>
-    <string name="series_chip_verified_fmt">Vérifié le %1$s</string>
-
     <plurals name="series_chapters_count">
         <item quantity="one">%1$d chapitre</item>
         <item quantity="other">%1$d chapitres</item>
-    </plurals>
-    <plurals name="series_chapters_selected">
-        <item quantity="one">%1$d chapitre sélectionné</item>
-        <item quantity="other">%1$d chapitres sélectionnés</item>
-    </plurals>
-    <plurals name="series_toast_sent">
-        <item quantity="one">%1$d chapitre envoyé au PC.</item>
-        <item quantity="other">%1$d chapitres envoyés au PC.</item>
-    </plurals>
-    <plurals name="series_toast_received">
-        <item quantity="one">%1$d traduction en téléchargement vers Mihon.</item>
-        <item quantity="other">%1$d traductions en téléchargement vers Mihon.</item>
-    </plurals>
-    <plurals name="series_toast_verified">
-        <item quantity="one">%1$d chapitre ajouté à la file en vérification.</item>
-        <item quantity="other">%1$d chapitres ajoutés à la file en vérification.</item>
-    </plurals>
-    <plurals name="series_toast_retranslated">
-        <item quantity="one">%1$d chapitre ajouté à la file en retraduction.</item>
-        <item quantity="other">%1$d chapitres ajoutés à la file en retraduction.</item>
-    </plurals>
-    <plurals name="series_toast_translated">
-        <item quantity="one">%1$d chapitre ajouté à la file en traduction.</item>
-        <item quantity="other">%1$d chapitres ajoutés à la file en traduction.</item>
-    </plurals>
-    <plurals name="series_toast_deleted">
-        <item quantity="one">%1$d chapitre supprimé.</item>
-        <item quantity="other">%1$d chapitres supprimés.</item>
     </plurals>
     <plurals name="series_delete_skipped">
         <item quantity="one">%1$d chapitre ignoré : traitement en cours.</item>
         <item quantity="other">%1$d chapitres ignorés : traitement en cours.</item>
     </plurals>
-
-    <!-- Sync.dc.html (E4.4) -->
-    <string name="sync_title">Transferts</string>
-    <string name="sync_subtitle">Les fichiers qui voyagent entre ce téléphone et le PC</string>
-    <string name="sync_how_it_works_cd">Comment ça marche</string>
-    <string name="sync_cloud_label">Google Drive</string>
-    <string name="sync_up_label">à envoyer au PC</string>
-    <string name="sync_down_label">à récupérer</string>
-    <string name="sync_explain_text">Tout passe par votre Google Drive : le PC peut être éteint, les fichiers l\'y attendent. Rien n\'est traduit ici, la traduction se suit dans</string>
-    <string name="sync_explain_queue_link">File</string>
-    <string name="sync_now_title">En cours maintenant</string>
-    <string name="sync_no_live">Aucun transfert en cours</string>
-    <string name="sync_up_section_title">À envoyer au PC</string>
-    <string name="sync_up_section_subtitle">Téléchargés dans Mihon, absents du PC</string>
-    <string name="sync_auto_translate_title">Traduire dès l\'arrivée sur le PC</string>
-    <string name="sync_auto_translate_hint_on">Ils entreront directement dans la file de traduction</string>
-    <string name="sync_auto_translate_hint_off">Ils seront seulement copiés sur le PC</string>
-    <string name="sync_up_button_busy">Envoi en cours...</string>
-    <string name="sync_up_title_done">Tout est parti</string>
-    <string name="sync_up_follow_action">Suivre</string>
-    <string name="sync_down_section_title">À récupérer</string>
-    <string name="sync_down_section_subtitle">Traduits par le PC, pas encore dans Mihon</string>
-    <string name="sync_down_info_text">Rangés dans Mihon/local/&lt;série&gt;, lisibles comme une série locale.</string>
-    <string name="sync_down_title_done">Tout est dans Mihon</string>
-    <string name="sync_down_button_done">Récupéré</string>
-    <string name="sync_down_status_stored">Rangé</string>
-    <string name="sync_scan_source_info">Ces listes viennent du scan de Mihon</string>
-    <string name="sync_rescan_button">Rescanner</string>
-
-    <string name="sync_up_title_fmt">%1$d chapitres</string>
-    <string name="sync_up_button_fmt">Envoyer %1$d chapitres</string>
-    <string name="sync_up_done_fmt">%1$d chapitres déposés sur Drive</string>
-    <string name="sync_down_title_fmt">%1$d chapitres traduits</string>
-    <string name="sync_down_button_fmt">Télécharger %1$d chapitres ici</string>
-    <string name="sync_down_button_busy_fmt">Téléchargement %1$d/%2$d...</string>
-    <string name="sync_scan_scanning_fmt">Analyse de %1$d séries...</string>
-    <string name="sync_scan_last_fmt">Mihon/downloads · scanné %1$s</string>
-    <string name="sync_more_series_fmt">+%1$d autres séries (%2$d ch.)</string>
-
-    <plurals name="sync_missing_count">
-        <item quantity="one">%1$d chapitre manquant partout</item>
-        <item quantity="other">%1$d chapitres manquants partout</item>
+    <plurals name="series_toast_translated">
+        <item quantity="one">%1$d chapitre part en traduction.</item>
+        <item quantity="other">%1$d chapitres partent en traduction.</item>
     </plurals>
+    <plurals name="series_toast_copied">
+        <item quantity="one">%1$d chapitre copié sur le PC, sans traduction.</item>
+        <item quantity="other">%1$d chapitres copiés sur le PC, sans traduction.</item>
+    </plurals>
+    <plurals name="series_toast_installing">
+        <item quantity="one">%1$d traduction en cours d\'installation dans Mihon.</item>
+        <item quantity="other">%1$d traductions en cours d\'installation dans Mihon.</item>
+    </plurals>
+    <plurals name="series_toast_verified">
+        <item quantity="one">%1$d chapitre part en correction des oublis.</item>
+        <item quantity="other">%1$d chapitres partent en correction des oublis.</item>
+    </plurals>
+    <plurals name="series_toast_retranslated">
+        <item quantity="one">%1$d chapitre part en retraduction.</item>
+        <item quantity="other">%1$d chapitres partent en retraduction.</item>
+    </plurals>
+    <plurals name="series_toast_deleted">
+        <item quantity="one">%1$d chapitre supprimé.</item>
+        <item quantity="other">%1$d chapitres supprimés.</item>
+    </plurals>
+    <string name="series_toast_delete_failed">Certains fichiers n\'ont pas pu être supprimés.</string>
+    <string name="series_toast_delete_pc_unavailable">PC jamais synchronisé : rien n\'a été demandé au PC.</string>
+    <plurals name="series_toast_followed">
+        <item quantity="one">%1$s est suivie. %2$d chapitre part au PC.</item>
+        <item quantity="other">%1$s est suivie. %2$d chapitres partent au PC.</item>
+    </plurals>
+    <string name="series_toast_followed_none_fmt">%1$s est suivie.</string>
+    <string name="series_toast_undo">Annuler</string>
 
-    <!-- Queue.dc.html (E4.5) -->
-    <string name="queue_title">File</string>
-    <string name="queue_subtitle">Traductions et vérifications envoyées au PC</string>
-    <string name="queue_new_translation_cd">Nouvelle traduction</string>
-    <string name="queue_tablist_cd">État des traductions</string>
-    <string name="queue_tab_active">En cours</string>
-    <string name="queue_tab_done">Terminées</string>
-    <string name="queue_tab_fail">Échecs</string>
-    <string name="queue_parallel_on_pc_fmt">en parallèle sur %1$s</string>
-    <string name="queue_settings_action">Régler</string>
-    <string name="queue_active_section_cd">Chapitres en cours</string>
-    <string name="queue_page_detail_fmt">Page %1$d sur %2$d · %3$s</string>
-    <string name="queue_steps_cd">Étapes</string>
-    <string name="queue_step_fetch">Récup.</string>
-    <string name="queue_step_ocr">OCR</string>
-    <string name="queue_step_translate">Trad.</string>
-    <string name="queue_step_lettering">Lettrage</string>
-    <string name="queue_step_verify">Vérif.</string>
-    <string name="queue_see_details_aria_fmt">Voir le détail de %1$s</string>
-    <string name="queue_touch_hint">Touchez un chapitre pour le détail</string>
-    <string name="queue_auto_return">Retour auto</string>
-    <string name="queue_waiting_title_fmt">Ensuite (%1$d)</string>
-    <string name="queue_no_waiting">Rien d\'autre en attente.</string>
-    <string name="queue_remove_cd_fmt">Retirer %1$s de la file</string>
-    <string name="queue_alert_cd">Alerte</string>
-    <string name="queue_done_details_cd_fmt">Détails de traduction, %1$s</string>
-    <string name="queue_alert_source_copy">bulle recopiée en VO</string>
-    <string name="queue_alert_source_text">texte resté en VO</string>
-    <string name="queue_alert_overflow">texte qui déborde</string>
-    <string name="queue_alert_too_small">police trop petite</string>
-    <string name="queue_alert_row_fmt">p. %1$d · %2$s</string>
-    <string name="queue_verify_page_action">Vérifier la page</string>
-    <string name="queue_in_queue_status">Dans la file</string>
-    <string name="queue_fail_message_fmt">Échec page %1$d : %2$s</string>
-    <string name="queue_fail_message_simple_fmt">Échec : %1$s</string>
-    <string name="queue_fail_kept_fmt">%1$s · les pages 1 à %2$d sont conservées</string>
-    <string name="queue_retry_button_fmt">Réessayer à partir de la page %1$d</string>
-    <string name="queue_retry_button_simple">Réessayer</string>
-    <string name="queue_retried_title">Remis dans la file</string>
-    <string name="queue_no_failures">Aucun échec en cours.</string>
-    <string name="queue_no_alerts">Aucune alerte</string>
-
-    <plurals name="queue_alerts_count">
+    <!-- Activité (maquette v2, écran 7) -->
+    <string name="activity_title">Activité</string>
+    <string name="activity_subtitle">Ce qui part, ce que traduit le PC, ce qui revient</string>
+    <string name="activity_new_cd">Traduire des chapitres</string>
+    <string name="activity_tablist_cd">État des chapitres</string>
+    <string name="activity_tab_active">En cours</string>
+    <string name="activity_tab_done">Terminées</string>
+    <string name="activity_tab_fail">Échecs</string>
+    <plurals name="activity_slots_fmt">
+        <item quantity="one">%1$s · %2$d chapitre à la fois</item>
+        <item quantity="other">%1$s · %2$d chapitres à la fois</item>
+    </plurals>
+    <string name="activity_settings_link">Régler</string>
+    <string name="activity_page_detail_fmt">Page %1$d sur %2$d · %3$s</string>
+    <string name="activity_page_detail_short_fmt">Page %1$d sur %2$d</string>
+    <string name="activity_percent_fmt">%1$d %%</string>
+    <string name="activity_phase_upload_done">Envoi ✓</string>
+    <string name="activity_phase_return">Retour dans Mihon</string>
+    <string name="activity_type_translation">Traduction</string>
+    <string name="activity_type_verification">Correction</string>
+    <string name="activity_type_retranslation">Retraduction</string>
+    <string name="activity_step_read">Lecture</string>
+    <string name="activity_step_translate">Traduction</string>
+    <string name="activity_step_lettering">Lettrage</string>
+    <string name="activity_step_verify">Vérification</string>
+    <string name="activity_step_done_fmt">%1$s ✓</string>
+    <string name="activity_step_current_fmt">%1$s en cours</string>
+    <string name="activity_row_progress_fmt">%1$s %2$d %%</string>
+    <string name="activity_upload_fmt">Envoi %1$d %%</string>
+    <string name="activity_download_fmt">Retour %1$d/%2$d Mo</string>
+    <string name="activity_download">Retour</string>
+    <string name="activity_focus_cd_fmt">Voir le détail de %1$s</string>
+    <string name="activity_next_fmt">Ensuite (%1$d)</string>
+    <string name="activity_waiting_translation">Traduction</string>
+    <string name="activity_waiting_verification">Correction des oublis</string>
+    <string name="activity_waiting_retranslation">Retraduction</string>
+    <string name="activity_auto">suivi auto</string>
+    <string name="activity_remove_cd_fmt">Retirer %1$s</string>
+    <string name="activity_nothing_running">Rien ne se traduit en ce moment.</string>
+    <string name="activity_done_installed_fmt">%1$s · dans Mihon</string>
+    <string name="activity_done_ready_fmt">%1$s · prête à installer</string>
+    <plurals name="activity_alerts">
         <item quantity="one">%1$d alerte</item>
         <item quantity="other">%1$d alertes</item>
     </plurals>
-
-    <!-- Catalog.dc.html (E4.6) -->
-    <string name="catalog_title">Catalogue</string>
-    <string name="catalog_subtitle">Votre bibliothèque Mihon, séries et catégories</string>
-    <string name="catalog_backup_label">Sauvegarde Mihon</string>
-    <string name="catalog_imported_fmt">Importée %1$s · depuis Mihon/autobackup</string>
-    <string name="catalog_step_reading_file">Lecture du fichier...</string>
-    <string name="catalog_step_decompression">Décompression...</string>
-    <string name="catalog_step_reading_series_fmt">Lecture des %1$d séries...</string>
-    <string name="catalog_step_categories">Catégories...</string>
-    <string name="catalog_step_comparison">Comparaison avec le téléphone...</string>
-    <string name="catalog_reimport_button">Relire la dernière sauvegarde</string>
-    <string name="catalog_backup_info">Mihon crée une sauvegarde automatique chaque jour. Elle est relue à chaque ouverture de l\'app.</string>
-    <string name="catalog_stat_series">séries</string>
-    <string name="catalog_stat_absent">non téléchargées</string>
-    <string name="catalog_stat_categories">catégories</string>
-    <string name="catalog_categories_title">Catégories</string>
-    <string name="catalog_readonly_hint">Lecture seule en V1</string>
-    <string name="catalog_open_category_cd_fmt">Ouvrir la catégorie %1$s</string>
-
-    <!-- NewTranslation.dc.html (E4.7) -->
-    <string name="new_trans_title">Nouvelle traduction</string>
-    <string name="new_trans_step1_label">Étape 1 sur 2 · série</string>
-    <string name="new_trans_step2_label">Étape 2 sur 2 · chapitres</string>
-    <string name="new_trans_close_cd">Fermer</string>
-    <string name="new_trans_change_series_cd">Changer de série</string>
-    <string name="new_trans_search_placeholder">Série téléchargée dans Mihon</string>
-    <string name="new_trans_search_cd">Chercher une série</string>
-    <string name="new_trans_series_subtitle">Séries avec des chapitres pas encore envoyés</string>
-    <string name="new_trans_to_send_badge_fmt">%1$d à envoyer</string>
-    <string name="new_trans_chapters_subtitle">Téléchargés dans Mihon, absents du PC</string>
-    <string name="new_trans_check_all">Tout cocher</string>
-    <string name="new_trans_uncheck_all">Tout décocher</string>
-    <string name="new_trans_chapter_item_fmt">Ch. %1$s</string>
-    <string name="new_trans_pages_count_fmt">%1$d pages</string>
-    <string name="new_trans_translate_on_arrival_title">Traduire à l\'arrivée</string>
-    <string name="new_trans_translate_hint_on">Retour automatique dans Mihon une fois traduit</string>
-    <string name="new_trans_translate_hint_off">Simple copie sur le PC, sans traduction</string>
-    <string name="new_trans_btn_pick_series">Choisissez une série</string>
-    <string name="new_trans_btn_check_chapters">Cochez des chapitres</string>
-    <string name="new_trans_btn_busy">Dépôt sur Google Drive...</string>
-    <string name="new_trans_btn_done">Ajouté à la file · Voir</string>
-    <string name="new_trans_btn_send_single">Envoyer 1 chapitre</string>
-    <string name="new_trans_btn_send_multi_fmt">Envoyer %1$d chapitres</string>
+    <string name="activity_no_alert">Aucune alerte</string>
+    <string name="activity_pages_fmt">%1$d/%2$d pages</string>
+    <plurals name="activity_bubbles">
+        <item quantity="one">%1$d bulle</item>
+        <item quantity="other">%1$d bulles</item>
+    </plurals>
+    <string name="activity_sfx_fmt">%1$d SFX gardés</string>
+    <string name="activity_alert_source_copy">bulle recopiée en VO</string>
+    <string name="activity_alert_source_text">texte resté en VO</string>
+    <string name="activity_alert_overflow">texte qui déborde</string>
+    <string name="activity_alert_too_small">police trop petite</string>
+    <string name="activity_alert_page_fmt">p. %1$d</string>
+    <string name="activity_fix_page">Corriger la page</string>
+    <string name="activity_fixing">En correction</string>
+    <string name="activity_done_cd_fmt">Détails de traduction, %1$s</string>
+    <string name="activity_done_empty">Aucun chapitre terminé pour l\'instant.</string>
+    <string name="activity_fail_page_fmt">Échec page %1$d : %2$s</string>
+    <string name="activity_fail_fmt">Échec : %1$s</string>
+    <string name="activity_resume_page_fmt">Reprendre à la page %1$d</string>
+    <string name="activity_resume">Reprendre</string>
+    <string name="activity_quota_tip">Astuce : activez « Secours LLM local » dans Réglages, Traduction, pour basculer sur Ollama quand le quota est atteint.</string>
+    <string name="activity_fail_empty">Aucun échec en cours.</string>
 
     <!-- Settings.dc.html (E4.8) -->
     <string name="settings_title">Réglages</string>
-    <string name="settings_back_cd">Retour à l\'accueil</string>
     <string name="settings_pc_status_cd">État du PC</string>
-    <string name="settings_pc_online">En ligne</string>
-    <string name="settings_pc_last_signal_fmt">Dernier signal %1$s · le PC écrit sur Drive toutes les minutes</string>
     <string name="settings_group_drive">Google Drive</string>
     <string name="settings_group_mihon">Mihon</string>
     <string name="settings_group_translation">Traduction</string>
-    <string name="settings_group_network">Réseau</string>
-    <string name="settings_group_diagnostic">Diagnostic</string>
-    <string name="settings_row_account">Compte</string>
-    <string name="settings_row_shared_folder">Dossier partagé</string>
     <string name="settings_row_drive_retention">Conservation sur Drive</string>
     <string name="settings_retention_never">Jamais supprimer</string>
     <string name="settings_retention_30_days">Après 30 jours</string>
     <string name="settings_retention_after_download">Après récupération</string>
     <string name="settings_action_change">Changer</string>
-    <string name="settings_action_edit">Modifier</string>
     <string name="settings_row_mihon_folder">Dossier Mihon</string>
-    <string name="settings_row_last_backup">Dernière sauvegarde lue</string>
     <string name="settings_row_reinstall">Refaire l\'installation</string>
     <string name="settings_row_reinstall_desc">3 étapes, rien n’est effacé</string>
-    <string name="settings_row_pc_translation_settings">Réglages de traduction du PC</string>
     <string name="settings_row_wifi_only">Wi-Fi uniquement</string>
     <string name="settings_wifi_only_on_desc">Les envois attendent le Wi-Fi</string>
     <string name="settings_wifi_only_off_desc">Envois aussi en données mobiles</string>
@@ -385,9 +296,6 @@
     <string name="settings_toast_choose_account">Choix du compte Google</string>
     <string name="settings_toast_folder_picker">Sélecteur de dossier Android</string>
     <string name="settings_toast_logs_ready">Journaux prêts à partager</string>
-    <string name="settings_group_direct">Connexion directe</string>
-    <string name="settings_row_direct_state">État</string>
-    <string name="settings_direct_on">Directe via Tailscale</string>
     <string name="settings_direct_unreachable">PC injoignable, Google Drive utilisé</string>
     <string name="settings_direct_unpaired">Non associée</string>
     <string name="settings_direct_expired">Appairage expiré</string>
@@ -400,8 +308,6 @@
 
     <!-- TranslationSettings.dc.html (E4.9) -->
     <string name="trans_settings_back_cd">Retour aux réglages</string>
-    <string name="trans_settings_title">Traduction sur le PC</string>
-    <string name="trans_settings_subtitle">Les mêmes réglages que dans TMM-Win</string>
     <string name="trans_settings_sync_sending_title">Envoi au PC...</string>
     <string name="trans_settings_sync_sending_hint">Via Google Drive, quelques secondes</string>
     <string name="trans_settings_sync_applied_title_fmt">Appliqué sur %1$s</string>
@@ -411,36 +317,12 @@
     <string name="trans_settings_sync_waiting_title">En attente du PC</string>
     <string name="trans_settings_sync_waiting_hint">Sera appliqué au prochain démarrage du PC</string>
     <string name="trans_settings_sync_readonly_hint">Les réglages s\'afficheront au premier signal du PC</string>
-    <string name="trans_settings_group_languages">Langues</string>
-    <string name="trans_settings_source_language">Langue source</string>
-    <string name="trans_settings_target_language">Langue cible</string>
-    <string name="trans_settings_group_engine">Moteur</string>
-    <string name="trans_settings_engine">Moteur de traduction</string>
-    <string name="trans_settings_auto_failover">Secours LLM local</string>
-    <string name="trans_settings_auto_failover_desc">Si le moteur échoue ou atteint son quota, bascule sur Ollama</string>
-    <string name="trans_settings_group_after_translation">Après traduction</string>
-    <string name="trans_settings_auto_verify">Vérifier automatiquement</string>
-    <string name="trans_settings_auto_verify_desc">Relance une vérification après chaque chapitre traduit</string>
-    <string name="trans_settings_group_performance">Performance</string>
-    <string name="trans_settings_chapter_concurrency">Chapitres simultanés</string>
-    <string name="trans_settings_page_concurrency">Pages simultanées</string>
     <string name="trans_settings_pile_size">Pages par envoi au moteur</string>
-    <string name="trans_settings_use_gpu">Utiliser la carte graphique</string>
     <string name="trans_settings_gpu_on_desc">DirectML / CUDA</string>
     <string name="trans_settings_gpu_off_desc">Processeur uniquement, plus lent</string>
-    <string name="trans_settings_adv_expand">Vision avancée (5 réglages)</string>
-    <string name="trans_settings_adv_collapse">Masquer la vision avancée</string>
     <string name="trans_settings_detector">Détecteur de bulles</string>
-    <string name="trans_settings_ocr">OCR</string>
     <string name="trans_settings_inpainter">Effacement du texte</string>
     <string name="trans_settings_inpainting_size">Taille d’effacement</string>
-    <string name="trans_settings_font">Police par défaut</string>
-    <string name="trans_settings_security_note">Les clés API et le dossier de sortie restent sur le PC. Un changement s\'applique aux prochaines pages, sans redémarrer ni interrompre les chapitres en cours.</string>
-    <string name="trans_settings_single_chapter">Un à la fois</string>
-    <string name="trans_settings_parallel_chapters_fmt">%1$d en parallèle</string>
-    <string name="trans_settings_recommended">Recommandé</string>
-    <string name="trans_settings_per_chapter">par chapitre</string>
-    <string name="trans_settings_more_context">Plus de contexte si élevé</string>
 
     <!-- Onboarding.dc.html (E4.10) -->
     <string name="app_name_glyph">訳</string>
@@ -517,4 +399,28 @@
     <string name="perm_btn_verifying">Vérification...</string>
     <string name="perm_btn_back_home">Revenir à l\'accueil</string>
     <string name="perm_link_settings">Aide et réglages</string>
+    <!-- Feuille Traduire (maquette v2, ecran 6) -->
+    <plurals name="translate_kick">
+        <item quantity="one">%1$d chapitre téléchargé, jamais traduit</item>
+        <item quantity="other">%1$d chapitres téléchargés, jamais traduits</item>
+    </plurals>
+    <string name="translate_title">Que traduire ?</string>
+    <string name="translate_close_cd">Fermer</string>
+    <string name="translate_search">Chercher une série</string>
+    <string name="translate_chapter_fmt">Ch. %1$s</string>
+    <string name="translate_desc_two_fmt">Ch. %1$s, %2$s</string>
+    <string name="translate_desc_range_fmt">Ch. %1$s à %2$s · %3$d ch.</string>
+    <string name="translate_desc_partial_fmt">%1$d sur %2$d cochés</string>
+    <string name="translate_pages_fmt">%1$d p.</string>
+    <plurals name="translate_button">
+        <item quantity="one">Traduire %1$d chapitre</item>
+        <item quantity="other">Traduire %1$d chapitres</item>
+    </plurals>
+    <string name="translate_copy_prefix">ou</string>
+    <string name="translate_copy_link">copier sur le PC sans traduire</string>
+    <string name="translate_note">Le PC peut être éteint : ils l\'attendront sur Google Drive.</string>
+    <!-- Canal des notifications d'envoi et de reception (onglet Activite de la maquette v2). -->
+    <string name="notification_channel_transfers">Envois et réceptions</string>
+    <string name="notification_sending">Envoi en cours</string>
+    <string name="notification_receiving">Réception en cours</string>
 </resources>

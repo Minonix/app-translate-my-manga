@@ -53,7 +53,7 @@ import com.tmm.mobile.ui.theme.pressScale
 fun EmptyScreen(
     state: EmptyState,
     onEvent: (EmptyEvent) -> Unit,
-    onOpenCatalog: () -> Unit = {},
+    onReadBackup: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -208,7 +208,7 @@ fun EmptyScreen(
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
-                                    onClick = onOpenCatalog,
+                                    onClick = onReadBackup,
                                 ),
                         )
                     }

@@ -8,25 +8,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -34,24 +35,40 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
+import com.tmm.mobile.ui.components.Cover
+import com.tmm.mobile.ui.components.PillTone
+import com.tmm.mobile.ui.components.StatusPill
 import com.tmm.mobile.ui.components.TmmText
+import com.tmm.mobile.ui.components.V2Button
+import com.tmm.mobile.ui.components.V2ButtonSize
+import com.tmm.mobile.ui.components.V2ButtonStyle
+import com.tmm.mobile.ui.components.dashedBorder
+import com.tmm.mobile.ui.components.px
+import com.tmm.mobile.ui.components.v2Card
+import com.tmm.mobile.ui.components.v2CardItem
 import com.tmm.mobile.ui.icons.TmmIcon
 import com.tmm.mobile.ui.icons.TmmIconId
 import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.TmmType
-import com.tmm.mobile.ui.theme.halftone
+
+private val C = TmmColors.V2
 
 /**
- * Écran File (Queue.dc.html, E4.5).
- * Affiche l'état des traductions (Actives, Terminées, Échecs), la progression
- * des travaux en cours sur le PC distant, la liste d'attente et les alertes de relecture.
+ * Écran Activité (maquette v2, écran 7) : fusion de File et Transferts. Un chapitre suit un seul
+ * chemin, Envoi, Traduction, Retour dans Mihon ; les transferts sont des lignes de « En cours ».
  */
 @Composable
 fun QueueScreen(
@@ -59,1014 +76,605 @@ fun QueueScreen(
     onEvent: (QueueEvent) -> Unit,
     onOpenNewTranslation: () -> Unit = {},
     onOpenTranslationSettings: () -> Unit = {},
-    onOpenSeries: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
+    // Liste paresseuse : « Ensuite », « Terminées » et « Échecs » peuvent compter des centaines de
+    // jobs, tous composes d'un coup dans une Column a chaque changement d'onglet.
+    LazyColumn(
+        modifier
             .fillMaxSize()
-            .background(TmmColors.paper),
+            .background(C.bg),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 110.dp),
     ) {
-        QueueHeader(
-            state = state,
-            onEvent = onEvent,
-            onOpenNewTranslation = onOpenNewTranslation,
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            when (state.activeTab) {
-                QueueTab.Active -> {
-                    QueueActiveTabContent(
-                        state = state,
-                        onEvent = onEvent,
-                        onOpenTranslationSettings = onOpenTranslationSettings,
+        item(key = "top", contentType = "top") {
+            Column {
+                Header(onOpenNewTranslation)
+                Segment(state, onEvent)
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TmmText(
+                        text = pluralStringResource(R.plurals.activity_slots_fmt, state.slotsMax, state.pcName, state.slotsMax),
+                        style = TmmType.sans(13),
+                        color = C.muted,
+                        modifier = Modifier.weight(1f),
                     )
-                }
-                QueueTab.Done -> {
-                    QueueDoneTabContent(
-                        state = state,
-                        onEvent = onEvent,
-                        onOpenSeries = onOpenSeries,
-                    )
-                }
-                QueueTab.Fail -> {
-                    QueueFailTabContent(
-                        state = state,
-                        onEvent = onEvent,
+                    TmmText(
+                        text = stringResource(R.string.activity_settings_link),
+                        style = TmmType.sans(14, weight = 600),
+                        color = C.red,
+                        modifier = Modifier.clickable(role = Role.Button, onClick = onOpenTranslationSettings),
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+        }
+        when (state.activeTab) {
+            QueueTab.Active -> activeItems(state, onEvent)
+            QueueTab.Done -> doneItems(state, onEvent)
+            QueueTab.Fail -> failItems(state, onEvent)
         }
     }
 }
 
 @Composable
-private fun QueueHeader(
-    state: QueueState,
-    onEvent: (QueueEvent) -> Unit,
-    onOpenNewTranslation: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
+private fun Header(onOpenNewTranslation: () -> Unit) {
+    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f)) {
+            TmmText(
+                text = stringResource(R.string.activity_title),
+                style = TmmType.display(40, weight = 800, letterSpacingEm = -1f / 40f).px(40f, lineHeight = 1.02f),
+                color = C.ink,
+                modifier = Modifier.semantics { heading() },
+            )
+            TmmText(
+                text = stringResource(R.string.activity_subtitle),
+                style = TmmType.sans(14).px(14f, lineHeight = 1.4f),
+                color = C.muted,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+        val cd = stringResource(R.string.activity_new_cd)
+        Box(
+            Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(C.red)
+                .clickable(role = Role.Button, onClick = onOpenNewTranslation)
+                .semantics { contentDescription = cd },
+            contentAlignment = Alignment.Center,
+        ) {
+            TmmIcon(TmmIconId.V2Plus, size = 22.dp, tint = C.white)
+        }
+    }
+}
+
+/** `.seg` : trois onglets avec leur compteur, celui des échecs en rouge. */
+@Composable
+private fun Segment(state: QueueState, onEvent: (QueueEvent) -> Unit) {
+    val tablistCd = stringResource(R.string.activity_tablist_cd)
+    Row(
+        Modifier
+            .padding(top = 18.dp)
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .background(C.chip)
+            .padding(4.dp)
+            .semantics { contentDescription = tablistCd }
+            .selectableGroup(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                TmmText(
-                    text = stringResource(R.string.queue_title),
-                    style = TmmType.display(36, weight = 800),
-                    color = TmmColors.ink,
-                    modifier = Modifier.semantics { heading() },
-                )
-                TmmText(
-                    text = stringResource(R.string.queue_subtitle),
-                    style = TmmType.sans(13),
-                    color = TmmColors.textMuted,
-                )
-            }
-            val newTranslationCd = stringResource(R.string.queue_new_translation_cd)
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(TmmColors.accent)
-                    .clickable(
-                        onClick = onOpenNewTranslation,
-                        role = Role.Button,
-                    )
-                    .semantics {
-                        contentDescription = newTranslationCd
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                TmmIcon(
-                    icon = TmmIconId.Plus,
-                    tint = TmmColors.CFFFFFF,
-                    size = 22.dp,
-                )
-            }
+        SegButton(stringResource(R.string.activity_tab_active), state.activeCount, red = false, on = state.activeTab == QueueTab.Active) {
+            onEvent(QueueEvent.SelectTab(QueueTab.Active))
         }
-
-        val tablistCd = stringResource(R.string.queue_tablist_cd)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(TmmColors.CECE7DC)
-                .padding(4.dp)
-                .semantics { contentDescription = tablistCd }
-                .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            QueueTabButton(
-                title = stringResource(R.string.queue_tab_active),
-                count = state.activeCount,
-                isSelected = state.activeTab == QueueTab.Active,
-                badgeBg = if (state.activeTab == QueueTab.Active) TmmColors.C16161A else TmmColors.CD5CDBC,
-                badgeFg = if (state.activeTab == QueueTab.Active) TmmColors.CFFFFFF else TmmColors.C16161A,
-                onClick = { onEvent(QueueEvent.SelectTab(QueueTab.Active)) },
-                modifier = Modifier.weight(1f),
-            )
-            QueueTabButton(
-                title = stringResource(R.string.queue_tab_done),
-                count = state.doneCount,
-                isSelected = state.activeTab == QueueTab.Done,
-                badgeBg = if (state.activeTab == QueueTab.Done) TmmColors.C16161A else TmmColors.CD5CDBC,
-                badgeFg = if (state.activeTab == QueueTab.Done) TmmColors.CFFFFFF else TmmColors.C16161A,
-                onClick = { onEvent(QueueEvent.SelectTab(QueueTab.Done)) },
-                modifier = Modifier.weight(1f),
-            )
-            val hasFailures = state.failCount > 0
-            QueueTabButton(
-                title = stringResource(R.string.queue_tab_fail),
-                count = state.failCount,
-                isSelected = state.activeTab == QueueTab.Fail,
-                badgeBg = if (hasFailures) TmmColors.CC8391F else if (state.activeTab == QueueTab.Fail) TmmColors.C16161A else TmmColors.CD5CDBC,
-                badgeFg = if (hasFailures || state.activeTab == QueueTab.Fail) TmmColors.CFFFFFF else TmmColors.C16161A,
-                onClick = { onEvent(QueueEvent.SelectTab(QueueTab.Fail)) },
-                modifier = Modifier.weight(1f),
-            )
+        SegButton(stringResource(R.string.activity_tab_done), state.doneCount, red = false, on = state.activeTab == QueueTab.Done) {
+            onEvent(QueueEvent.SelectTab(QueueTab.Done))
+        }
+        SegButton(stringResource(R.string.activity_tab_fail), state.failCount, red = state.failCount > 0, on = state.activeTab == QueueTab.Fail) {
+            onEvent(QueueEvent.SelectTab(QueueTab.Fail))
         }
     }
 }
 
 @Composable
-private fun QueueTabButton(
+private fun androidx.compose.foundation.layout.RowScope.SegButton(label: String, count: Int, red: Boolean, on: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier
+            .weight(1f)
+            .height(44.dp)
+            .then(if (on) Modifier.shadow(1.dp, shape) else Modifier)
+            .clip(shape)
+            .background(if (on) C.white else Color.Transparent)
+            .selectable(selected = on, role = Role.Tab, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TmmText(text = label, style = TmmType.sans(14, weight = 600).px(14.5f), color = if (on) C.ink else C.muted, maxLines = 1)
+        val (bg, fg) = when {
+            on -> C.ink to C.white
+            red -> C.red to C.white
+            else -> C.sand to C.ink
+        }
+        Box(
+            Modifier
+                .heightIn(min = 22.dp)
+                .widthIn(min = 22.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(bg)
+                .padding(horizontal = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            TmmText(text = count.toString(), style = TmmType.sans(12, weight = 600), color = fg)
+        }
+    }
+}
+
+// ---------------------------------------------------------------- En cours
+
+private fun LazyListScope.activeItems(state: QueueState, onEvent: (QueueEvent) -> Unit) {
+    // Jobs actifs et transferts : bornes par les emplacements du PC et les workers, une seule carte.
+    item(key = "running", contentType = "running") { Column { RunningCards(state, onEvent) } }
+    if (state.waitingJobs.isNotEmpty()) {
+        item(key = "nextTitle", contentType = "title") { SectionTitle(stringResource(R.string.activity_next_fmt, state.waitingJobs.size)) }
+        val waiting = state.waitingJobs
+        items(waiting.size, key = { "w:" + waiting[it].id }, contentType = { "waiting" }) { i ->
+            Box(Modifier.fillMaxWidth().v2CardItem(isFirst = i == 0, isLast = i == waiting.lastIndex)) {
+                WaitingRow(waiting[i], divider = i > 0, onEvent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RunningCards(state: QueueState, onEvent: (QueueEvent) -> Unit) {
+    val focused = state.focused
+    if (focused != null) FocusedCard(focused)
+    val others = state.activeJobs.withIndex().filter { it.index != state.focusedJobIndex }
+    if (others.isNotEmpty() || state.transfers.isNotEmpty()) {
+        Column(Modifier.padding(top = 12.dp).fillMaxWidth().v2Card()) {
+            var first = true
+            others.forEach { (index, job) ->
+                ListRow(divider = !first) {
+                    val cd = stringResource(R.string.activity_focus_cd_fmt, job.title)
+                    ProgressRow(
+                        title = job.title,
+                        pill = {
+                            StatusPill(PillTone.Busy, stringResource(R.string.activity_row_progress_fmt, typeLabel(job.type), job.percent))
+                        },
+                        percent = job.percent,
+                        barColor = if (job.type == QueueJobType.Translation) C.red else C.ink,
+                        modifier = Modifier
+                            .clickable(role = Role.Button) { onEvent(QueueEvent.FocusJob(index)) }
+                            .semantics { contentDescription = cd },
+                    )
+                }
+                first = false
+            }
+            state.transfers.forEach { t ->
+                ListRow(divider = !first) {
+                    ProgressRow(
+                        title = t.title,
+                        pill = {
+                            if (t.isUpload) {
+                                StatusPill(PillTone.Wait, stringResource(R.string.activity_upload_fmt, t.percent), icon = TmmIconId.V2Up)
+                            } else {
+                                val label = if (t.totalBytes > 0) {
+                                    stringResource(R.string.activity_download_fmt, mo(t.doneBytes), mo(t.totalBytes))
+                                } else {
+                                    stringResource(R.string.activity_download)
+                                }
+                                StatusPill(PillTone.Get, label, icon = TmmIconId.V2Down)
+                            }
+                        },
+                        percent = t.percent,
+                        barColor = if (t.isUpload) C.muted else C.blue,
+                    )
+                }
+                first = false
+            }
+        }
+    }
+    if (focused == null && state.transfers.isEmpty() && state.waitingJobs.isEmpty()) {
+        EmptyCard(stringResource(R.string.activity_nothing_running))
+    }
+}
+
+/** `.dark` : le chapitre suivi de près, ses 3 phases et ses étapes PC. */
+@Composable
+private fun FocusedCard(job: ActiveJob) {
+    Column(
+        Modifier
+            .padding(top = 12.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(C.ink)
+            .padding(18.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Cover(job.seriesKey, job.coverUrl, Modifier.size(44.dp, 60.dp), color = job.color)
+            Column(Modifier.weight(1f)) {
+                TmmText(text = job.title, style = TmmType.sans(16, weight = 600), color = C.white)
+                val detail = if (job.engine.isNotEmpty()) {
+                    stringResource(R.string.activity_page_detail_fmt, job.currentPage, job.totalPages, job.engine)
+                } else {
+                    stringResource(R.string.activity_page_detail_short_fmt, job.currentPage, job.totalPages)
+                }
+                TmmText(text = detail, style = TmmType.mono(12).px(12.5f), color = C.onInkMuted, modifier = Modifier.padding(top = 4.dp))
+            }
+            TmmText(
+                text = stringResource(R.string.activity_percent_fmt, job.percent),
+                style = TmmType.display(30, weight = 800),
+                color = C.white,
+            )
+        }
+        Bar(job.percent, C.red, track = C.darkTrack, height = 8, modifier = Modifier.padding(top = 14.dp))
+        Row(Modifier.padding(top = 14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            val shape = RoundedCornerShape(10.dp)
+            val cell = Modifier.weight(1f)
+            PhaseCell(stringResource(R.string.activity_phase_upload_done), C.greenLight, cell.clip(shape).background(C.ink2))
+            PhaseCell(typeLabel(job.type), C.white, cell.clip(shape).background(C.red), bold = true)
+            PhaseCell(
+                stringResource(R.string.activity_phase_return),
+                C.muted2,
+                cell.dashedBorder(C.darkSwitch, width = 1.dp, cornerRadius = 10.dp),
+            )
+        }
+        val steps = listOf(
+            stringResource(R.string.activity_step_read),
+            stringResource(R.string.activity_step_translate),
+            stringResource(R.string.activity_step_lettering),
+            stringResource(R.string.activity_step_verify),
+        )
+        val doneFmt = stringResource(R.string.activity_step_done_fmt)
+        val currentFmt = stringResource(R.string.activity_step_current_fmt)
+        val line = steps.mapIndexed { i, s ->
+            when {
+                i < job.currentStepIndex -> doneFmt.format(s)
+                i == job.currentStepIndex -> currentFmt.format(s)
+                else -> s
+            }
+        }.joinToString(" · ")
+        TmmText(
+            text = withSystemCheck(line),
+            style = TmmType.sans(12),
+            color = C.muted2,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 10.dp).fillMaxWidth(),
+        )
+    }
+}
+
+// Le glyphe ✓ d'IBM Plex Sans ressemble a une racine carree (√) ; la maquette, servie par Google Fonts
+// sans ce caractere, affiche la coche de la police systeme. On fait de meme ici.
+private fun withSystemCheck(text: String): AnnotatedString = buildAnnotatedString {
+    text.split('✓').forEachIndexed { i, part ->
+        if (i > 0) withStyle(SpanStyle(fontFamily = FontFamily.Default)) { append('✓') }
+        append(part)
+    }
+}
+
+@Composable
+private fun PhaseCell(label: String, color: Color, modifier: Modifier, bold: Boolean = false) {
+    Box(modifier.padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+        TmmText(
+            text = withSystemCheck(label),
+            style = TmmType.sans(12, weight = if (bold) 600 else 400).px(12.5f),
+            color = color,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun ProgressRow(
     title: String,
-    count: Int,
-    isSelected: Boolean,
-    badgeBg: Color,
-    badgeFg: Color,
-    onClick: () -> Unit,
+    pill: @Composable () -> Unit,
+    percent: Int,
+    barColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .height(38.dp)
-            .clip(RoundedCornerShape(9.dp))
-            .background(if (isSelected) TmmColors.surface else Color.Transparent)
-            .selectable(
-                selected = isSelected,
-                onClick = onClick,
-                role = Role.Tab,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TmmText(
                 text = title,
-                style = TmmType.sans(13, weight = 600),
-                color = if (isSelected) TmmColors.ink else TmmColors.textMuted,
+                style = TmmType.sans(15, weight = 600).px(15.5f),
+                color = C.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            pill()
+        }
+        Bar(percent, barColor)
+    }
+}
+
+@Composable
+private fun WaitingRow(job: WaitingJob, divider: Boolean, onEvent: (QueueEvent) -> Unit) {
+    ListRow(divider) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 6.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Cover(job.seriesKey, job.coverUrl, Modifier.size(34.dp, 46.dp).clip(RoundedCornerShape(6.dp)), color = job.color)
+            Column(Modifier.weight(1f)) {
+                RowTitle(job.title)
+                Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val label = when (job.type) {
+                        QueueJobType.Translation -> stringResource(R.string.activity_waiting_translation)
+                        QueueJobType.Verification -> stringResource(R.string.activity_waiting_verification)
+                        QueueJobType.Retranslation -> stringResource(R.string.activity_waiting_retranslation)
+                    }
+                    RowDesc(if (job.auto) "$label · " else label)
+                    if (job.auto) {
+                        TmmIcon(TmmIconId.V2Bolt, size = 13.dp, tint = C.muted, modifier = Modifier.padding(end = 3.dp))
+                        RowDesc(stringResource(R.string.activity_auto))
+                    }
+                }
+            }
+            val cd = stringResource(R.string.activity_remove_cd_fmt, job.title)
             Box(
-                modifier = Modifier
-                    .sizeIn(minWidth = 20.dp, minHeight = 18.dp)
-                    .clip(CircleShape)
-                    .background(badgeBg)
-                    .padding(horizontal = 5.dp),
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .clickable(role = Role.Button) { onEvent(QueueEvent.RemoveWaitingJob(job.id)) }
+                    .semantics { contentDescription = cd },
                 contentAlignment = Alignment.Center,
             ) {
-                TmmText(
-                    text = count.toString(),
-                    style = TmmType.mono(11, weight = 500),
-                    color = badgeFg,
-                )
+                TmmIcon(TmmIconId.V2X, size = 22.dp, tint = C.muted2)
             }
         }
     }
 }
 
-@Composable
-private fun QueueActiveTabContent(
-    state: QueueState,
-    onEvent: (QueueEvent) -> Unit,
-    onOpenTranslationSettings: () -> Unit,
-) {
-    // Slots row
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            repeat(state.slotsCount) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 14.dp, height = 6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(TmmColors.accent),
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TmmText(
-                text = "${state.slotsCount}/${state.slotsMax}",
-                style = TmmType.mono(12, weight = 600),
-                color = TmmColors.ink,
-            )
-            TmmText(
-                text = " " + stringResource(R.string.queue_parallel_on_pc_fmt, state.pcName),
-                style = TmmType.sans(12),
-                color = TmmColors.textMuted,
-            )
-        }
-        TmmText(
-            text = stringResource(R.string.queue_settings_action),
-            style = TmmType.sans(12, weight = 600),
-            color = TmmColors.accent,
-            modifier = Modifier
-                .clickable(onClick = onOpenTranslationSettings, role = Role.Button),
-        )
+// ---------------------------------------------------------------- Terminées
+
+private fun LazyListScope.doneItems(state: QueueState, onEvent: (QueueEvent) -> Unit) {
+    val done = state.doneJobs
+    if (done.isEmpty()) {
+        item(key = "doneEmpty", contentType = "empty") { EmptyCard(stringResource(R.string.activity_done_empty)) }
+        return
     }
-
-    // Active jobs dark card
-    val focusedJob = state.activeJobs.getOrNull(state.focusedJobIndex) ?: state.activeJobs.firstOrNull()
-    if (focusedJob != null) {
-        val activeSectionCd = stringResource(R.string.queue_active_section_cd)
-        Column(
-            modifier = Modifier
+    items(done.size, key = { "d:" + done[it].mihonPath }, contentType = { "done" }) { i ->
+        Box(
+            Modifier
+                .padding(top = if (i == 0) 12.dp else 0.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(TmmColors.C16161A)
-                .padding(16.dp)
-                .semantics { contentDescription = activeSectionCd },
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .v2CardItem(isFirst = i == 0, isLast = i == done.lastIndex),
         ) {
-            // Main focused item row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 44.dp, height = 60.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(focusedJob.color)
-                        .halftone(),
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(TmmColors.accent),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(focusedJob.type.bg)
-                                .padding(horizontal = 6.dp, vertical = 1.dp),
-                        ) {
-                            TmmText(
-                                text = focusedJob.type.label,
-                                style = TmmType.sans(12, weight = 600),
-                                color = focusedJob.type.fg,
-                            )
-                        }
-                    }
-                    TmmText(
-                        text = focusedJob.title,
-                        style = TmmType.sans(16, weight = 600),
-                        color = TmmColors.CF4F1EA,
-                    )
-                    TmmText(
-                        text = stringResource(
-                            R.string.queue_page_detail_fmt,
-                            focusedJob.currentPage,
-                            focusedJob.totalPages,
-                            focusedJob.extra,
-                        ),
-                        style = TmmType.mono(12),
-                        color = TmmColors.textOnInkMuted,
-                    )
-                }
-                TmmText(
-                    text = "${focusedJob.progressPercent}%",
-                    style = TmmType.display(28, weight = 800),
-                    color = TmmColors.CF4F1EA,
-                )
-            }
-
-            // Big progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(TmmColors.C2E2D29),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = (focusedJob.progressPercent / 100f).coerceIn(0f, 1f))
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(TmmColors.accent),
-                )
-            }
-
-            // 5 steps
-            val stepNames = listOf(
-                stringResource(R.string.queue_step_fetch),
-                stringResource(R.string.queue_step_ocr),
-                stringResource(R.string.queue_step_translate),
-                stringResource(R.string.queue_step_lettering),
-                stringResource(R.string.queue_step_verify),
-            )
-            val stepsCd = stringResource(R.string.queue_steps_cd)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = stepsCd },
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                stepNames.forEachIndexed { i, name ->
-                    val isDone = i < focusedJob.currentStepIndex
-                    val isCurrent = i == focusedJob.currentStepIndex
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(22.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = 1.5.dp,
-                                    color = if (isDone) TmmColors.CF4F1EA else if (isCurrent) TmmColors.accent else TmmColors.C3A3934,
-                                    shape = CircleShape,
-                                )
-                                .background(if (isDone) TmmColors.CF4F1EA else if (isCurrent) TmmColors.accent else Color.Transparent),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (isDone) {
-                                TmmIcon(
-                                    icon = TmmIconId.CheckSimple,
-                                    tint = TmmColors.C16161A,
-                                    size = 12.dp,
-                                )
-                            }
-                        }
-                        TmmText(
-                            text = name,
-                            style = TmmType.sans(11, weight = if (isCurrent) 600 else 400),
-                            color = if (i <= focusedJob.currentStepIndex) TmmColors.CF4F1EA else TmmColors.CA9A293,
-                        )
-                    }
-                }
-            }
-
-            // Other active jobs
-            val otherJobs = state.activeJobs.mapIndexed { idx, j -> idx to j }.filter { it.first != state.focusedJobIndex }
-            if (otherJobs.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(TmmColors.C2E2D29),
-                    )
-                    otherJobs.forEach { (idx, job) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    onClick = { onEvent(QueueEvent.FocusJob(idx)) },
-                                    role = Role.Button,
-                                )
-                                .semantics {
-                                    contentDescription = "Voir le détail de ${job.title}"
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 22.dp, height = 30.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(job.color)
-                                    .halftone(),
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    TmmText(
-                                        text = job.title,
-                                        style = TmmType.sans(13, weight = 600),
-                                        color = TmmColors.CF4F1EA,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(job.type.bg)
-                                            .padding(horizontal = 5.dp),
-                                    ) {
-                                        TmmText(
-                                            text = job.type.label,
-                                            style = TmmType.sans(10, weight = 600),
-                                            color = job.type.fg,
-                                        )
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(4.dp)
-                                        .clip(RoundedCornerShape(2.dp))
-                                        .background(TmmColors.C2E2D29),
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(fraction = (job.progressPercent / 100f).coerceIn(0f, 1f))
-                                            .height(4.dp)
-                                            .clip(RoundedCornerShape(2.dp))
-                                            .background(TmmColors.CF4F1EA),
-                                    )
-                                }
-                            }
-                            TmmText(
-                                text = "${job.progressPercent}%",
-                                style = TmmType.mono(12),
-                                color = TmmColors.textOnInkMuted,
-                                modifier = Modifier.width(36.dp),
-                                textAlign = TextAlign.End,
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(TmmColors.C2E2D29),
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp, bottom = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        TmmText(
-                            text = stringResource(R.string.queue_touch_hint),
-                            style = TmmType.sans(12),
-                            color = TmmColors.CA9A293,
-                        )
-                        TmmText(
-                            text = stringResource(R.string.queue_auto_return),
-                            style = TmmType.sans(12),
-                            color = TmmColors.CA9A293,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // Ensuite (waiting) section
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        TmmText(
-            text = stringResource(R.string.queue_waiting_title_fmt, state.waitingJobs.size),
-            style = TmmType.display(19, weight = 800),
-            color = TmmColors.ink,
-            modifier = Modifier.semantics { heading() },
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(TmmColors.surface)
-                .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)),
-        ) {
-            if (state.waitingJobs.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 20.dp, horizontal = 14.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TmmText(
-                        text = stringResource(R.string.queue_no_waiting),
-                        style = TmmType.sans(13),
-                        color = TmmColors.textMuted,
-                    )
-                }
-            } else {
-                state.waitingJobs.forEachIndexed { i, job ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        TmmText(
-                            text = job.position,
-                            style = TmmType.mono(12),
-                            color = TmmColors.C9C9486,
-                            modifier = Modifier.width(22.dp),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(width = 32.dp, height = 44.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(job.color)
-                                .halftone(),
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            TmmText(
-                                text = job.title,
-                                style = TmmType.sans(14, weight = 600),
-                                color = TmmColors.ink,
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                TmmIcon(
-                                    icon = if (job.isPhone) TmmIconId.PhoneOutline else TmmIconId.MonitorOutline,
-                                    tint = TmmColors.textMuted,
-                                    size = 12.dp,
-                                )
-                                TmmText(
-                                    text = job.source,
-                                    style = TmmType.sans(12),
-                                    color = TmmColors.textMuted,
-                                )
-                            }
-                        }
-                        val removeCd = stringResource(R.string.queue_remove_cd_fmt, job.title)
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .clickable(
-                                    onClick = { onEvent(QueueEvent.RemoveWaitingJob(job.id)) },
-                                    role = Role.Button,
-                                )
-                                .semantics { contentDescription = removeCd },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            TmmIcon(
-                                icon = TmmIconId.Close,
-                                tint = TmmColors.textMuted,
-                                size = 18.dp,
-                            )
-                        }
-                    }
-                    if (i < state.waitingJobs.size - 1) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(TmmColors.CECE7DC),
-                        )
-                    }
-                }
-            }
+            DoneRow(i, done[i], onEvent)
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QueueDoneTabContent(
-    state: QueueState,
-    onEvent: (QueueEvent) -> Unit,
-    onOpenSeries: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(TmmColors.surface)
-            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)),
-    ) {
-        state.doneJobs.forEachIndexed { i, done ->
-            Column(
-                modifier = Modifier
+private fun DoneRow(index: Int, done: DoneJob, onEvent: (QueueEvent) -> Unit) {
+    ListRow(divider = index > 0) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            val cd = stringResource(R.string.activity_done_cd_fmt, done.title)
+            Row(
+                Modifier
                     .fillMaxWidth()
-                    .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .clickable(role = Role.Button) { onEvent(QueueEvent.ToggleDoneJobDetails(index)) }
+                    .semantics { contentDescription = cd },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable(onClick = onOpenSeries),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(width = 32.dp, height = 44.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(done.color)
-                                .halftone(),
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            TmmText(
-                                text = done.title,
-                                style = TmmType.sans(14, weight = 600),
-                                color = TmmColors.ink,
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                TmmText(
-                                    text = "${done.whenText} · ",
-                                    style = TmmType.sans(12),
-                                    color = TmmColors.textMuted,
-                                )
-                                TmmText(
-                                    text = done.stateText,
-                                    style = TmmType.sans(12, weight = 600),
-                                    color = done.stateColor,
-                                )
-                            }
-                        }
-                    }
-
-                    if (done.alerts.isNotEmpty()) {
-                        val alertCd = stringResource(R.string.queue_alert_cd)
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(TmmColors.accent)
-                                .semantics { contentDescription = alertCd },
-                        )
-                    }
-
-                    val detailsCd = stringResource(R.string.queue_done_details_cd_fmt, done.title)
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (done.isExpanded) TmmColors.CECE7DC else Color.Transparent)
-                            .clickable(
-                                onClick = { onEvent(QueueEvent.ToggleDoneJobDetails(i)) },
-                                role = Role.Button,
-                            )
-                            .semantics { contentDescription = detailsCd },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        TmmIcon(
-                            icon = TmmIconId.BarChart,
-                            tint = TmmColors.textMuted,
-                            size = 16.dp,
-                        )
-                    }
+                Cover(done.seriesKey, done.coverUrl, Modifier.size(34.dp, 46.dp).clip(RoundedCornerShape(6.dp)), color = done.color)
+                Column(Modifier.weight(1f)) {
+                    RowTitle(done.title)
+                    RowDesc(
+                        stringResource(if (done.installed) R.string.activity_done_installed_fmt else R.string.activity_done_ready_fmt, done.whenText),
+                        Modifier.padding(top = 2.dp),
+                    )
                 }
-
-                if (done.isExpanded) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 44.dp, end = 6.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        // Chips row
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            val pagesWarn = done.translatedPages < done.totalPages
-                            QueueChip(
-                                text = stringResource(R.string.series_chip_pages_fmt, done.translatedPages, done.totalPages),
-                                bg = if (pagesWarn) TmmColors.dangerBg else TmmColors.CECE7DC,
-                                fg = if (pagesWarn) TmmColors.dangerText else TmmColors.C16161A,
-                            )
-                            QueueChip(
-                                text = stringResource(R.string.series_chip_bubbles_translated_fmt, done.totalBubbles),
-                                bg = TmmColors.CECE7DC,
-                                fg = TmmColors.C16161A,
-                            )
-                            if (done.untranslatedBubbles > 0) {
-                                QueueChip(
-                                    text = stringResource(R.string.series_chip_bubbles_untranslated_fmt, done.untranslatedBubbles),
-                                    bg = TmmColors.dangerBg,
-                                    fg = TmmColors.dangerText,
-                                )
-                            }
-                            QueueChip(
-                                text = stringResource(R.string.series_chip_sfx_fmt, done.sfxCount),
-                                bg = TmmColors.CECE7DC,
-                                fg = TmmColors.C16161A,
-                            )
-                            if (done.alerts.isNotEmpty()) {
-                                QueueChip(
-                                    text = pluralStringResource(R.plurals.queue_alerts_count, done.alerts.size, done.alerts.size),
-                                    bg = TmmColors.dangerBg,
-                                    fg = TmmColors.dangerText,
-                                )
-                            } else {
-                                QueueChip(
-                                    text = stringResource(R.string.queue_no_alerts),
-                                    bg = TmmColors.CE8F1EB,
-                                    fg = TmmColors.success,
-                                )
-                            }
-                        }
-
-                        // Alerts cards
-                        done.alerts.forEach { alert ->
-                            val whyText = when (alert.code) {
-                                "source_copy" -> stringResource(R.string.queue_alert_source_copy)
-                                "source_text" -> stringResource(R.string.queue_alert_source_text)
-                                "overflow" -> stringResource(R.string.queue_alert_overflow)
-                                "too_small" -> stringResource(R.string.queue_alert_too_small)
-                                else -> alert.code
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(TmmColors.dangerBg)
-                                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    TmmText(
-                                        text = stringResource(R.string.queue_alert_row_fmt, alert.page, whyText),
-                                        style = TmmType.sans(12),
-                                        color = TmmColors.dangerText,
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .height(30.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .border(1.dp, TmmColors.dangerText, RoundedCornerShape(8.dp))
-                                        .clickable(
-                                            onClick = {
-                                                if (!alert.isChecked) {
-                                                    onEvent(QueueEvent.VerifyPage(i, alert.page))
-                                                }
-                                            },
-                                            role = Role.Button,
-                                        )
-                                        .padding(horizontal = 10.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    TmmText(
-                                        text = if (alert.isChecked) {
-                                            stringResource(R.string.queue_in_queue_status)
-                                        } else {
-                                            stringResource(R.string.queue_verify_page_action)
-                                        },
-                                        style = TmmType.sans(12, weight = 600),
-                                        color = TmmColors.dangerText,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                if (done.alerts.isNotEmpty()) {
+                    StatusPill(PillTone.Todo, pluralStringResource(R.plurals.activity_alerts, done.alerts.size, done.alerts.size))
+                } else {
+                    StatusPill(PillTone.Ok, stringResource(R.string.activity_no_alert))
                 }
             }
-            if (i < state.doneJobs.size - 1) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(TmmColors.CECE7DC),
-                )
+            if (done.isExpanded) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    StatusPill(PillTone.Wait, stringResource(R.string.activity_pages_fmt, done.translatedPages, done.totalPages), plain = true)
+                    StatusPill(PillTone.Wait, pluralStringResource(R.plurals.activity_bubbles, done.totalBubbles, done.totalBubbles), plain = true)
+                    if (done.sfxCount > 0) StatusPill(PillTone.Wait, stringResource(R.string.activity_sfx_fmt, done.sfxCount), plain = true)
+                }
+                if (done.alerts.isNotEmpty()) AlertBox(index, done.alerts, onEvent)
             }
         }
     }
 }
 
 @Composable
-private fun QueueChip(
-    text: String,
-    bg: Color,
-    fg: Color,
-) {
-    Box(
-        modifier = Modifier
-            .height(20.dp)
-            .clip(RoundedCornerShape(5.dp))
-            .background(bg)
-            .padding(horizontal = 6.dp),
-        contentAlignment = Alignment.Center,
+private fun AlertBox(doneIndex: Int, alerts: List<DoneJobAlert>, onEvent: (QueueEvent) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(C.white)
+            .border(1.dp, C.line, RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
-        TmmText(
-            text = text,
-            style = TmmType.mono(10),
-            color = fg,
+        alerts.forEachIndexed { i, alert ->
+            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(C.line2))
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val why = when (alert.code) {
+                    "source_copy" -> stringResource(R.string.activity_alert_source_copy)
+                    "source_text" -> stringResource(R.string.activity_alert_source_text)
+                    "overflow" -> stringResource(R.string.activity_alert_overflow)
+                    "too_small" -> stringResource(R.string.activity_alert_too_small)
+                    else -> alert.code
+                }
+                val page = stringResource(R.string.activity_alert_page_fmt, alert.page)
+                TmmText(
+                    text = buildAnnotatedString {
+                        withStyle(TmmType.mono(14, weight = 700).toSpanStyle().copy(fontWeight = FontWeight.Bold)) { append(page) }
+                        append(" · ")
+                        append(why)
+                    },
+                    style = TmmType.sans(14),
+                    color = C.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                if (alert.isChecked) {
+                    StatusPill(PillTone.Busy, stringResource(R.string.activity_fixing))
+                } else {
+                    V2Button(
+                        label = stringResource(R.string.activity_fix_page),
+                        onClick = { onEvent(QueueEvent.VerifyPage(doneIndex, alert.page)) },
+                        style = V2ButtonStyle.Ghost,
+                        size = V2ButtonSize.Small,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Échecs
+
+private fun LazyListScope.failItems(state: QueueState, onEvent: (QueueEvent) -> Unit) {
+    val failed = state.failedJobs
+    if (failed.isEmpty()) {
+        item(key = "failEmpty", contentType = "empty") { EmptyCard(stringResource(R.string.activity_fail_empty)) }
+        return
+    }
+    items(failed.size, key = { "f:" + failed[it].jobId }, contentType = { "fail" }) { i -> FailCard(failed[i], onEvent) }
+    if (failed.any { it.quota }) item(key = "quotaTip", contentType = "tip") { QuotaTip() }
+}
+
+@Composable
+private fun QuotaTip() {
+    TmmText(
+        text = stringResource(R.string.activity_quota_tip),
+        style = TmmType.sans(13).px(13f, lineHeight = 1.45f),
+        color = C.muted,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 14.dp),
+    )
+}
+
+@Composable
+private fun FailCard(failed: FailedJob, onEvent: (QueueEvent) -> Unit) {
+    Column(
+        Modifier
+            .padding(top = 12.dp)
+            .fillMaxWidth()
+            .v2Card(borderColor = C.toastLink)
+            .padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Cover(failed.seriesKey, failed.coverUrl, Modifier.size(34.dp, 46.dp).clip(RoundedCornerShape(6.dp)), color = failed.color)
+            Column(Modifier.weight(1f)) {
+                RowTitle(failed.title)
+                val page = failed.page
+                TmmText(
+                    text = if (page != null) {
+                        stringResource(R.string.activity_fail_page_fmt, page, failed.message)
+                    } else {
+                        stringResource(R.string.activity_fail_fmt, failed.message)
+                    },
+                    style = TmmType.sans(13).px(13.5f),
+                    color = C.redDark,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+        TmmText(text = failed.keptInfo, style = TmmType.sans(13), color = C.muted, modifier = Modifier.padding(top = 10.dp))
+        val page = failed.page
+        V2Button(
+            label = if (page != null) stringResource(R.string.activity_resume_page_fmt, page) else stringResource(R.string.activity_resume),
+            onClick = { onEvent(QueueEvent.RetryFailedJob(failed.jobId)) },
+            style = V2ButtonStyle.Ink,
+            size = V2ButtonSize.Block,
+            modifier = Modifier.padding(top = 12.dp).height(48.dp),
         )
     }
 }
 
+// ---------------------------------------------------------------- Briques
+
 @Composable
-private fun QueueFailTabContent(
-    state: QueueState,
-    onEvent: (QueueEvent) -> Unit,
-) {
-    if (state.failedJobs.isNotEmpty()) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            state.failedJobs.forEach { failed ->
-                QueueFailedJobCard(failed = failed, onRetry = { onEvent(QueueEvent.RetryFailedJob(failed.jobId)) })
-            }
-        }
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 40.dp, horizontal = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TmmIcon(
-                icon = TmmIconId.CheckCircle,
-                tint = TmmColors.success,
-                size = 36.dp,
-            )
-            TmmText(
-                text = stringResource(R.string.queue_retried_title),
-                style = TmmType.sans(15, weight = 600),
-                color = TmmColors.success,
-            )
-            TmmText(
-                text = stringResource(R.string.queue_no_failures),
-                style = TmmType.sans(13),
-                color = TmmColors.textMuted,
-            )
-        }
+private fun ListRow(divider: Boolean, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        if (divider) Box(Modifier.fillMaxWidth().height(1.dp).background(C.line2))
+        content()
     }
 }
 
 @Composable
-private fun QueueFailedJobCard(
-    failed: FailedJob,
-    onRetry: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(TmmColors.surface)
-            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp))
-            .border(
-                width = 4.dp,
-                color = TmmColors.accent,
-                shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
-            )
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 32.dp, height = 44.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(failed.color)
-                    .halftone(),
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                TmmText(
-                    text = failed.title,
-                    style = TmmType.sans(14, weight = 600),
-                    color = TmmColors.ink,
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    TmmIcon(
-                        icon = TmmIconId.Warning,
-                        tint = TmmColors.dangerText,
-                        size = 14.dp,
-                    )
-                    val page = failed.page
-                    TmmText(
-                        text = if (page != null) {
-                            stringResource(R.string.queue_fail_message_fmt, page, failed.message)
-                        } else {
-                            stringResource(R.string.queue_fail_message_simple_fmt, failed.message)
-                        },
-                        style = TmmType.sans(12, weight = 600),
-                        color = TmmColors.dangerText,
-                    )
-                }
-                TmmText(
-                    text = failed.keptInfo,
-                    style = TmmType.sans(12),
-                    color = TmmColors.textMuted,
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(TmmColors.surface)
-                .border(1.dp, TmmColors.C16161A, RoundedCornerShape(10.dp))
-                .clickable(
-                    onClick = onRetry,
-                    role = Role.Button,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            TmmText(
-                text = failed.page?.let { stringResource(R.string.queue_retry_button_fmt, it) }
-                    ?: stringResource(R.string.queue_retry_button_simple),
-                style = TmmType.sans(14, weight = 600),
-                color = TmmColors.C16161A,
-            )
-        }
+private fun RowTitle(text: String) {
+    TmmText(text = text, style = TmmType.sans(15, weight = 600).px(15.5f), color = C.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+}
+
+@Composable
+private fun RowDesc(text: String, modifier: Modifier = Modifier) {
+    TmmText(text = text, style = TmmType.sans(13).px(13.5f, 1.35f), color = C.muted, modifier = modifier)
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    TmmText(
+        text = text,
+        style = TmmType.display(22, weight = 800, letterSpacingEm = -0.3f / 22f),
+        color = C.ink,
+        modifier = Modifier.padding(top = 26.dp, bottom = 12.dp).semantics { heading() },
+    )
+}
+
+@Composable
+private fun EmptyCard(text: String) {
+    TmmText(
+        text = text,
+        style = TmmType.sans(14),
+        color = C.muted,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(top = 12.dp).fillMaxWidth().v2Card().padding(horizontal = 16.dp, vertical = 22.dp),
+    )
+}
+
+/** `.bar` : 6 dp par défaut, rail line2 (ou #34332E sur fond sombre). */
+@Composable
+private fun Bar(percent: Int, color: Color, modifier: Modifier = Modifier, track: Color = C.line2, height: Int = 6) {
+    val shape = RoundedCornerShape((height / 2f).dp)
+    Box(modifier.fillMaxWidth().height(height.dp).clip(shape).background(track)) {
+        Box(Modifier.fillMaxHeight().fillMaxWidth(percent.coerceIn(0, 100) / 100f).clip(shape).background(color))
     }
 }
 
-@Preview(name = "Queue Screen - Active", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun typeLabel(type: QueueJobType): String = when (type) {
+    QueueJobType.Translation -> stringResource(R.string.activity_type_translation)
+    QueueJobType.Verification -> stringResource(R.string.activity_type_verification)
+    QueueJobType.Retranslation -> stringResource(R.string.activity_type_retranslation)
+}
+
+/** Octets en Mo arrondis, comme « Retour 3/4 Mo ». */
+private fun mo(bytes: Long): Int = Math.round(bytes / 1_048_576.0).toInt()
+
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun QueueScreenActivePreview() {
-    TmmTheme {
-        QueueScreen(
-            state = MockupData.queue,
-            onEvent = {},
-        )
-    }
+    TmmTheme { QueueScreen(state = MockupData.queue, onEvent = {}) }
 }
 
-@Preview(name = "Queue Screen - Done", showBackground = true, widthDp = 390, heightDp = 844)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun QueueScreenDonePreview() {
-    TmmTheme {
-        QueueScreen(
-            state = MockupData.queue.copy(activeTab = QueueTab.Done),
-            onEvent = {},
-        )
-    }
+    TmmTheme { QueueScreen(state = MockupData.queue.copy(activeTab = QueueTab.Done), onEvent = {}) }
 }
 
-@Preview(name = "Queue Screen - Fail", showBackground = true, widthDp = 390, heightDp = 844)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun QueueScreenFailPreview() {
-    TmmTheme {
-        QueueScreen(
-            state = MockupData.queue.copy(activeTab = QueueTab.Fail),
-            onEvent = {},
-        )
-    }
+    TmmTheme { QueueScreen(state = MockupData.queue.copy(activeTab = QueueTab.Fail), onEvent = {}) }
 }

@@ -148,8 +148,10 @@ class ComponentsScreenshotTest {
     fun tmmBottomBar() = capture("TmmBottomBar") {
         TmmBottomBar(
             items = listOf(
-                TmmBottomBarItem(TmmIconId.Home, "Accueil"),
-                TmmBottomBarItem(TmmIconId.Grid, "Bibliothèque"),
+                TmmBottomBarItem(TmmIconId.V2Home, "Accueil"),
+                TmmBottomBarItem(TmmIconId.V2Grid, "Bibliothèque"),
+                TmmBottomBarItem(TmmIconId.V2Pulse, "Activité", badgeCount = 3),
+                TmmBottomBarItem(TmmIconId.V2Gear, "Réglages"),
             ),
             selectedIndex = 0,
             onSelect = {},

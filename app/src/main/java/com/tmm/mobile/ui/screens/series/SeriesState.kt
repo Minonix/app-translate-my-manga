@@ -1,9 +1,8 @@
 package com.tmm.mobile.ui.screens.series
 
-import com.tmm.mobile.ui.components.StatusTone
 import androidx.compose.ui.graphics.Color
 
-/** Statistiques de traduction d'un chapitre (Series.dc.html, `st` : pages, bulles, SFX, verification). */
+/** Statistiques de traduction d'un chapitre (pages, bulles, SFX, verification), depliees sous la ligne. */
 data class SeriesChapterStats(
     val pagesTotal: Int,
     val pagesTranslated: Int,
@@ -13,33 +12,67 @@ data class SeriesChapterStats(
     val verifiedDate: String?,
 )
 
-/**
- * Ligne de la liste "Chapitres" (Series.dc.html) : `kind` pilote le verrouillage
- * (busy/gap non selectionnables) et le comptage des actions (send/get/ok).
- */
-data class SeriesChapter(
-    val number: Int,
-    val kind: StatusTone,
-    val statusLabel: String,
-    val statusColor: Color,
-    val onPhone: Boolean,
-    val onPc: Boolean,
-    val onFr: Boolean,
-    val translationProgress: Float? = null,
-    val stats: SeriesChapterStats? = null,
-) {
-    val locked: Boolean get() = kind == StatusTone.Busy || kind == StatusTone.Gap
+/** Statut affiche d'une ligne (maquette v2, ecran 3) : une seule etiquette par chapitre. */
+sealed interface ChapterKind {
+    data object ToTranslate : ChapterKind
+    data object OnPc : ChapterKind
+    data object Waiting : ChapterKind
+    data class Translating(val percent: Int) : ChapterKind
+    data class Failed(val page: Int?) : ChapterKind
+    data object Ready : ChapterKind
+    data object InMihon : ChapterKind
+    data object NotDownloaded : ChapterKind
+    data object Missing : ChapterKind
 }
 
-/** Feuille du bas ouverte (Series.dc.html `sheet`) : `Confirm` porte le nombre de chapitres capture a l'ouverture. */
+/**
+ * Ligne de la liste « Chapitres ». `rangeEnd` regroupe les chapitres non telecharges qui se suivent
+ * (« Ch. 1 à 4 ») ; la ligne porte alors le plus petit numero et represente tout l'intervalle.
+ */
+data class SeriesRow(
+    val number: Int,
+    val kind: ChapterKind,
+    val rangeEnd: Int? = null,
+    val stats: SeriesChapterStats? = null,
+) {
+    /** En cours (file ou traduction) et manquant : rien a faire dessus. */
+    val locked: Boolean get() = kind is ChapterKind.Translating || kind == ChapterKind.Waiting || kind == ChapterKind.Missing
+}
+
+/** Barre « N chapitres en VF sur T » : segments vert, bleu, encre, rouge puis gris. */
+data class SeriesProgress(
+    val inMihon: Int,
+    val ready: Int,
+    val busy: Int,
+    val toTranslate: Int,
+    val notDownloaded: Int,
+    val total: Int,
+) {
+    val percent: Int get() = if (total == 0) 0 else inMihon * 100 / total
+}
+
+/** Nombre de chapitres concernes par chaque action de la feuille « Que faire ? » (lignes a 0 masquees). */
+data class ActionCounts(
+    val translate: Int = 0,
+    val install: Int = 0,
+    val verify: Int = 0,
+    val retranslate: Int = 0,
+    val copy: Int = 0,
+) {
+    val any: Boolean get() = translate + install + verify + retranslate + copy > 0
+}
+
+/** Feuille du bas ouverte. `More.allSeries` : bouton ··· (toute la serie) ou selection. */
 sealed interface SeriesSheet {
     data object None : SeriesSheet
-    data object SeriesActions : SeriesSheet
-    data class Confirm(val chapterCount: Int) : SeriesSheet
+    data class More(val allSeries: Boolean) : SeriesSheet
+
+    /** Confirmation du suivi : `numbers` sont les chapitres telecharges a traduire qui partiront aussi. */
+    data class Follow(val numbers: List<Int>) : SeriesSheet
 
     /**
-     * Feuille "Supprimer" de la selection : chapitres traites, chapitres ignores (job actif) et les
-     * trois cases. Le telechargement Mihon (irreversible) et le PC sont decoches par defaut.
+     * Feuille « Supprimer » : chapitres traites, chapitres ignores (job actif) et les trois cases.
+     * Le telechargement Mihon (irreversible) et le PC sont decoches par defaut.
      */
     data class Delete(
         val chapterCount: Int,
@@ -52,75 +85,83 @@ sealed interface SeriesSheet {
     }
 }
 
-/** Case de la feuille "Supprimer". */
+/** Case de la feuille « Supprimer ». */
 enum class DeleteTarget { LocalFr, Mihon, Pc }
 
-/** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
+/** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu. */
 sealed interface SeriesToast {
-    data class Sent(val chapterCount: Int) : SeriesToast
-    data class Received(val chapterCount: Int) : SeriesToast
-    data class Verified(val chapterCount: Int) : SeriesToast
     data class Translated(val chapterCount: Int) : SeriesToast
+    data class Copied(val chapterCount: Int) : SeriesToast
+    data class Installing(val chapterCount: Int) : SeriesToast
+    data class Verified(val chapterCount: Int) : SeriesToast
     data class Retranslated(val chapterCount: Int) : SeriesToast
     // failed : fichiers SAF non supprimes ; pcUnavailable : commande PC non mise en file.
     data class Deleted(val chapterCount: Int, val failed: Int = 0, val pcUnavailable: Boolean = false) : SeriesToast
+
+    /** Suivi active : porte l'action « Annuler ». */
+    data class Followed(val chapterCount: Int) : SeriesToast
 }
 
 data class SeriesState(
     val title: String,
     val categoryLabel: String,
-    val formatLabel: String,
+    val subtitle: String,
+    val coverUrl: String? = null,
     val coverColor: Color,
-    val onPhoneCount: Int,
-    val onPcCount: Int,
-    val frCount: Int,
-    val totalChapters: Int,
-    val chapters: List<SeriesChapter>,
+    val followed: Boolean = false,
+    val progress: SeriesProgress = SeriesProgress(0, 0, 0, 0, 0, 0),
+    val rows: List<SeriesRow> = emptyList(),
+    val missing: List<Int> = emptyList(),
+    val showGap: Boolean = true,
+    // Prochain numero attendu par le suivi (plus grand numero connu + 1).
+    val nextExpected: Int? = null,
+    // Chapitres partis a l'activation du suivi pendant cette visite (carte « envoye au PC »).
+    val sentOnFollow: List<Int> = emptyList(),
+    val selecting: Boolean = false,
     val selected: Set<Int> = emptySet(),
     val expandedStats: Set<Int> = emptySet(),
-    val showGap: Boolean = true,
     val sheet: SeriesSheet = SeriesSheet.None,
     val toast: SeriesToast? = null,
-    // Bouton "Traduire"/"Retraduire" de la selection : calcule par le ViewModel depuis les vraies
-    // lignes (planTranslation), les tons de SeriesChapter ne suffisant pas (original sur le PC, job actif).
-    val selectionToTranslate: Int = 0,
-    val selectionRetranslates: Boolean = false,
-    // Bouton "Supprimer" : chapitres selectionnes sans job actif, et ceux ignores (ChapterDeleter).
+    val seriesCounts: ActionCounts = ActionCounts(),
+    val selectionCounts: ActionCounts = ActionCounts(),
+    // Numeros a traduire de toute la serie, pour le libelle du gros bouton (« Traduire le ch. N »).
+    val toTranslateNumbers: List<Int> = emptyList(),
+    // Supprimer : chapitres selectionnes sans job actif, et ceux ignores (ChapterDeleter).
     val selectionToDelete: Int = 0,
     val selectionDeleteSkipped: Int = 0,
 ) {
-    val gapChapter: SeriesChapter? get() = chapters.firstOrNull { it.kind == StatusTone.Gap }
+    val selectionCount: Int get() = selected.size
+    val selectedNumbers: List<Int> get() = selected.sortedDescending()
 
-    private val pickedChapters: List<SeriesChapter>
-        get() = chapters.filter { it.number in selected && it.kind != StatusTone.Busy && it.kind != StatusTone.Gap }
-
-    val selectionCount: Int get() = pickedChapters.size
-    val hasSelection: Boolean get() = pickedChapters.isNotEmpty()
-    val selectionToSend: Int get() = pickedChapters.count { it.kind == StatusTone.Send }
-    val selectionToGet: Int get() = pickedChapters.count { it.kind == StatusTone.Get }
-    // Meme predicat que VerifyPending (UP_TO_DATE, seul statut au ton Ok).
-    val selectionToVerify: Int get() = pickedChapters.count { it.kind == StatusTone.Ok }
+    /** Lignes verrouillees visibles en mode selection, citees en bas de la feuille. */
+    val lockedNumbers: List<Int> get() = rows.filter { it.kind is ChapterKind.Translating || it.kind == ChapterKind.Waiting }.map { it.number }
 }
 
 sealed interface SeriesEvent {
+    data object StartSelection : SeriesEvent
+    data object EndSelection : SeriesEvent
     data class ToggleChapter(val number: Int) : SeriesEvent
-    data object SelectTodo : SeriesEvent
-    data object ClearSelection : SeriesEvent
-    data object DismissGap : SeriesEvent
     data class ToggleStats(val number: Int) : SeriesEvent
-    data object SendToPc : SeriesEvent
-    data object FetchToMihon : SeriesEvent
-    data object VerifyPending : SeriesEvent
-    data object RequestRetranslateSelection : SeriesEvent
-    data object OpenSeriesSheet : SeriesEvent
+    data object DismissGap : SeriesEvent
+
+    /** Gros bouton rouge : traduit tout ce qui reste a traduire dans la serie. */
+    data object TranslateAll : SeriesEvent
+    data object OpenSeriesMore : SeriesEvent
+    data object OpenSelectionMore : SeriesEvent
     data object CloseSheet : SeriesEvent
-    data object SeriesSendMissing : SeriesEvent
-    data object SeriesFetchMissing : SeriesEvent
-    data object SeriesVerifyAll : SeriesEvent
-    data object SeriesRequestRetranslateAll : SeriesEvent
-    data object ConfirmRetranslate : SeriesEvent
+
+    // Actions de la feuille « Que faire ? », appliquees a la selection ou a toute la serie selon More.allSeries.
+    data object Translate : SeriesEvent
+    data object Install : SeriesEvent
+    data object Verify : SeriesEvent
+    data object Retranslate : SeriesEvent
+    data object CopyToPc : SeriesEvent
     data object RequestDelete : SeriesEvent
     data class ToggleDeleteTarget(val target: DeleteTarget) : SeriesEvent
     data object ConfirmDelete : SeriesEvent
+
+    data class SetFollow(val follow: Boolean) : SeriesEvent
+    data object ConfirmFollow : SeriesEvent
+    data object UndoFollow : SeriesEvent
     data object DismissToast : SeriesEvent
 }

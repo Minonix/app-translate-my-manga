@@ -38,6 +38,16 @@ import kotlinx.serialization.Serializable
 data class LibrarySnapshot(
     val categories: List<Pair<String, Int>> = listOf("Tous" to 0),
     val series: List<MockSeries> = emptyList(),
+    val details: Map<String, LibrarySeriesDetails> = emptyMap(),
+)
+
+@Serializable
+data class LibrarySeriesDetails(
+    val categories: Set<String> = emptySet(),
+    val followed: Boolean = false,
+    val failures: Int = 0,
+    val busy: Int = 0,
+    val toInstall: Int = 0,
 )
 
 /**
@@ -60,7 +70,8 @@ class LibraryCache(private val db: TmmDatabase, scope: CoroutineScope, private v
         db.categoryDao().observeAll(),
         db.seriesCategoryDao().observeAll(),
         joinInputsFlow(db),
-    ) { series, categories, links, joinInputs -> buildLibrarySnapshot(series, categories, links, joinInputs) }
+        db.seriesSettingsDao().observeAutoTranslateSeriesKeys(),
+    ) { series, categories, links, joinInputs, followed -> buildLibrarySnapshot(series, categories, links, joinInputs, followed.toSet()) }
         .flowOn(Dispatchers.Default)
 
     val data: StateFlow<LibrarySnapshot> = flow {
@@ -99,15 +110,24 @@ internal fun buildLibrarySnapshot(
     categories: List<CategoryEntity>,
     links: List<SeriesCategoryEntity>,
     joinInputs: ChapterJoinInputs,
+    followed: Set<String> = emptySet(),
 ): LibrarySnapshot {
     val linksBySeries = links.groupBy { it.seriesKey }
     val categoryNameByOrder = categories.associate { it.order to it.name }
     val countByCategory = links.groupingBy { it.categoryOrder }.eachCount()
     val chips = listOf("Tous" to seriesList.size) + categories.map { cat -> cat.name to (countByCategory[cat.order] ?: 0) }
     val index = ChapterJoinIndex(joinInputs)
+    val details = mutableMapOf<String, LibrarySeriesDetails>()
     val mockSeries = seriesList.map { series ->
         val rows = buildChapterJoinRows(series.seriesKey, series.sourceName, series.title, index)
         val summary = deriveSeriesSummary(series.seriesKey, rows.toAggregateInputs(), emptySet())
+        details[series.seriesKey] = LibrarySeriesDetails(
+            categories = linksBySeries[series.seriesKey].orEmpty().mapNotNull { categoryNameByOrder[it.categoryOrder] }.toSet(),
+            followed = series.seriesKey in followed,
+            failures = rows.count { it.status == com.tmm.mobile.data.status.ChapterStatus.FAILED },
+            busy = summary.busy,
+            toInstall = rows.count { it.status == com.tmm.mobile.data.status.ChapterStatus.TO_FETCH },
+        )
         val badge = summary.badge()
         val primaryOrder = linksBySeries[series.seriesKey]?.minOfOrNull { it.categoryOrder }
         val categoryName = primaryOrder?.let { categoryNameByOrder[it] } ?: ""
@@ -132,7 +152,7 @@ internal fun buildLibrarySnapshot(
             dateAdded = series.dateAdded,
         )
     }
-    return LibrarySnapshot(categories = chips, series = mockSeries)
+    return LibrarySnapshot(categories = chips, series = mockSeries, details = details)
 }
 
 private fun libraryBadgeLabel(badge: SeriesBadge, s: SeriesSummary): String = when (badge) {

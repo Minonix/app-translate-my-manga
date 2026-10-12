@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Réglages</title>
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=IBM+Plex+Mono:wght@500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E4D8;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16161A}
+a{color:#C8391F}a:hover{color:#9E2A14}
+.d{font-family:'Bricolage Grotesque',Georgia,serif}
+.m{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tone{background-image:radial-gradient(rgba(22,22,26,.28) 1px,transparent 1.3px);background-size:5px 5px}
+svg{display:block;flex-shrink:0}
+button,input,select{font-family:inherit}
+button{cursor:pointer}button:disabled{cursor:default}
+.scroll{overflow-y:auto;scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.hscroll{overflow-x:auto;scrollbar-width:none}.hscroll::-webkit-scrollbar{display:none}
+.press{transition:transform .15s ease,box-shadow .2s ease,background-color .2s ease}.press:active{transform:scale(.97)}
+.lift:hover{box-shadow:0 6px 18px rgba(22,22,26,.08)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.r1{animation-delay:.05s}.r2{animation-delay:.12s}.r3{animation-delay:.19s}.r4{animation-delay:.26s}.r5{animation-delay:.33s}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,125,79,.55)}70%{box-shadow:0 0 0 7px rgba(47,125,79,0)}100%{box-shadow:0 0 0 0 rgba(47,125,79,0)}}
+.pulse{animation:pulse 2s ease-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+@keyframes stripes{to{background-position:24px 0}}
+.stripes{background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 6px,transparent 6px 12px);background-size:24px 24px;animation:stripes .9s linear infinite}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+.pop{animation:pop .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes toast{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.toast{animation:toast .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pill{from{transform:scaleX(.4);opacity:.3}to{transform:none;opacity:1}}
+.pill{animation:pill .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+.sheet{animation:sheet .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.fade{animation:fade .4s ease both}
+@keyframes slide{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+.slide{animation:slide .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.grow{transform-origin:left center;animation:grow 1.1s cubic-bezier(.2,.8,.2,1) both .2s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.float{animation:float 3.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.blink{animation:blink 1.4s ease-in-out infinite}@keyframes travel{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 8px);opacity:0}}.travel{animation:travel 1.8s linear infinite}
+@keyframes shimmer{from{background-position:-200px 0}to{background-position:200px 0}}
+.shimmer{background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);background-size:200px 100%;background-repeat:no-repeat;animation:shimmer 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F1EA; overflow: hidden; position: relative">
+<header style="padding: 10px 12px 0; display: flex; align-items: center; flex-shrink: 0">
+<a href="Main.dc.html" aria-label="Retour à l'accueil" class="press" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #16161A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+</header>
+<main class="scroll" style="flex-grow: 1; min-height: 0; padding: 0 20px 24px; display: flex; flex-direction: column; gap: 20px">
+<h1 class="d rise" style="margin: 0; font-size: 36px; line-height: 1; font-weight: 800">Réglages</h1>
+<section class="rise r1" aria-label="État du PC" style="background: #16161A; color: #F4F1EA; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; border-radius: 12px; background: #2E2D29; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4F1EA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 16px; font-weight: 600">PC-BUREAU</div>
+<div class="m" style="font-size: 12px; color: #CFC8B8">TMM-Win 2.4.1 · protocole v1</div>
+</div>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #9BD3AE"><span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #2F7D4F"></span>En ligne</span>
+</div>
+<div style="font-size: 12px; color: #CFC8B8; border-top: 1px solid #2E2D29; padding-top: 10px">Dernier signal {{ beat }} · le PC écrit sur Drive toutes les minutes</div>
+</section>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="6">
+<section class="rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: {{ g.delay }}">
+<h2 style="margin: 0; padding: 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5E5A52">{{ g.title }}</h2>
+<div style="background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px; overflow: hidden">
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+<div style="min-height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ECE7DC">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 14px; font-weight: 500">{{ r.label }}</div>
+<div class="{{ r.mono }}" style="font-size: 12px; color: #5E5A52; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.value }}</div>
+</div>
+<sc-if value="{{ r.isAction }}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{ r.act }}" class="press" style="height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid #D5CDBC; background: #FBF9F4; color: #16161A; font-size: 13px; font-weight: 600; white-space: nowrap">{{ r.action }}</button>
+</sc-if>
+<sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}">
+<button type="button" role="switch" aria-checked="{{ r.on }}" aria-label="{{ r.label }}" onClick="{{ r.act }}" style="width: 52px; height: 32px; padding: 0; border: 0; border-radius: 16px; background: {{ r.track }}; position: relative; transition: background-color .25s ease; flex-shrink: 0">
+<span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(22,22,26,.25); transform: translateX({{ r.knob }}); transition: transform .25s cubic-bezier(.2,.8,.2,1); display: flex; align-items: center; justify-content: center">
+<sc-if value="{{ r.onBool }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16161A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></sc-if>
+</span>
+</button>
+</sc-if>
+<sc-if value="{{ r.isLink }}" hint-placeholder-val="{{ false }}">
+<a href="{{ r.href }}" aria-label="{{ r.label }}" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: #9C9486"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+<div style="text-align: center; font-size: 12px; color: #9C9486" class="m">TMM Mobile 1.0.0 · protocole v1</div>
+</main>
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div class="toast" role="status" style="position: absolute; left: 16px; right: 16px; bottom: 20px; padding: 12px 14px; border-radius: 14px; background: #16161A; color: #F4F1EA; font-size: 13px; box-shadow: 0 10px 30px rgba(22,22,26,.25)">{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  state = { wifi: false, keep: 0, sec: 12, toast: '', direct: 2 };
+  componentDidMount() { this.iv = setInterval(() => this.setState((s) => ({ sec: s.sec >= 59 ? 1 : s.sec + 1 })), 1000); }
+  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); }
+  toast(msg) { this.setState({ toast: msg }); clearTimeout(this.t); this.t = setTimeout(() => this.setState({ toast: '' }), 2600); }
+  renderVals() {
+    const s = this.state;
+    const keeps = ['Jamais supprimer', 'Après 30 jours', 'Après récupération'];
+    // Etats de la connexion directe : 0 associee et joignable, 1 associee injoignable, 2 non associee, 3 expiree.
+    const directs = ['Directe via Tailscale', 'PC injoignable, Google Drive utilisé', 'Non associée', 'Appairage expiré'];
+    const paired = s.direct < 2;
+    const row = (label, value, extra) => ({ label, value, mono: '', isAction: false, isToggle: false, isLink: false, onBool: false, on: 'false', track: '', knob: '0px', act: null, action: '', href: '', ...extra });
+    const toggle = (on, act) => ({ isToggle: true, on: String(on), onBool: on, track: on ? '#16161A' : '#D5CDBC', knob: on ? '20px' : '0px', act });
+    return {
+      beat: 'il y a ' + s.sec + ' s',
+      hasToast: s.toast !== '', toast: s.toast,
+      groups: [
+        { title: 'Connexion directe', rows: [
+          row('État', directs[s.direct]),
+          row('Adresse du PC', 'https://pc-bureau.tail1234.ts.net:8765', paired
+            ? { mono: 'm', isAction: true, action: 'Oublier ce PC', act: () => this.setState({ direct: 2 }) }
+            : { mono: 'm' }),
+          ...(paired ? [] : [row('Code à 6 chiffres', '••••••', { mono: 'm', isAction: true, action: 'Associer',
+            act: () => { this.setState({ direct: 0 }); this.toast(Math.random() < 0.8 ? 'PC associé' : "Association impossible, vérifiez l'adresse et le code"); } })])
+        ] },
+        { title: 'Google Drive', rows: [
+          row('Compte', 'vous@gmail.com', { isAction: true, action: 'Changer', act: () => this.toast('Choix du compte Google') }),
+          row('Dossier partagé', 'TranslateMyManga/', { mono: 'm' }),
+          row('Conservation sur Drive', keeps[s.keep], { isAction: true, action: 'Modifier', act: () => this.setState((p) => ({ keep: (p.keep + 1) % 3 })) })
+        ] },
+        { title: 'Mihon', rows: [
+          row('Dossier Mihon', '/Documents/Mihon', { mono: 'm', isAction: true, action: 'Changer', act: () => this.toast('Sélecteur de dossier Android') }),
+          row('Dernière sauvegarde lue', "Aujourd'hui 03:00 · 142 séries", { isLink: true, href: 'Catalog.dc.html' }),
+          row("Refaire l'installation", '3 étapes, rien n’est effacé', { isLink: true, href: 'Onboarding.dc.html' })
+        ] },
+        { title: 'Traduction', rows: [
+          row('Réglages de traduction du PC', 'Gemini · japonais vers français · 4 en parallèle', { isLink: true, href: 'TranslationSettings.dc.html' })
+        ] },
+        { title: 'Réseau', rows: [
+          row('Wi-Fi uniquement', s.wifi ? 'Les envois attendent le Wi-Fi' : 'Envois aussi en données mobiles', toggle(s.wifi, () => this.setState((p) => ({ wifi: !p.wifi })))),
+        ] },
+        { title: 'Diagnostic', rows: [
+          row('Journaux', '7 derniers jours · 240 Ko', { isAction: true, action: 'Exporter', act: () => this.toast('Journaux prêts à partager') })
+        ] }
+      ].map((g, i) => ({ ...g, delay: (0.15 + i * 0.06) + 's' }))
+    };
+  }
+}
+</script>
+
+</body>
+</html>

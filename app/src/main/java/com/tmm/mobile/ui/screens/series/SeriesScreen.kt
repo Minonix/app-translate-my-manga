@@ -1,14 +1,14 @@
 package com.tmm.mobile.ui.screens.series
 
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,19 +16,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -38,23 +39,37 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
-import com.tmm.mobile.ui.components.StatusTone
-import com.tmm.mobile.ui.components.TmmCheckbox
-import com.tmm.mobile.ui.components.TmmSheet
+import com.tmm.mobile.ui.components.AutoTag
+import com.tmm.mobile.ui.components.Cover
+import com.tmm.mobile.ui.components.PillTone
+import com.tmm.mobile.ui.components.StatusPill
 import com.tmm.mobile.ui.components.TmmText
-import com.tmm.mobile.ui.components.TmmToast
-import com.tmm.mobile.ui.components.dashedBorder
+import com.tmm.mobile.ui.components.V2ActionRow
+import com.tmm.mobile.ui.components.V2Button
+import com.tmm.mobile.ui.components.V2ButtonSize
+import com.tmm.mobile.ui.components.V2ButtonStyle
+import com.tmm.mobile.ui.components.V2Check
+import com.tmm.mobile.ui.components.V2IconButton
+import com.tmm.mobile.ui.components.V2Sheet
+import com.tmm.mobile.ui.components.V2SheetHeader
+import com.tmm.mobile.ui.components.V2SelectionBar
+import com.tmm.mobile.ui.components.V2Switch
+import com.tmm.mobile.ui.components.V2Toast
+import com.tmm.mobile.ui.components.px
+import com.tmm.mobile.ui.components.v2Card
+import com.tmm.mobile.ui.components.v2CardItem
 import com.tmm.mobile.ui.icons.TmmIcon
 import com.tmm.mobile.ui.icons.TmmIconId
 import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.TmmType
-import com.tmm.mobile.ui.theme.halftone
-import com.tmm.mobile.ui.theme.pressScale
+
+private val C = TmmColors.V2
 
 /**
- * Ecran Detail d'une serie (Series.dc.html, E4.3). Contenu propre a l'ecran seulement.
+ * Fiche serie (maquette v2, ecrans 3 a 5) : progression, suivi automatique, gros bouton Traduire,
+ * liste a une etiquette par chapitre, feuilles « Que faire ? », « Suivre » et « Supprimer ».
  */
 @Composable
 fun SeriesScreen(
@@ -64,897 +79,801 @@ fun SeriesScreen(
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.background(TmmColors.paper)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            SeriesHeader(onBack = onBack, onOpenSeries = { onEvent(SeriesEvent.OpenSeriesSheet) })
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
-                SeriesHero(state = state)
-                SeriesLocationStats(state = state)
-                if (state.showGap && state.gapChapter != null) {
-                    SeriesGapAlert(gapNumber = state.gapChapter!!.number, onDismiss = { onEvent(SeriesEvent.DismissGap) })
+    Box(modifier.fillMaxSize().background(C.bg)) {
+        // Liste paresseuse : une serie longue a plus de 1000 chapitres, tous composes d'un coup
+        // dans une Column a chaque ouverture de la fiche.
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 110.dp),
+        ) {
+            item(key = "top", contentType = "top") {
+                Column {
+                    TopRow(showMore = !state.selecting, onBack = onBack, onMore = { onEvent(SeriesEvent.OpenSeriesMore) })
+                    if (state.selecting) {
+                        TmmText(
+                            text = state.title,
+                            style = TmmType.display(28, weight = 800, letterSpacingEm = -0.3f / 28f),
+                            color = C.ink,
+                            modifier = Modifier.padding(top = 18.dp),
+                        )
+                    } else {
+                        Header(state)
+                        ProgressCard(state.progress)
+                        FollowCard(state, onEvent)
+                        if (state.sentOnFollow.isNotEmpty()) SentOnFollowCard(state.sentOnFollow, onOpenQueue)
+                        if (state.toTranslateNumbers.isNotEmpty()) {
+                            V2Button(
+                                label = translateLabel(state.toTranslateNumbers),
+                                onClick = { onEvent(SeriesEvent.TranslateAll) },
+                                modifier = Modifier.padding(top = 14.dp),
+                                size = V2ButtonSize.Block,
+                                icon = TmmIconId.V2Translate,
+                            )
+                        }
+                        if (state.showGap && state.missing.isNotEmpty()) GapBanner(state.missing) { onEvent(SeriesEvent.DismissGap) }
+                    }
+                    SectionHeader(
+                        link = stringResource(if (state.selecting) R.string.series_select_done else R.string.series_select),
+                        onLink = { onEvent(if (state.selecting) SeriesEvent.EndSelection else SeriesEvent.StartSelection) },
+                    )
                 }
-                SeriesChaptersSection(state = state, onEvent = onEvent)
             }
-            if (state.hasSelection) {
-                SeriesSelectionActionBar(state = state, onEvent = onEvent)
-            }
+            chapterItems(state, onEvent)
         }
-        SeriesSheetContent(state = state, onEvent = onEvent)
-        val toastMessage = when (val toast = state.toast) {
-            is SeriesToast.Sent -> pluralStringResource(R.plurals.series_toast_sent, toast.chapterCount, toast.chapterCount)
-            is SeriesToast.Received -> pluralStringResource(R.plurals.series_toast_received, toast.chapterCount, toast.chapterCount)
-            is SeriesToast.Verified -> pluralStringResource(R.plurals.series_toast_verified, toast.chapterCount, toast.chapterCount)
-            is SeriesToast.Translated -> pluralStringResource(R.plurals.series_toast_translated, toast.chapterCount, toast.chapterCount)
-            is SeriesToast.Retranslated -> pluralStringResource(R.plurals.series_toast_retranslated, toast.chapterCount, toast.chapterCount)
-            is SeriesToast.Deleted -> listOfNotNull(
-                pluralStringResource(R.plurals.series_toast_deleted, toast.chapterCount, toast.chapterCount),
-                if (toast.failed > 0) stringResource(R.string.series_toast_delete_failed) else null,
-                if (toast.pcUnavailable) stringResource(R.string.series_toast_delete_pc_unavailable) else null,
-            ).joinToString(" ")
-            null -> ""
-        }
-        TmmToast(
-            visible = state.toast != null,
-            message = toastMessage,
-            onDismiss = { onEvent(SeriesEvent.DismissToast) },
-            // Une suppression n'ajoute rien a la file : pas de lien "Voir la file".
-            actionLabel = if (state.toast is SeriesToast.Deleted) null else stringResource(R.string.library_toast_action),
-            onAction = onOpenQueue,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        )
-    }
-}
 
-@Composable
-private fun SeriesHeader(onBack: () -> Unit, onOpenSeries: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val backCd = stringResource(R.string.series_back_cd)
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onBack)
-                .semantics { contentDescription = backCd },
-            contentAlignment = Alignment.Center,
-        ) {
-            TmmIcon(TmmIconId.ChevronLeft, size = 22.dp, tint = TmmColors.ink)
-        }
-        TmmText(text = stringResource(R.string.library_title), style = TmmType.sans(13), color = TmmColors.textMuted)
-        Row(
-            modifier = Modifier
-                .height(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(TmmColors.surface)
-                .border(1.dp, TmmColors.track, RoundedCornerShape(10.dp))
-                .clickable(onClick = onOpenSeries)
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TmmIcon(TmmIconId.MoreDots, size = 16.dp, tint = TmmColors.ink)
-            TmmText(text = stringResource(R.string.series_sheet_title), style = TmmType.sans(13, weight = 600), color = TmmColors.ink)
-        }
-    }
-}
-
-@Composable
-private fun SeriesHero(state: SeriesState) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(92.dp, 130.dp)
-                .shadow(8.dp, RoundedCornerShape(8.dp))
-                .clip(RoundedCornerShape(8.dp))
-                .background(state.coverColor)
-                .halftone(TmmColors.Ink28, 5.dp),
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(TmmColors.ink)
-                    .padding(horizontal = 10.dp, vertical = 3.dp),
-            ) {
-                TmmText(text = state.categoryLabel, style = TmmType.sans(12, weight = 600), color = TmmColors.paper)
-            }
-            TmmText(text = state.title, style = TmmType.display(32, weight = 800), color = TmmColors.ink)
-            TmmText(text = state.formatLabel, style = TmmType.sans(13), color = TmmColors.textMuted)
-        }
-    }
-}
-
-@Composable
-private fun SeriesLocationStats(state: SeriesState) {
-    val cd = stringResource(R.string.series_location_stats_cd)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = cd },
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        LocationCard(
-            icon = TmmIconId.PhoneOutline,
-            title = stringResource(R.string.series_legend_phone),
-            count = state.onPhoneCount,
-            tint = TmmColors.info,
-            modifier = Modifier.weight(1f),
-        )
-        LocationCard(
-            icon = TmmIconId.Monitor,
-            title = stringResource(R.string.series_stat_pc_original),
-            count = state.onPcCount,
-            tint = TmmColors.textMuted,
-            modifier = Modifier.weight(1f),
-        )
-        LocationCardFr(
-            count = state.frCount,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun LocationCard(icon: TmmIconId, title: String, count: Int, tint: Color, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(TmmColors.surface, RoundedCornerShape(12.dp))
-            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(12.dp))
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            TmmIcon(icon, size = 14.dp, tint = tint)
-            TmmText(text = title, style = TmmType.sans(12, weight = 600), color = tint)
-        }
-        TmmText(text = "$count", style = TmmType.display(24, weight = 800), color = TmmColors.ink)
-    }
-}
-
-@Composable
-private fun LocationCardFr(count: Int, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(TmmColors.surface, RoundedCornerShape(12.dp))
-            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(12.dp))
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(TmmColors.accent)
-                    .padding(horizontal = 3.dp, vertical = 1.dp),
-            ) {
-                TmmText(text = stringResource(R.string.series_stat_fr_tag), style = TmmType.mono(9), color = TmmColors.surface)
-            }
-            TmmText(text = stringResource(R.string.series_stat_translated_label), style = TmmType.sans(12, weight = 600), color = TmmColors.accent)
-        }
-        TmmText(text = "$count", style = TmmType.display(24, weight = 800), color = TmmColors.ink)
-    }
-}
-
-@Composable
-private fun SeriesGapAlert(gapNumber: Int, onDismiss: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(TmmColors.dangerBg)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        TmmIcon(TmmIconId.Warning, size = 18.dp, tint = TmmColors.dangerText)
-        val annotated = buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                append(stringResource(R.string.series_gap_bold_fmt, gapNumber))
-            }
-            append(" ")
-            append(stringResource(R.string.series_gap_rest))
-        }
-        TmmText(
-            text = annotated,
-            style = TmmType.sans(13, lineHeight = 19f),
-            color = TmmColors.dangerText,
-            modifier = Modifier.weight(1f),
-        )
-        Box(
-            modifier = Modifier
-                .height(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .border(1.dp, TmmColors.dangerText, RoundedCornerShape(8.dp))
-                .clickable(onClick = onDismiss)
-                .padding(horizontal = 10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            TmmText(text = stringResource(R.string.series_gap_dismiss), style = TmmType.sans(12, weight = 600), color = TmmColors.dangerText)
-        }
-    }
-}
-
-@Composable
-private fun SeriesChaptersSection(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            TmmText(text = stringResource(R.string.series_chapters_title), style = TmmType.display(19, weight = 800))
-            TmmText(
-                text = stringResource(R.string.series_select_todo_button),
-                style = TmmType.sans(13, weight = 600),
-                color = TmmColors.accent,
-                modifier = Modifier.clickable { onEvent(SeriesEvent.SelectTodo) },
+        if (state.selecting && state.selectionCount > 0) {
+            V2SelectionBar(
+                label = pluralStringResource(R.plurals.series_chapters_selected, state.selectionCount, state.selectionCount),
+                actionLabel = stringResource(R.string.series_selection_bar_action),
+                onAction = { onEvent(SeriesEvent.OpenSelectionMore) },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 16.dp),
             )
         }
-        SeriesLegendRow()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(TmmColors.surface)
-                .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)),
-        ) {
-            val visibleChapters = state.chapters.filter { state.showGap || it.kind != StatusTone.Gap }
-            visibleChapters.forEachIndexed { index, chapter ->
-                SeriesChapterRow(
-                    chapter = chapter,
-                    selected = chapter.number in state.selected,
-                    statsExpanded = chapter.number in state.expandedStats,
-                    onToggle = { onEvent(SeriesEvent.ToggleChapter(chapter.number)) },
-                    onToggleStats = { onEvent(SeriesEvent.ToggleStats(chapter.number)) },
-                    isLast = index == visibleChapters.lastIndex,
+
+        val sheet = state.sheet
+        V2Sheet(visible = sheet is SeriesSheet.More, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+            if (sheet is SeriesSheet.More) MoreSheetContent(state, sheet.allSeries, onEvent)
+        }
+        V2Sheet(visible = sheet is SeriesSheet.Follow, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+            if (sheet is SeriesSheet.Follow) FollowSheetContent(state.title, sheet.numbers, onEvent)
+        }
+        V2Sheet(visible = sheet is SeriesSheet.Delete, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+            if (sheet is SeriesSheet.Delete) {
+                DeleteSheetContent(
+                    sheet = sheet,
+                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(it)) },
+                    onCancel = { onEvent(SeriesEvent.CloseSheet) },
+                    onConfirm = { onEvent(SeriesEvent.ConfirmDelete) },
                 )
             }
         }
+
+        SeriesToastHost(
+            toast = state.toast,
+            title = state.title,
+            onEvent = onEvent,
+            onOpenQueue = onOpenQueue,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 16.dp),
+        )
     }
 }
 
 @Composable
-private fun SeriesLegendRow() {
+private fun TopRow(showMore: Boolean, onBack: () -> Unit, onMore: () -> Unit) {
+    val backCd = stringResource(R.string.series_back_cd)
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxWidth().height(44.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendItem(color = TmmColors.info, label = stringResource(R.string.series_legend_phone))
-        LegendItem(color = TmmColors.textMuted, label = stringResource(R.string.series_legend_pc))
-        LegendItem(color = TmmColors.accent, label = stringResource(R.string.series_legend_fr))
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .dashedBorder(color = TmmColors.CB9B0A0, width = 1.dp, cornerRadius = 2.dp),
+        Row(
+            Modifier
+                .clickable(role = Role.Button, onClick = onBack)
+                .semantics { contentDescription = backCd },
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TmmIcon(TmmIconId.V2Back, size = 22.dp, tint = C.muted)
+            TmmText(text = stringResource(R.string.series_back_label), style = TmmType.sans(15), color = C.muted)
+        }
+        if (showMore) V2IconButton(TmmIconId.V2More, stringResource(R.string.series_more_cd), onMore)
+    }
+}
+
+@Composable
+private fun Header(state: SeriesState) {
+    Row(
+        Modifier.padding(top = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Cover(
+            seriesKey = state.title,
+            coverUrl = state.coverUrl,
+            color = state.coverColor,
+            modifier = Modifier.size(96.dp, 136.dp).clip(RoundedCornerShape(10.dp)),
+        )
+        Column(Modifier.weight(1f)) {
+            if (state.followed) {
+                AutoTag(stringResource(R.string.series_followed_tag))
+            } else if (state.categoryLabel.isNotEmpty()) {
+                StatusPill(PillTone.Wait, state.categoryLabel, plain = true)
+            }
+            TmmText(
+                text = state.title,
+                style = TmmType.display(32, weight = 800, letterSpacingEm = -0.6f / 32f).px(32f, lineHeight = 1.05f),
+                color = C.ink,
+                modifier = Modifier.padding(top = 8.dp),
             )
-            TmmText(text = stringResource(R.string.series_legend_absent), style = TmmType.sans(11), color = TmmColors.textMuted)
+            TmmText(
+                text = state.subtitle,
+                style = TmmType.sans(14).px(14f, lineHeight = 1.4f),
+                color = C.muted,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProgressCard(progress: SeriesProgress) {
+    Column(Modifier.padding(top = 18.dp).fillMaxWidth().v2Card().padding(16.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TmmText(
+                text = pluralStringResource(R.plurals.series_progress_title, progress.inMihon, progress.inMihon, progress.total),
+                style = TmmType.sans(15, weight = 600).px(15.5f),
+                color = C.ink,
+                modifier = Modifier.weight(1f),
+            )
+            TmmText(text = stringResource(R.string.series_progress_percent_fmt, progress.percent), style = TmmType.mono(13), color = C.muted)
+        }
+        val segments = listOf(
+            progress.inMihon to C.green,
+            progress.ready to C.blue,
+            progress.busy to C.ink,
+            progress.toTranslate to C.red,
+            progress.notDownloaded to C.line2,
+        ).filter { it.first > 0 }
+        Row(
+            Modifier.padding(top = 10.dp).fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(C.line2),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            segments.forEach { (count, color) -> Box(Modifier.weight(count.toFloat()).height(10.dp).background(color)) }
+        }
+        FlowRow(
+            Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            LegendItem(C.green, stringResource(R.string.series_legend_in_mihon_fmt, progress.inMihon))
+            if (progress.ready > 0) LegendItem(C.blue, stringResource(R.string.series_legend_ready_fmt, progress.ready))
+            if (progress.busy > 0) LegendItem(C.ink, stringResource(R.string.series_legend_busy_fmt, progress.busy))
+            if (progress.toTranslate > 0) LegendItem(C.red, stringResource(R.string.series_legend_to_translate_fmt, progress.toTranslate))
+            if (progress.notDownloaded > 0) {
+                LegendItem(C.line, pluralStringResource(R.plurals.series_legend_not_downloaded, progress.notDownloaded, progress.notDownloaded))
+            }
         }
     }
 }
 
 @Composable
 private fun LegendItem(color: Color, label: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(color),
-        )
-        TmmText(text = label, style = TmmType.sans(11), color = TmmColors.textMuted)
+    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        TmmText(text = label, style = TmmType.sans(12).px(12.5f), color = C.muted)
     }
 }
 
+/** `.card.follow` : claire et eteinte, puis noire (`.follow.on`) une fois la serie suivie. */
 @Composable
-private fun SeriesChapterRow(
-    chapter: SeriesChapter,
-    selected: Boolean,
-    statsExpanded: Boolean,
-    onToggle: () -> Unit,
-    onToggleStats: () -> Unit,
-    isLast: Boolean,
-) {
-    val rowBg = if (selected) TmmColors.paperRaised else TmmColors.surface
-    val ariaLabel = stringResource(R.string.series_chapter_aria_fmt, chapter.number, chapter.statusLabel)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(rowBg)
-            .then(if (!isLast) Modifier.border(0.dp, Color.Transparent).drawBehindBottomLine(TmmColors.line) else Modifier)
-            .clickable(enabled = !chapter.locked, onClick = onToggle)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TmmCheckbox(
-                checked = selected,
-                onCheckedChange = { onToggle() },
-                enabled = !chapter.locked,
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                TmmText(
-                    text = stringResource(R.string.series_chapter_number_fmt, chapter.number),
-                    style = TmmType.mono(14),
-                    color = TmmColors.ink,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(chapter.statusColor),
-                    )
-                    TmmText(text = chapter.statusLabel, style = TmmType.sans(12, weight = 600), color = chapter.statusColor)
-                }
-                if (chapter.translationProgress != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(TmmColors.line),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(chapter.translationProgress)
-                                .height(4.dp)
-                                .background(TmmColors.ink),
-                        )
-                    }
-                }
-            }
-            if (chapter.stats != null) {
-                val statsCd = stringResource(R.string.series_chapter_stats_cd_fmt, chapter.number)
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(if (statsExpanded) TmmColors.line else Color.Transparent)
-                        .clickable(onClick = onToggleStats)
-                        .semantics { contentDescription = statsCd },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TmmIcon(TmmIconId.BarChart, size = 16.dp, tint = TmmColors.textMuted)
-                }
-            }
-            ChapterPresenceBars(onPhone = chapter.onPhone, onPc = chapter.onPc, onFr = chapter.onFr)
-        }
-        if (chapter.stats != null && statsExpanded) {
-            ChapterStatsChips(stats = chapter.stats)
-        }
-    }
-}
-
-@Composable
-private fun ChapterPresenceBars(onPhone: Boolean, onPc: Boolean, onFr: Boolean) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        PresenceBar(present = onPhone, color = TmmColors.info)
-        PresenceBar(present = onPc, color = TmmColors.textMuted)
-        PresenceBar(present = onFr, color = TmmColors.accent)
-    }
-}
-
-@Composable
-private fun PresenceBar(present: Boolean, color: Color) {
-    if (present) {
-        Box(
-            modifier = Modifier
-                .size(10.dp, 22.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(color),
-        )
+private fun FollowCard(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
+    val on = state.followed
+    val modifier = if (on) {
+        Modifier.clip(RoundedCornerShape(24.dp)).background(C.ink)
     } else {
+        Modifier.v2Card()
+    }
+    Row(
+        Modifier.padding(top = 12.dp).fillMaxWidth().then(modifier).padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
         Box(
-            modifier = Modifier
-                .size(10.dp, 22.dp)
-                .dashedBorder(color = TmmColors.CB9B0A0, width = 1.dp, cornerRadius = 3.dp),
+            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (on) C.ink2 else C.chip),
+            contentAlignment = Alignment.Center,
+        ) {
+            TmmIcon(TmmIconId.V2Bolt, size = 22.dp, tint = if (on) C.greenLight else C.ink)
+        }
+        Column(Modifier.weight(1f)) {
+            TmmText(
+                text = stringResource(if (on) R.string.series_followed_title else R.string.series_follow_title),
+                style = TmmType.sans(16, weight = 600),
+                color = if (on) C.white else C.ink,
+            )
+            TmmText(
+                text = if (on) {
+                    stringResource(R.string.series_followed_desc_fmt, state.nextExpected ?: 1)
+                } else {
+                    stringResource(R.string.series_follow_desc)
+                },
+                style = TmmType.sans(13).px(13.5f, lineHeight = 1.4f),
+                color = if (on) C.onInkMuted else C.muted,
+                modifier = Modifier.padding(top = 3.dp),
+            )
+        }
+        V2Switch(
+            checked = on,
+            onCheckedChange = { onEvent(SeriesEvent.SetFollow(it)) },
+            onColor = C.green,
+            offColor = C.sand,
+            contentDescription = stringResource(R.string.series_follow_title),
         )
     }
 }
 
-// FlowRow comme le flex-wrap de la maquette : en Row, les dernieres puces etaient ecrasees
-// (« 12 » coupe sur deux lignes) des qu'un chapitre avait des bulles non traduites.
+@Composable
+private fun SentOnFollowCard(numbers: List<Int>, onOpenQueue: () -> Unit) {
+    val joined = numbers.joinToString(", ")
+    Row(
+        Modifier.padding(top = 12.dp).fillMaxWidth().v2Card().padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TmmIcon(TmmIconId.V2Check, size = 22.dp, tint = C.green)
+        TmmText(
+            text = stringResource(
+                if (numbers.size == 1) R.string.series_sent_on_follow_one_fmt else R.string.series_sent_on_follow_many_fmt,
+                joined,
+            ),
+            style = TmmType.sans(14),
+            color = C.ink,
+            modifier = Modifier.weight(1f),
+        )
+        TmmText(
+            text = stringResource(R.string.series_sent_on_follow_see),
+            style = TmmType.sans(14, weight = 600),
+            color = C.red,
+            modifier = Modifier.clickable(role = Role.Button, onClick = onOpenQueue),
+        )
+    }
+}
+
+@Composable
+private fun GapBanner(missing: List<Int>, onDismiss: () -> Unit) {
+    val joined = missing.joinToString(", ")
+    val one = missing.size == 1
+    val bold = stringResource(if (one) R.string.series_gap_bold_one_fmt else R.string.series_gap_bold_many_fmt, joined)
+    val hint = stringResource(if (one) R.string.series_gap_hint_one else R.string.series_gap_hint_many)
+    Row(
+        Modifier
+            .padding(top = 12.dp)
+            .fillMaxWidth()
+            .v2Card(background = C.amberSoft, borderColor = C.amberLine)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TmmIcon(TmmIconId.V2Warn, size = 22.dp, tint = C.amber)
+        TmmText(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(bold) }
+                append(" ")
+                append(hint)
+            },
+            style = TmmType.sans(13).px(13.5f, lineHeight = 1.4f),
+            color = C.ink,
+            modifier = Modifier.weight(1f),
+        )
+        V2Button(
+            label = stringResource(R.string.series_gap_dismiss),
+            onClick = onDismiss,
+            style = V2ButtonStyle.Ghost,
+            size = V2ButtonSize.Small,
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(link: String, onLink: () -> Unit) {
+    Row(
+        Modifier.padding(top = 26.dp, bottom = 12.dp).fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        TmmText(
+            text = stringResource(R.string.series_chapters_title),
+            style = TmmType.display(22, weight = 800, letterSpacingEm = -0.3f / 22f),
+            color = C.ink,
+        )
+        TmmText(
+            text = link,
+            style = TmmType.sans(14, weight = 600),
+            color = C.red,
+            modifier = Modifier.clickable(role = Role.Button, onClick = onLink),
+        )
+    }
+}
+
+// Pas de cle : deux lignes peuvent partager le meme numero entier (7 et 7.5), et une cle en
+// double fait planter la LazyColumn. La position suffit, l'etat vit dans le ViewModel.
+private fun LazyListScope.chapterItems(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
+    val rows = state.rows
+    items(rows.size, contentType = { "chapter" }) { index ->
+        val row = rows[index]
+        Column(Modifier.fillMaxWidth().v2CardItem(isFirst = index == 0, isLast = index == rows.lastIndex)) {
+            if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(C.line2))
+            ChapterRow(
+                row = row,
+                selecting = state.selecting,
+                selected = row.number in state.selected,
+                expanded = row.number in state.expandedStats,
+                onEvent = onEvent,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChapterStatsChips(stats: SeriesChapterStats) {
-    FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        val warnPages = stats.pagesTranslated < stats.pagesTotal
-        StatChip(
-            text = stringResource(R.string.series_chip_pages_fmt, stats.pagesTranslated, stats.pagesTotal),
-            bg = if (warnPages) TmmColors.dangerBg else TmmColors.line,
-            fg = if (warnPages) TmmColors.dangerText else TmmColors.ink,
-        )
-        StatChip(
-            text = stringResource(R.string.series_chip_bubbles_translated_fmt, stats.bubblesTranslated),
-            bg = TmmColors.line,
-            fg = TmmColors.ink,
-        )
-        if (stats.bubblesUntranslated > 0) {
-            StatChip(
-                text = stringResource(R.string.series_chip_bubbles_untranslated_fmt, stats.bubblesUntranslated),
-                bg = TmmColors.dangerBg,
-                fg = TmmColors.dangerText,
-            )
-        }
-        StatChip(
-            text = stringResource(R.string.series_chip_sfx_fmt, stats.sfxKept),
-            bg = TmmColors.line,
-            fg = TmmColors.ink,
-        )
-        if (stats.verifiedDate != null) {
-            StatChip(
-                text = stringResource(R.string.series_chip_verified_fmt, stats.verifiedDate),
-                bg = TmmColors.CE8F1EB,
-                fg = TmmColors.success,
-            )
-        } else {
-            StatChip(
-                text = stringResource(R.string.series_chip_never_verified),
-                bg = TmmColors.line,
-                fg = TmmColors.textMuted,
-            )
-        }
+private fun ChapterRow(
+    row: SeriesRow,
+    selecting: Boolean,
+    selected: Boolean,
+    expanded: Boolean,
+    onEvent: (SeriesEvent) -> Unit,
+) {
+    val selectable = !row.locked && row.kind != ChapterKind.NotDownloaded
+    val hasStats = row.stats != null && row.kind == ChapterKind.InMihon
+    val statsCd = stringResource(R.string.series_chapter_stats_cd_fmt, row.number)
+    val click: Modifier = when {
+        selecting && selectable -> Modifier.clickable(role = Role.Checkbox) { onEvent(SeriesEvent.ToggleChapter(row.number)) }
+        !selecting && hasStats -> Modifier
+            .clickable(role = Role.Button) { onEvent(SeriesEvent.ToggleStats(row.number)) }
+            .semantics { contentDescription = statsCd }
+        else -> Modifier
     }
-}
-
-@Composable
-private fun StatChip(text: String, bg: Color, fg: Color) {
-    Box(
-        modifier = Modifier
-            .height(20.dp)
-            .clip(RoundedCornerShape(5.dp))
-            .background(bg)
-            .padding(horizontal = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        TmmText(text = text, style = TmmType.mono(10), color = fg)
-    }
-}
-
-@Composable
-private fun SeriesSelectionActionBar(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
     Column(
-        modifier = Modifier
+        Modifier
             .fillMaxWidth()
-            .background(TmmColors.paperRaised)
-            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(0.dp))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .then(click)
+            .alpha(if (selecting && !selectable) 0.5f else 1f)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(if (expanded) 10.dp else 8.dp),
     ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (selecting) V2Check(checked = selected, enabled = selectable)
+            val dimmed = row.kind == ChapterKind.Missing || row.kind == ChapterKind.NotDownloaded
+            TmmText(
+                text = if (row.rangeEnd != null) {
+                    stringResource(R.string.series_chapter_range_fmt, row.number, row.rangeEnd)
+                } else {
+                    stringResource(R.string.series_chapter_number_fmt, row.number)
+                },
+                style = TmmType.mono(15),
+                color = if (dimmed) C.muted else C.ink,
+                modifier = Modifier.weight(1f),
+            )
+            val (tone, label) = statusOf(row)
+            StatusPill(tone, label)
+            if (hasStats && !selecting) {
+                TmmIcon(
+                    TmmIconId.V2Chev,
+                    size = 22.dp,
+                    tint = C.muted2,
+                    modifier = if (expanded) Modifier.rotate(90f) else Modifier,
+                )
+            }
+        }
+        val kind = row.kind
+        if (kind is ChapterKind.Translating) ProgressLine(kind.percent)
+        val stats = row.stats
+        if (expanded && stats != null && !selecting) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                StatusPill(PillTone.Wait, stringResource(R.string.series_chip_pages_fmt, stats.pagesTranslated, stats.pagesTotal), plain = true)
+                StatusPill(
+                    PillTone.Wait,
+                    pluralStringResource(R.plurals.series_chip_bubbles, stats.bubblesTranslated, stats.bubblesTranslated),
+                    plain = true,
+                )
+                if (stats.bubblesUntranslated > 0) {
+                    StatusPill(
+                        PillTone.Todo,
+                        pluralStringResource(R.plurals.series_chip_left_in_vo, stats.bubblesUntranslated, stats.bubblesUntranslated),
+                        plain = true,
+                    )
+                }
+                if (stats.sfxKept > 0) StatusPill(PillTone.Wait, stringResource(R.string.series_chip_sfx_fmt, stats.sfxKept), plain = true)
+                if (stats.verifiedDate != null) {
+                    StatusPill(PillTone.Ok, stringResource(R.string.series_chip_verified_fmt, stats.verifiedDate), plain = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun statusOf(row: SeriesRow): Pair<PillTone, String> = when (val kind = row.kind) {
+    ChapterKind.ToTranslate -> PillTone.Todo to stringResource(R.string.series_status_to_translate)
+    ChapterKind.OnPc -> PillTone.Wait to stringResource(R.string.series_status_on_pc)
+    ChapterKind.Waiting -> PillTone.Wait to stringResource(R.string.series_status_waiting)
+    is ChapterKind.Translating -> PillTone.Busy to stringResource(R.string.series_status_translating_fmt, kind.percent)
+    is ChapterKind.Failed -> PillTone.Fail to (
+        kind.page?.let { stringResource(R.string.series_status_failed_page_fmt, it) } ?: stringResource(R.string.series_status_failed)
+        )
+    ChapterKind.Ready -> PillTone.Get to stringResource(R.string.series_status_ready)
+    ChapterKind.InMihon -> PillTone.Ok to stringResource(R.string.series_status_in_mihon)
+    ChapterKind.NotDownloaded -> PillTone.Absent to stringResource(
+        if (row.rangeEnd != null) R.string.series_status_not_downloaded_many else R.string.series_status_not_downloaded_one,
+    )
+    ChapterKind.Missing -> PillTone.Gap to stringResource(R.string.series_status_missing)
+}
+
+/** `.bar` : 6 de haut, fond line2, remplissage encre. */
+@Composable
+private fun ProgressLine(percent: Int) {
+    Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(C.line2)) {
+        Box(
+            Modifier
+                .fillMaxWidth(percent.coerceIn(0, 100) / 100f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(C.ink),
+        )
+    }
+}
+
+@Composable
+private fun translateLabel(numbers: List<Int>): String =
+    if (numbers.size == 1) {
+        stringResource(R.string.series_translate_one_fmt, numbers.first())
+    } else {
+        pluralStringResource(R.plurals.series_translate_many, numbers.size, numbers.size)
+    }
+
+@Composable
+private fun MoreSheetContent(state: SeriesState, allSeries: Boolean, onEvent: (SeriesEvent) -> Unit) {
+    val counts = if (allSeries) state.seriesCounts else state.selectionCounts
+    val kick = if (allSeries) {
+        stringResource(R.string.series_sheet_kicker_fmt, stringResource(R.string.series_sheet_all_series), state.title)
+    } else {
+        stringResource(
+            R.string.series_sheet_kicker_fmt,
+            pluralStringResource(R.plurals.series_chapters_selected, state.selectionCount, state.selectionCount),
+            state.selectedNumbers.joinToString(", "),
+        )
+    }
+    V2SheetHeader(kick = kick, title = stringResource(R.string.series_sheet_more_title))
+
+    val redIsInstall = counts.translate == 0 && counts.install > 0
+    if (counts.translate > 0) {
+        val numbers = if (allSeries) state.toTranslateNumbers else state.toTranslateNumbers.filter { it in state.selected }
+        V2Button(
+            label = if (numbers.size == counts.translate) {
+                translateLabel(numbers)
+            } else {
+                pluralStringResource(R.plurals.series_translate_many, counts.translate, counts.translate)
+            },
+            onClick = { onEvent(SeriesEvent.Translate) },
+            modifier = Modifier.padding(top = 16.dp),
+            size = V2ButtonSize.Block,
+            icon = TmmIconId.V2Translate,
+        )
+    } else if (redIsInstall) {
+        V2Button(
+            label = pluralStringResource(R.plurals.series_install_many, counts.install, counts.install),
+            onClick = { onEvent(SeriesEvent.Install) },
+            modifier = Modifier.padding(top = 16.dp),
+            size = V2ButtonSize.Block,
+            icon = TmmIconId.V2Down,
+        )
+    }
+    if (counts.install > 0 && !redIsInstall) {
+        V2ActionRow(
+            icon = TmmIconId.V2Down,
+            title = stringResource(R.string.series_action_install_label),
+            description = stringResource(R.string.series_action_install_hint),
+            onClick = { onEvent(SeriesEvent.Install) },
+            count = counts.install,
+            iconBackground = C.blueSoft,
+            iconTint = C.blue,
+        )
+    }
+    if (counts.verify > 0) {
+        V2ActionRow(
+            icon = TmmIconId.V2Shield,
+            title = stringResource(R.string.series_action_verify_label),
+            description = stringResource(R.string.series_action_verify_hint),
+            onClick = { onEvent(SeriesEvent.Verify) },
+            count = counts.verify,
+        )
+    }
+    if (counts.retranslate > 0) {
+        V2ActionRow(
+            icon = TmmIconId.V2Redo,
+            title = stringResource(R.string.series_action_retranslate_label),
+            description = stringResource(R.string.series_action_retranslate_hint),
+            onClick = { onEvent(SeriesEvent.Retranslate) },
+            count = counts.retranslate,
+        )
+    }
+    if (counts.copy > 0) {
+        V2ActionRow(
+            icon = TmmIconId.V2Copy,
+            title = stringResource(R.string.series_action_copy_label),
+            description = stringResource(R.string.series_action_copy_hint),
+            onClick = { onEvent(SeriesEvent.CopyToPc) },
+            count = counts.copy,
+        )
+    }
+    val deletable = if (allSeries) {
+        state.rows.count { it.kind != ChapterKind.Missing && it.kind != ChapterKind.NotDownloaded }
+    } else {
+        state.selectionCount
+    }
+    if (deletable > 0) {
+        V2ActionRow(
+            icon = TmmIconId.V2Trash,
+            title = stringResource(R.string.series_action_delete_more_label),
+            description = stringResource(R.string.series_action_delete_hint),
+            onClick = { onEvent(SeriesEvent.RequestDelete) },
+            count = deletable,
+            danger = true,
+        )
+    }
+    val locked = state.lockedNumbers
+    if (!allSeries && locked.isNotEmpty()) {
+        TmmText(
+            text = stringResource(
+                if (locked.size == 1) R.string.series_locked_note_one_fmt else R.string.series_locked_note_many_fmt,
+                locked.joinToString(", "),
+            ),
+            style = TmmType.sans(12).px(12.5f, lineHeight = 1.4f),
+            color = C.muted,
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp),
+        )
+    }
+}
+
+@Composable
+private fun FollowSheetContent(title: String, numbers: List<Int>, onEvent: (SeriesEvent) -> Unit) {
+    V2SheetHeader(kick = title, title = stringResource(R.string.series_follow_sheet_title))
+    Column(Modifier.padding(top = 18.dp)) {
+        FollowStep(1, R.string.series_follow_step1_title, R.string.series_follow_step1_desc)
+        StepLink()
+        FollowStep(2, R.string.series_follow_step2_title, R.string.series_follow_step2_desc)
+        StepLink()
+        FollowStep(null, R.string.series_follow_step3_title, R.string.series_follow_step3_desc)
+    }
+    if (numbers.isNotEmpty()) {
+        val bold = pluralStringResource(R.plurals.series_follow_catchup_bold, numbers.size, numbers.size)
+        val rest = stringResource(
+            if (numbers.size == 1) R.string.series_follow_catchup_rest_one_fmt else R.string.series_follow_catchup_rest_many_fmt,
+            numbers.joinToString(", "),
+        )
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            Modifier
+                .padding(top = 18.dp)
+                .fillMaxWidth()
+                .v2Card(background = C.amberSoft, borderColor = C.amberLine)
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            TmmIcon(TmmIconId.V2Info, size = 22.dp, tint = C.amber, modifier = Modifier.padding(top = 1.dp))
+            TmmText(
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(bold) }
+                    append(" ")
+                    append(rest)
+                },
+                style = TmmType.sans(13).px(13.5f, lineHeight = 1.45f),
+                color = C.ink,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    V2Button(
+        label = stringResource(R.string.series_follow_confirm_fmt, title),
+        onClick = { onEvent(SeriesEvent.ConfirmFollow) },
+        modifier = Modifier.padding(top = 16.dp),
+        size = V2ButtonSize.Block,
+        icon = TmmIconId.V2Bolt,
+    )
+    V2Button(
+        label = stringResource(R.string.common_cancel),
+        onClick = { onEvent(SeriesEvent.CloseSheet) },
+        modifier = Modifier.padding(top = 6.dp),
+        style = V2ButtonStyle.Plain,
+        size = V2ButtonSize.Block,
+        contentColor = C.muted,
+    )
+}
+
+/** Etape numerotee de la feuille « Suivre » ; `number = null` : rond vert coche (derniere etape). */
+@Composable
+private fun FollowStep(number: Int?, titleRes: Int, descRes: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier.size(36.dp).clip(CircleShape).background(if (number == null) C.green else C.ink),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (number == null) {
+                TmmIcon(TmmIconId.V2Check, size = 18.dp, tint = C.white)
+            } else {
+                TmmText(text = number.toString(), style = TmmType.sans(15, weight = 600), color = C.white)
+            }
+        }
+        Column(Modifier.weight(1f).padding(top = 6.dp)) {
+            TmmText(text = stringResource(titleRes), style = TmmType.sans(15, weight = 600), color = C.ink)
+            TmmText(
+                text = stringResource(descRes),
+                style = TmmType.sans(13).px(13.5f),
+                color = C.muted,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StepLink() {
+    Box(Modifier.padding(start = 17.dp).width(2.dp).height(16.dp).background(C.line))
+}
+
+/** Feuille « Supprimer » a 3 cases, partagee par la fiche serie et la selection de la Bibliotheque. */
+@Composable
+internal fun DeleteSheetContent(sheet: SeriesSheet.Delete, onToggle: (DeleteTarget) -> Unit, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    V2SheetHeader(
+        kick = null,
+        title = stringResource(
+            R.string.series_delete_title_fmt,
+            pluralStringResource(R.plurals.series_chapters_count, sheet.chapterCount, sheet.chapterCount),
+        ),
+    )
+    if (sheet.skippedCount > 0) {
+        Row(
+            Modifier
+                .padding(top = 14.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(C.blueSoft)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            TmmIcon(TmmIconId.V2Info, size = 20.dp, tint = C.blue)
             TmmText(
-                text = pluralStringResource(R.plurals.series_chapters_selected, state.selectionCount, state.selectionCount),
-                style = TmmType.sans(13, weight = 600),
+                text = pluralStringResource(R.plurals.series_delete_skipped, sheet.skippedCount, sheet.skippedCount),
+                style = TmmType.sans(13).px(13.5f, lineHeight = 1.4f),
+                color = C.blue,
+                modifier = Modifier.weight(1f),
             )
+        }
+    }
+    Column(Modifier.padding(top = 6.dp)) {
+        DeleteOption(
+            checked = sheet.localFr,
+            label = stringResource(R.string.series_delete_option_fr_label),
+            hint = stringResource(R.string.series_delete_option_fr_hint),
+            onToggle = { onToggle(DeleteTarget.LocalFr) },
+        )
+        DeleteOption(
+            checked = sheet.mihon,
+            label = stringResource(R.string.series_delete_option_mihon_label),
+            hint = stringResource(R.string.series_delete_option_mihon_warning),
+            hintColor = C.redDeep,
+            onToggle = { onToggle(DeleteTarget.Mihon) },
+        )
+        DeleteOption(
+            checked = sheet.pc,
+            label = stringResource(R.string.series_delete_option_pc_label),
+            hint = stringResource(R.string.series_delete_option_pc_hint),
+            onToggle = { onToggle(DeleteTarget.Pc) },
+        )
+    }
+    Row(Modifier.padding(top = 18.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        V2Button(
+            label = stringResource(R.string.common_cancel),
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+            style = V2ButtonStyle.Ghost,
+        )
+        V2Button(
+            label = stringResource(R.string.series_action_delete_label),
+            onClick = onConfirm,
+            modifier = Modifier.weight(1f).alpha(if (sheet.anyChecked) 1f else 0.4f),
+            enabled = sheet.anyChecked,
+        )
+    }
+}
+
+@Composable
+private fun DeleteOption(checked: Boolean, label: String, hint: String, onToggle: () -> Unit, hintColor: Color = C.muted) {
+    Row(
+        Modifier
+            .padding(top = 10.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(C.white)
+            .border(1.dp, C.line, RoundedCornerShape(18.dp))
+            .clickable(role = Role.Checkbox, onClick = onToggle)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        V2Check(checked = checked)
+        Column(Modifier.weight(1f)) {
+            TmmText(text = label, style = TmmType.sans(15, weight = 600), color = C.ink)
             TmmText(
-                text = stringResource(R.string.series_deselect_all),
-                style = TmmType.sans(13),
-                color = TmmColors.textMuted,
-                modifier = Modifier.clickable { onEvent(SeriesEvent.ClearSelection) },
+                text = hint,
+                style = TmmType.sans(13).px(13.5f, lineHeight = 1.35f),
+                color = hintColor,
+                modifier = Modifier.padding(top = 2.dp),
             )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SeriesActionButton(
-                label = stringResource(R.string.library_action_send_label),
-                count = state.selectionToSend,
-                hint = stringResource(R.string.series_action_hint_send),
-                icon = TmmIconId.Up,
-                primary = true,
-                onClick = { onEvent(SeriesEvent.SendToPc) },
-                modifier = Modifier.weight(1f),
-            )
-            SeriesActionButton(
-                label = stringResource(R.string.library_action_get_label),
-                count = state.selectionToGet,
-                hint = stringResource(R.string.series_action_hint_get),
-                icon = TmmIconId.Down,
-                primary = false,
-                onClick = { onEvent(SeriesEvent.FetchToMihon) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SeriesActionButton(
-                label = stringResource(R.string.library_action_verify_label),
-                count = state.selectionToVerify,
-                hint = stringResource(R.string.series_action_hint_verify),
-                icon = TmmIconId.ShieldCheck,
-                primary = false,
-                onClick = { onEvent(SeriesEvent.VerifyPending) },
-                modifier = Modifier.weight(1f),
-            )
-            // "Retraduire" si une cible a deja une traduction, sinon "Traduire" (planTranslation).
-            SeriesActionButton(
-                label = stringResource(if (state.selectionRetranslates) R.string.library_action_retranslate_label else R.string.library_action_translate_label),
-                count = state.selectionToTranslate,
-                hint = stringResource(if (state.selectionRetranslates) R.string.series_action_hint_retranslate else R.string.series_action_hint_translate),
-                icon = TmmIconId.Refresh,
-                primary = false,
-                onClick = { onEvent(SeriesEvent.RequestRetranslateSelection) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // Ouvre la feuille de suppression ; les chapitres a job actif ne comptent pas.
-            SeriesActionButton(
-                label = stringResource(R.string.series_action_delete_label),
-                count = state.selectionToDelete,
-                hint = stringResource(R.string.series_action_hint_delete),
-                icon = TmmIconId.Trash,
-                primary = false,
-                onClick = { onEvent(SeriesEvent.RequestDelete) },
-                modifier = Modifier.weight(1f),
-            )
-            Box(modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun SeriesActionButton(
-    label: String,
-    count: Int,
-    hint: String,
-    icon: TmmIconId,
-    primary: Boolean,
-    onClick: () -> Unit,
+private fun SeriesToastHost(
+    toast: SeriesToast?,
+    title: String,
+    onEvent: (SeriesEvent) -> Unit,
+    onOpenQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val enabled = count > 0
-    val bg = if (primary && enabled) TmmColors.accent else TmmColors.surface
-    val fg = if (primary && enabled) TmmColors.surface else TmmColors.ink
-    val border = if (primary && enabled) TmmColors.accent else TmmColors.track
-    val icBg = if (primary && enabled) TmmColors.White18 else TmmColors.paper
-    val displayLabel = if (count > 0) "$label ($count)" else label
-    val displayHint = if (count > 0) hint else stringResource(R.string.common_not_applicable)
-    Row(
-        modifier = modifier
-            .height(56.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(icBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            TmmIcon(icon, size = 16.dp, tint = fg)
+    val dismiss = { onEvent(SeriesEvent.DismissToast) }
+    val see = stringResource(R.string.series_sent_on_follow_see)
+    val openQueue = {
+        dismiss()
+        onOpenQueue()
+    }
+    val message: String = when (toast) {
+        null -> ""
+        is SeriesToast.Translated -> pluralStringResource(R.plurals.series_toast_translated, toast.chapterCount, toast.chapterCount)
+        is SeriesToast.Copied -> pluralStringResource(R.plurals.series_toast_copied, toast.chapterCount, toast.chapterCount)
+        is SeriesToast.Installing -> pluralStringResource(R.plurals.series_toast_installing, toast.chapterCount, toast.chapterCount)
+        is SeriesToast.Verified -> pluralStringResource(R.plurals.series_toast_verified, toast.chapterCount, toast.chapterCount)
+        is SeriesToast.Retranslated -> pluralStringResource(R.plurals.series_toast_retranslated, toast.chapterCount, toast.chapterCount)
+        is SeriesToast.Deleted -> listOfNotNull(
+            pluralStringResource(R.plurals.series_toast_deleted, toast.chapterCount, toast.chapterCount),
+            if (toast.failed > 0) stringResource(R.string.series_toast_delete_failed) else null,
+            if (toast.pcUnavailable) stringResource(R.string.series_toast_delete_pc_unavailable) else null,
+        ).joinToString(" ")
+        is SeriesToast.Followed -> if (toast.chapterCount > 0) {
+            pluralStringResource(R.plurals.series_toast_followed, toast.chapterCount, title, toast.chapterCount)
+        } else {
+            stringResource(R.string.series_toast_followed_none_fmt, title)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            TmmText(text = displayLabel, style = TmmType.sans(14, weight = 600), color = fg)
-            TmmText(text = displayHint, style = TmmType.sans(11), color = fg.copy(alpha = 0.8f))
-        }
+    }
+    when (toast) {
+        is SeriesToast.Followed -> V2Toast(
+            visible = true,
+            message = message,
+            onDismiss = dismiss,
+            modifier = modifier,
+            icon = TmmIconId.V2Bolt,
+            actionLabel = stringResource(R.string.series_toast_undo),
+            onAction = { onEvent(SeriesEvent.UndoFollow) },
+            durationMs = 7000L,
+        )
+        is SeriesToast.Deleted -> V2Toast(visible = true, message = message, onDismiss = dismiss, modifier = modifier, icon = TmmIconId.V2Check)
+        null -> V2Toast(visible = false, message = message, onDismiss = dismiss, modifier = modifier)
+        else -> V2Toast(
+            visible = true,
+            message = message,
+            onDismiss = dismiss,
+            modifier = modifier,
+            icon = TmmIconId.V2Check,
+            actionLabel = see,
+            onAction = openQueue,
+            durationMs = 5000L,
+        )
     }
 }
 
-@Composable
-private fun SeriesSheetContent(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
-    when (val sheet = state.sheet) {
-        SeriesSheet.None -> {}
-        SeriesSheet.SeriesActions -> {
-            TmmSheet(
-                visible = true,
-                onDismiss = { onEvent(SeriesEvent.CloseSheet) },
-                title = stringResource(R.string.series_sheet_title),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(TmmColors.surface)
-                        .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)),
-                ) {
-                    SeriesSheetActionItem(
-                        icon = TmmIconId.Up,
-                        label = stringResource(R.string.series_sheet_action_send_label),
-                        hint = stringResource(R.string.series_sheet_action_send_hint),
-                        count = stringResource(R.string.series_sheet_count_fmt, 1),
-                        icBg = TmmColors.dangerBg,
-                        icFg = TmmColors.accent,
-                        onClick = { onEvent(SeriesEvent.SeriesSendMissing) },
-                    )
-                    SeriesSheetActionItem(
-                        icon = TmmIconId.Down,
-                        label = stringResource(R.string.series_sheet_action_get_label),
-                        hint = stringResource(R.string.series_sheet_action_get_hint),
-                        count = stringResource(R.string.series_sheet_count_fmt, 1),
-                        icBg = TmmColors.infoBg,
-                        icFg = TmmColors.info,
-                        onClick = { onEvent(SeriesEvent.SeriesFetchMissing) },
-                    )
-                    SeriesSheetActionItem(
-                        icon = TmmIconId.ShieldCheck,
-                        label = stringResource(R.string.series_sheet_action_verify_label),
-                        hint = stringResource(R.string.series_sheet_action_verify_hint),
-                        count = stringResource(R.string.series_sheet_count_fmt, state.frCount),
-                        icBg = TmmColors.CE8F1EB,
-                        icFg = TmmColors.success,
-                        onClick = { onEvent(SeriesEvent.SeriesVerifyAll) },
-                    )
-                    SeriesSheetActionItem(
-                        icon = TmmIconId.Refresh,
-                        label = stringResource(R.string.series_sheet_action_retranslate_label),
-                        hint = stringResource(R.string.series_sheet_action_retranslate_hint),
-                        count = stringResource(R.string.series_sheet_count_fmt, state.frCount),
-                        icBg = TmmColors.CECE7DC,
-                        icFg = TmmColors.ink,
-                        onClick = { onEvent(SeriesEvent.SeriesRequestRetranslateAll) },
-                        isLast = true,
-                    )
-                }
-            }
-        }
-        is SeriesSheet.Confirm -> {
-            TmmSheet(
-                visible = true,
-                onDismiss = { onEvent(SeriesEvent.CloseSheet) },
-                title = stringResource(R.string.library_confirm_title_fmt, pluralStringResource(R.plurals.series_chapters_count, sheet.chapterCount, sheet.chapterCount)),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    TmmText(
-                        text = stringResource(R.string.series_confirm_text),
-                        style = TmmType.sans(14, lineHeight = 21f),
-                        color = TmmColors.textMuted,
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(TmmColors.infoBg)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        TmmIcon(TmmIconId.Info, size = 16.dp, tint = TmmColors.info)
-                        TmmText(
-                            text = stringResource(R.string.library_confirm_info),
-                            style = TmmType.sans(12, lineHeight = 17f),
-                            color = TmmColors.info,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(TmmColors.surface)
-                                .border(1.dp, TmmColors.track, RoundedCornerShape(12.dp))
-                                .clickable { onEvent(SeriesEvent.CloseSheet) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            TmmText(text = stringResource(R.string.common_cancel), style = TmmType.sans(15, weight = 600), color = TmmColors.ink)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(TmmColors.accent)
-                                .clickable { onEvent(SeriesEvent.ConfirmRetranslate) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            TmmText(text = stringResource(R.string.library_action_retranslate_label), style = TmmType.sans(15, weight = 600), color = TmmColors.surface)
-                        }
-                    }
-                }
-            }
-        }
-        is SeriesSheet.Delete -> SeriesDeleteSheet(sheet = sheet, onEvent = onEvent)
-    }
-}
-
-/** Feuille "Supprimer" : trois cases, bouton de confirmation inactif tant qu'aucune n'est cochee. */
-@Composable
-private fun SeriesDeleteSheet(sheet: SeriesSheet.Delete, onEvent: (SeriesEvent) -> Unit) {
-    TmmSheet(
-        visible = true,
-        onDismiss = { onEvent(SeriesEvent.CloseSheet) },
-        title = stringResource(R.string.series_delete_title_fmt, pluralStringResource(R.plurals.series_chapters_count, sheet.chapterCount, sheet.chapterCount)),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            if (sheet.skippedCount > 0) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(TmmColors.infoBg)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    TmmIcon(TmmIconId.Info, size = 16.dp, tint = TmmColors.info)
-                    TmmText(
-                        text = pluralStringResource(R.plurals.series_delete_skipped, sheet.skippedCount, sheet.skippedCount),
-                        style = TmmType.sans(12, lineHeight = 17f),
-                        color = TmmColors.info,
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(TmmColors.surface)
-                    .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)),
-            ) {
-                SeriesDeleteOption(
-                    checked = sheet.localFr,
-                    label = stringResource(R.string.series_delete_option_fr_label),
-                    hint = stringResource(R.string.series_delete_option_fr_hint),
-                    hintColor = TmmColors.textMuted,
-                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(DeleteTarget.LocalFr)) },
-                )
-                SeriesDeleteOption(
-                    checked = sheet.mihon,
-                    label = stringResource(R.string.series_delete_option_mihon_label),
-                    hint = stringResource(R.string.series_delete_option_mihon_warning),
-                    hintColor = TmmColors.dangerText,
-                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(DeleteTarget.Mihon)) },
-                )
-                SeriesDeleteOption(
-                    checked = sheet.pc,
-                    label = stringResource(R.string.series_delete_option_pc_label),
-                    hint = stringResource(R.string.series_delete_option_pc_hint),
-                    hintColor = TmmColors.textMuted,
-                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(DeleteTarget.Pc)) },
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(TmmColors.surface)
-                        .border(1.dp, TmmColors.track, RoundedCornerShape(12.dp))
-                        .clickable { onEvent(SeriesEvent.CloseSheet) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TmmText(text = stringResource(R.string.common_cancel), style = TmmType.sans(15, weight = 600), color = TmmColors.ink)
-                }
-                val enabled = sheet.anyChecked
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (enabled) TmmColors.accent else TmmColors.track)
-                        .clickable(enabled = enabled) { onEvent(SeriesEvent.ConfirmDelete) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TmmText(
-                        text = stringResource(R.string.series_action_delete_label),
-                        style = TmmType.sans(15, weight = 600),
-                        color = if (enabled) TmmColors.surface else TmmColors.textMuted,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SeriesDeleteOption(
-    checked: Boolean,
-    label: String,
-    hint: String,
-    hintColor: Color,
-    onToggle: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TmmCheckbox(checked = checked, onCheckedChange = { onToggle() })
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            TmmText(text = label, style = TmmType.sans(15, weight = 600), color = TmmColors.ink)
-            TmmText(text = hint, style = TmmType.sans(12, lineHeight = 17f), color = hintColor)
-        }
-    }
-}
-
-@Composable
-private fun SeriesSheetActionItem(
-    icon: TmmIconId,
-    label: String,
-    hint: String,
-    count: String,
-    icBg: Color,
-    icFg: Color,
-    onClick: () -> Unit,
-    isLast: Boolean = false,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (!isLast) Modifier.drawBehindBottomLine(TmmColors.line) else Modifier)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(icBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            TmmIcon(icon, size = 18.dp, tint = icFg)
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            TmmText(text = label, style = TmmType.sans(15, weight = 600), color = TmmColors.ink)
-            TmmText(text = hint, style = TmmType.sans(12), color = TmmColors.textMuted)
-        }
-        TmmText(text = count, style = TmmType.mono(12), color = TmmColors.textMuted)
-    }
-}
-
-private fun Modifier.drawBehindBottomLine(color: Color): Modifier = this.then(
-    Modifier.background(Color.Transparent) // placeholder if border is drawn
-)
-
-@Preview(showBackground = true)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun SeriesScreenPreview() {
     TmmTheme {

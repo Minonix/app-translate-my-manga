@@ -1,6 +1,5 @@
 package com.tmm.mobile.ui.screens.series
 
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
@@ -9,23 +8,25 @@ import com.tmm.mobile.data.ChapterDeleter
 import com.tmm.mobile.data.DeleteOptions
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
+import com.tmm.mobile.data.autoTranslateTargets
+import com.tmm.mobile.data.flatten
 import com.tmm.mobile.data.db.CategoryEntity
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.IgnoredGapEntity
 import com.tmm.mobile.data.db.SeriesCategoryEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.db.SeriesSettingsEntity
 import com.tmm.mobile.data.status.ChapterJoinInputs
 import com.tmm.mobile.data.status.ChapterJoinRow
 import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.buildChapterJoinRows
 import com.tmm.mobile.data.status.deriveSeriesSummary
+import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.joinInputsFlow
-import com.tmm.mobile.data.status.planTranslation
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
-import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.theme.TmmColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,13 +39,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel reel de l'ecran Fiche serie (E10, plan 7.3). SeriesState/SeriesEvent/SeriesScreen ne
- * changent pas (cf. SeriesScreenBehaviorTest, qui pilote l'ecran avec son propre reducer) : ce
- * ViewModel se contente de produire le meme type d'etat a partir de Room au lieu du mock.
- *
- * Point ouvert (plan 5.21) : le toggle "Traduction automatique" par serie (SeriesSettingsEntity)
- * n'a volontairement aucune UI ici - la maquette Series.dc.html ne l'affiche pas (R16, la maquette
- * gagne). SeriesSettingsEntity reste ecrit uniquement par le flux d'arrivee de chapitre (E9).
+ * ViewModel de la Fiche serie (maquette v2, ecrans 3 a 5) : liste a etiquette unique, feuille
+ * « Que faire ? » pour la selection ou toute la serie, et interrupteur « Suivre cette serie »
+ * (SeriesSettingsEntity.autoTranslate, lu par runAutoTranslate).
  */
 class SeriesViewModel(
     private val container: AppContainer,
@@ -52,33 +49,40 @@ class SeriesViewModel(
 ) : ViewModel() {
 
     private data class UiOnly(
+        val selecting: Boolean = false,
         val selected: Set<Int> = emptySet(),
         val expandedStats: Set<Int> = emptySet(),
         val showGap: Boolean = true,
         val sheet: SeriesSheet = SeriesSheet.None,
         val toast: SeriesToast? = null,
-        // ponytail: ConfirmRetranslate doit rejouer soit la selection (bouton "Retraduire" de la
-        // barre de selection), soit toute la serie (feuille "Toute la serie") ; SeriesSheet.Confirm
-        // ne porte que le compte affiche, pas la portee, d'ou ce drapeau prive.
-        val retranslateSelectionOnly: Boolean = true,
+        val sentOnFollow: List<Int> = emptyList(),
     )
 
     private data class SeriesData(
         val series: SeriesEntity?,
-        val title: String,
         val categoryLabel: String,
-        val formatLabel: String,
-        val onPhoneCount: Int,
-        val onPcCount: Int,
-        val frCount: Int,
-        val totalChapters: Int,
-        val chapters: List<SeriesChapter>,
-        val rows: List<ChapterJoinRow>,
+        val subtitle: String,
+        val followed: Boolean,
+        val joinRows: List<ChapterJoinRow>,
+        val rows: List<SeriesRow>,
+        val progress: SeriesProgress,
+        val missing: List<Int>,
     )
 
-    private val emptyData = SeriesData(null, "", "", "", 0, 0, 0, 0, emptyList(), emptyList())
+    private val emptyData = SeriesData(null, "", "", false, emptyList(), emptyList(), SeriesProgress(0, 0, 0, 0, 0, 0), emptyList())
 
     private val ui = MutableStateFlow(UiOnly())
+
+    // Jobs crees a l'activation du suivi, annulables depuis le toast tant qu'il est affiche.
+    private var followJobIds: List<String> = emptyList()
+
+    private data class CoreInputs(
+        val series: SeriesEntity?,
+        val joinInputs: ChapterJoinInputs,
+        val qualities: List<ChapterQualityEntity>,
+        val ignoredGaps: Set<Int>,
+        val settingsJson: String?,
+    )
 
     private val core = combine(
         container.db.seriesDao().observe(seriesKey),
@@ -90,104 +94,77 @@ class SeriesViewModel(
         CoreInputs(series, joinInputs, qualities, ignoredGaps.map { it.number }.toSet(), settingsJson)
     }
 
-    private data class CoreInputs(
-        val series: SeriesEntity?,
-        val joinInputs: ChapterJoinInputs,
-        val qualities: List<ChapterQualityEntity>,
-        val ignoredGaps: Set<Int>,
-        val settingsJson: String?,
-    )
-
     // ponytail: Eagerly (pas WhileSubscribed) pour que state.value soit a jour meme sans
     // collecteur Compose actif (necessaire pour les tests de ViewModel).
     private val dataState: StateFlow<SeriesData> = combine(
         core,
         container.db.categoryDao().observeAll(),
         container.db.seriesCategoryDao().observeAll(),
-    ) { c, categories, links -> buildSeriesData(c, categories, links) }
+        container.db.seriesSettingsDao().observe(seriesKey),
+    ) { c, categories, links, settings -> buildSeriesData(c, categories, links, settings?.autoTranslate == true) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
 
     val state: StateFlow<SeriesState> = combine(ui, dataState) { u, d ->
-        val selectedRows = d.rows.filter { it.number in u.selected }
-        val plan = planTranslation(selectedRows)
+        val selectedRows = d.joinRows.filter { it.number in u.selected }
         val deleteSkipped = selectedRows.count { ChapterDeleter.isSkipped(it) }
+        val maxNumber = d.joinRows.maxOfOrNull { it.number }
         SeriesState(
-            title = d.title,
+            title = d.series?.title.orEmpty(),
             categoryLabel = d.categoryLabel,
-            formatLabel = d.formatLabel,
+            subtitle = d.subtitle,
+            coverUrl = d.series?.thumbnailUrl,
             coverColor = TmmColors.placeholderFor(seriesKey),
-            onPhoneCount = d.onPhoneCount,
-            onPcCount = d.onPcCount,
-            frCount = d.frCount,
-            totalChapters = d.totalChapters,
-            chapters = d.chapters,
+            followed = d.followed,
+            progress = d.progress,
+            rows = d.rows,
+            missing = d.missing,
+            showGap = u.showGap,
+            nextExpected = maxNumber?.plus(1),
+            sentOnFollow = u.sentOnFollow,
+            selecting = u.selecting,
             selected = u.selected,
             expandedStats = u.expandedStats,
-            showGap = u.showGap,
             sheet = u.sheet,
             toast = u.toast,
-            selectionToTranslate = plan.count,
-            selectionRetranslates = plan.retranslate,
+            seriesCounts = actionCounts(d.joinRows),
+            selectionCounts = actionCounts(selectedRows),
+            toTranslateNumbers = d.joinRows.filter(::canTranslate).map { it.number }.distinct().sortedDescending(),
             selectionToDelete = selectedRows.size - deleteSkipped,
             selectionDeleteSkipped = deleteSkipped,
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
-        SeriesState(title = "", categoryLabel = "", formatLabel = "", coverColor = TmmColors.placeholderFor(seriesKey), onPhoneCount = 0, onPcCount = 0, frCount = 0, totalChapters = 0, chapters = emptyList()),
+        SeriesState(title = "", categoryLabel = "", subtitle = "", coverColor = TmmColors.placeholderFor(seriesKey)),
     )
 
     fun onEvent(event: SeriesEvent) {
         when (event) {
+            SeriesEvent.StartSelection -> ui.update { it.copy(selecting = true) }
+            SeriesEvent.EndSelection -> ui.update { it.copy(selecting = false, selected = emptySet()) }
             is SeriesEvent.ToggleChapter -> ui.update {
-                val chapter = state.value.chapters.firstOrNull { c -> c.number == event.number }
-                if (chapter == null || chapter.locked) {
+                val row = state.value.rows.firstOrNull { r -> r.number == event.number }
+                if (row == null || row.locked || row.kind == ChapterKind.NotDownloaded) {
                     it
                 } else {
                     it.copy(selected = it.selected.toMutableSet().apply { if (!add(event.number)) remove(event.number) })
                 }
             }
-            SeriesEvent.SelectTodo -> ui.update {
-                val todo = state.value.chapters.filter { c -> c.kind == StatusTone.Send || c.kind == StatusTone.Get }.map { c -> c.number }
-                it.copy(selected = todo.toSet())
-            }
-            SeriesEvent.ClearSelection -> ui.update { it.copy(selected = emptySet()) }
-            SeriesEvent.DismissGap -> dismissGap()
             is SeriesEvent.ToggleStats -> ui.update {
                 it.copy(expandedStats = it.expandedStats.toMutableSet().apply { if (!add(event.number)) remove(event.number) })
             }
-            SeriesEvent.SendToPc -> performJobs(selected = true, predicate = { it.status == ChapterStatus.TO_SEND }, mode = JobMode.TRANSLATE) { SeriesToast.Sent(it) }
-            SeriesEvent.FetchToMihon -> performFetch(selected = true)
-            SeriesEvent.VerifyPending -> performJobs(selected = true, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.VERIFY) { SeriesToast.Verified(it) }
-            // "Retraduire" ecrase une traduction : confirmation d'abord. "Traduire" agit directement.
-            SeriesEvent.RequestRetranslateSelection -> {
-                val current = state.value
-                when {
-                    current.selectionToTranslate == 0 -> Unit
-                    current.selectionRetranslates -> ui.update {
-                        it.copy(sheet = SeriesSheet.Confirm(current.selectionToTranslate), retranslateSelectionOnly = true)
-                    }
-                    else -> performTranslation()
-                }
-            }
-            SeriesEvent.OpenSeriesSheet -> ui.update { it.copy(sheet = SeriesSheet.SeriesActions) }
+            SeriesEvent.DismissGap -> dismissGap()
+            SeriesEvent.TranslateAll -> performTranslate(allSeries = true)
+            SeriesEvent.OpenSeriesMore -> ui.update { it.copy(sheet = SeriesSheet.More(allSeries = true)) }
+            SeriesEvent.OpenSelectionMore -> ui.update { if (it.selected.isEmpty()) it else it.copy(sheet = SeriesSheet.More(allSeries = false)) }
             SeriesEvent.CloseSheet -> ui.update { it.copy(sheet = SeriesSheet.None) }
-            SeriesEvent.SeriesSendMissing -> performJobs(selected = false, predicate = { it.status == ChapterStatus.TO_SEND }, mode = JobMode.TRANSLATE) { SeriesToast.Sent(it) }
-            SeriesEvent.SeriesFetchMissing -> performFetch(selected = false)
-            SeriesEvent.SeriesVerifyAll -> performJobs(selected = false, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.VERIFY) { SeriesToast.Verified(it) }
-            SeriesEvent.SeriesRequestRetranslateAll -> ui.update { it.copy(sheet = SeriesSheet.Confirm(dataState.value.frCount), retranslateSelectionOnly = false) }
-            SeriesEvent.ConfirmRetranslate -> if (ui.value.retranslateSelectionOnly) {
-                performTranslation()
-            } else {
-                performJobs(selected = false, predicate = { it.status == ChapterStatus.UP_TO_DATE }, mode = JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
-            }
-            SeriesEvent.RequestDelete -> {
-                val current = state.value
-                if (current.selectionToDelete > 0) {
-                    ui.update { it.copy(sheet = SeriesSheet.Delete(current.selectionToDelete, current.selectionDeleteSkipped)) }
-                }
-            }
+            SeriesEvent.Translate -> performTranslate(allSeries = isAllSeriesSheet())
+            SeriesEvent.Install -> performInstall(allSeries = isAllSeriesSheet())
+            SeriesEvent.Verify -> performJobs(isAllSeriesSheet(), ::canReprocess, JobMode.VERIFY) { SeriesToast.Verified(it) }
+            SeriesEvent.Retranslate -> performJobs(isAllSeriesSheet(), ::canReprocess, JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
+            SeriesEvent.CopyToPc -> performJobs(isAllSeriesSheet(), ::canCopy, JobMode.TRANSLATE, translate = false) { SeriesToast.Copied(it) }
+            SeriesEvent.RequestDelete -> requestDelete()
             is SeriesEvent.ToggleDeleteTarget -> ui.update {
                 val sheet = it.sheet as? SeriesSheet.Delete ?: return@update it
                 it.copy(
@@ -199,17 +176,35 @@ class SeriesViewModel(
                 )
             }
             SeriesEvent.ConfirmDelete -> performDelete()
+            is SeriesEvent.SetFollow -> if (event.follow) openFollowSheet() else setFollowed(false)
+            SeriesEvent.ConfirmFollow -> confirmFollow()
+            SeriesEvent.UndoFollow -> undoFollow()
             SeriesEvent.DismissToast -> ui.update { it.copy(toast = null) }
         }
     }
 
-    /** Feuille "Supprimer" : ChapterDeleter ignore lui-meme les chapitres a job actif. */
+    private fun isAllSeriesSheet(): Boolean = (ui.value.sheet as? SeriesSheet.More)?.allSeries ?: false
+
+    // La feuille « Supprimer » remplace « Que faire ? » : elle garde la portee (selection ou serie)
+    // dans deleteAllSeries, SeriesSheet.Delete ne portant que les comptes affiches.
+    private var deleteAllSeries = false
+
+    private fun requestDelete() {
+        val all = isAllSeriesSheet()
+        val rows = rowsFor(all) { true }
+        val skipped = rows.count { ChapterDeleter.isSkipped(it) }
+        if (rows.size - skipped == 0) return
+        deleteAllSeries = all
+        ui.update { it.copy(sheet = SeriesSheet.Delete(rows.size - skipped, skipped)) }
+    }
+
+    /** ChapterDeleter ignore lui-meme les chapitres a job actif. */
     private fun performDelete() {
         val sheet = ui.value.sheet as? SeriesSheet.Delete ?: return
         if (!sheet.anyChecked) return
         viewModelScope.launch {
             val outcome = container.chapterDeleter.delete(
-                rowsFor(selected = true) { true },
+                rowsFor(deleteAllSeries) { true },
                 DeleteOptions(localFr = sheet.localFr, mihon = sheet.mihon, pc = sheet.pc),
             )
             // Les flux Room (local_fr_chapter, downloaded_chapter) rafraichissent la liste d'eux-memes.
@@ -217,80 +212,136 @@ class SeriesViewModel(
         }
     }
 
-    private fun rowsFor(selected: Boolean, predicate: (ChapterJoinRow) -> Boolean): List<ChapterJoinRow> {
-        val d = dataState.value
+    private fun rowsFor(allSeries: Boolean, predicate: (ChapterJoinRow) -> Boolean): List<ChapterJoinRow> {
         val nums = ui.value.selected
-        return d.rows.filter { row -> (!selected || row.number in nums) && predicate(row) }
+        return dataState.value.joinRows.filter { row -> (allSeries || row.number in nums) && predicate(row) }
     }
 
-    /** Bouton "Traduire"/"Retraduire" de la selection : cibles et libelle du toast via planTranslation. */
-    private fun performTranslation() {
+    private fun targetOf(row: ChapterJoinRow) =
+        JobTarget(mihonPath = row.mihonPath, downloaded = row.downloaded, series = dataState.value.series, chapter = row.chapter)
+
+    /**
+     * Traduire (A) : un echec est relance tel quel (retry, reprise a la page en erreur), un original
+     * deja sur le PC part en RETRANSLATE, un chapitre seulement telecharge en TRANSLATE.
+     */
+    private fun performTranslate(allSeries: Boolean) {
         viewModelScope.launch {
-            val plan = planTranslation(rowsFor(selected = true) { true })
-            val targets = plan.targets.map { JobTarget(mihonPath = it.mihonPath, downloaded = it.downloaded, series = dataState.value.series, chapter = it.chapter) }
-            container.jobRepository.createJobs(JobMode.RETRANSLATE, targets)
-            showToast(if (plan.retranslate) SeriesToast.Retranslated(targets.size) else SeriesToast.Translated(targets.size))
+            val rows = rowsFor(allSeries, ::canTranslate)
+            val repo = container.jobRepository
+            val failed = rows.filter { it.status == ChapterStatus.FAILED }
+            failed.forEach { row -> row.facts.latestJob?.let { repo.retry(it.jobId) } }
+            val fromPc = rows.filter { it.status != ChapterStatus.FAILED && it.facts.index?.original == true }
+            val fromPhone = rows.filter { it.status != ChapterStatus.FAILED && it.facts.index?.original != true }
+            val created = repo.createJobs(JobMode.RETRANSLATE, fromPc.map(::targetOf)).createdJobIds.size +
+                repo.createJobs(JobMode.TRANSLATE, fromPhone.map(::targetOf)).createdJobIds.size
+            showToast(SeriesToast.Translated(created + failed.size))
         }
     }
 
-    private fun performJobs(selected: Boolean, predicate: (ChapterJoinRow) -> Boolean, mode: String, toast: (Int) -> SeriesToast) {
+    private fun performJobs(
+        allSeries: Boolean,
+        predicate: (ChapterJoinRow) -> Boolean,
+        mode: String,
+        translate: Boolean = true,
+        toast: (Int) -> SeriesToast,
+    ) {
         viewModelScope.launch {
-            val rows = rowsFor(selected, predicate)
-            val targets = rows.map { JobTarget(mihonPath = it.mihonPath, downloaded = it.downloaded, series = dataState.value.series, chapter = it.chapter) }
-            container.jobRepository.createJobs(mode, targets)
-            showToast(toast(targets.size))
+            val targets = rowsFor(allSeries, predicate).map(::targetOf)
+            val result = container.jobRepository.createJobs(mode, targets, translate = translate)
+            showToast(toast(result.createdJobIds.size))
         }
     }
 
-    private fun performFetch(selected: Boolean) {
+    private fun performInstall(allSeries: Boolean) {
         viewModelScope.launch {
-            val jobIds = rowsFor(selected) { it.facts.latestJob?.phoneState == "RESULT_READY" }
-                .mapNotNull { it.facts.latestJob?.jobId }
+            val jobIds = rowsFor(allSeries, ::canInstall).mapNotNull { it.facts.latestJob?.jobId }
             container.jobRepository.fetch(jobIds)
-            showToast(SeriesToast.Received(jobIds.size))
+            showToast(SeriesToast.Installing(jobIds.size))
         }
     }
 
     private fun dismissGap() {
         viewModelScope.launch {
-            val missing = deriveSeriesSummary(seriesKey, dataState.value.rows.toAggregateInputs(), emptySet()).missing
-            missing.forEach { number -> container.db.ignoredGapDao().upsert(IgnoredGapEntity(seriesKey, number)) }
+            dataState.value.missing.forEach { number -> container.db.ignoredGapDao().upsert(IgnoredGapEntity(seriesKey, number)) }
         }
         ui.update { it.copy(showGap = false) }
     }
 
-    private fun showToast(toast: SeriesToast) {
-        ui.update { it.copy(toast = toast, sheet = SeriesSheet.None, selected = emptySet()) }
+    /** B, option 1 : la feuille annonce les chapitres deja telecharges qui partiront avec le suivi. */
+    private fun openFollowSheet() {
+        viewModelScope.launch {
+            val numbers = autoTranslateTargets(container.db, setOf(seriesKey)).map { it.number }.sortedDescending()
+            ui.update { it.copy(sheet = SeriesSheet.Follow(numbers)) }
+        }
     }
 
-    private fun buildSeriesData(c: CoreInputs, categories: List<CategoryEntity>, links: List<SeriesCategoryEntity>): SeriesData {
-        val series = c.series ?: return emptyData
-        val rows = buildChapterJoinRows(seriesKey, series.sourceName, series.title, c.joinInputs)
-        val summary = deriveSeriesSummary(seriesKey, rows.toAggregateInputs(), c.ignoredGaps)
-        val qualityByPath = c.qualities.associateBy { it.mihonPath }
-        val realChapters = rows.map { row -> row.toSeriesChapter(qualityByPath[row.flatPath]) }
-        val gapChapters = summary.missing.map { number ->
-            SeriesChapter(number, StatusTone.Gap, "Manquant partout", TmmColors.dangerText, onPhone = false, onPc = false, onFr = false)
+    /**
+     * Cree les jobs AVANT d'activer le suivi : sinon une actualisation (runAutoTranslate) pourrait
+     * les creer entre-temps, et leurs ids manqueraient a « Annuler ».
+     */
+    private fun confirmFollow() {
+        viewModelScope.launch {
+            val targets = autoTranslateTargets(container.db, setOf(seriesKey))
+            val ids = container.jobRepository.createJobs(JobMode.TRANSLATE, targets).createdJobIds
+            container.db.seriesSettingsDao().upsert(SeriesSettingsEntity(seriesKey, autoTranslate = true))
+            followJobIds = ids
+            val sentPaths = container.db.jobDao().getAll(ids).map { it.mihonPath }.toSet()
+            val sent = targets.filter { it.mihonPath.flatten() in sentPaths }.map { it.number }.sortedDescending()
+            ui.update { it.copy(sheet = SeriesSheet.None, toast = SeriesToast.Followed(ids.size), sentOnFollow = sent) }
         }
+    }
+
+    /** « Annuler » du toast : coupe le suivi puis annule les envois qu'il vient de lancer. */
+    private fun undoFollow() {
+        val ids = followJobIds
+        followJobIds = emptyList()
+        ui.update { it.copy(toast = null, sentOnFollow = emptyList()) }
+        viewModelScope.launch {
+            container.db.seriesSettingsDao().upsert(SeriesSettingsEntity(seriesKey, autoTranslate = false))
+            ids.forEach { container.jobRepository.cancel(it) }
+        }
+    }
+
+    /** Desactiver : sans confirmation, les chapitres deja partis continuent. */
+    private fun setFollowed(follow: Boolean) {
+        followJobIds = emptyList()
+        ui.update { it.copy(sentOnFollow = emptyList()) }
+        viewModelScope.launch {
+            container.db.seriesSettingsDao().upsert(SeriesSettingsEntity(seriesKey, autoTranslate = follow))
+        }
+    }
+
+    private fun showToast(toast: SeriesToast) {
+        ui.update { it.copy(toast = toast, sheet = SeriesSheet.None, selected = emptySet(), selecting = false) }
+    }
+
+    private fun buildSeriesData(
+        c: CoreInputs,
+        categories: List<CategoryEntity>,
+        links: List<SeriesCategoryEntity>,
+        followed: Boolean,
+    ): SeriesData {
+        val series = c.series ?: return emptyData
+        val joinRows = buildChapterJoinRows(seriesKey, series.sourceName, series.title, c.joinInputs)
+        val missing = deriveSeriesSummary(seriesKey, joinRows.toAggregateInputs(), c.ignoredGaps).missing
+        val qualityByPath = c.qualities.associateBy { it.mihonPath }
+        val chapterRows = joinRows.map { row -> row.toSeriesRow(qualityByPath[row.flatPath]) }
+        val gapRows = missing.map { SeriesRow(it, ChapterKind.Missing) }
         val categoryNameByOrder = categories.associate { it.order to it.name }
         val primaryOrder = links.filter { it.seriesKey == seriesKey }.minOfOrNull { it.categoryOrder }
-        val categoryLabel = primaryOrder?.let { categoryNameByOrder[it] } ?: ""
-        val formatLabel = formatLabelFor(series, c.settingsJson)
         return SeriesData(
             series = series,
-            title = series.title,
-            categoryLabel = categoryLabel,
-            formatLabel = formatLabel,
-            onPhoneCount = summary.onPhone,
-            onPcCount = summary.onPc,
-            frCount = summary.frCount,
-            totalChapters = c.joinInputs.chapters.count { it.seriesKey == seriesKey },
-            chapters = (realChapters + gapChapters).sortedByDescending { it.number },
-            rows = rows,
+            categoryLabel = primaryOrder?.let { categoryNameByOrder[it] } ?: "",
+            subtitle = subtitleFor(series, c.settingsJson),
+            followed = followed,
+            joinRows = joinRows,
+            rows = groupNotDownloaded((chapterRows + gapRows).sortedByDescending { it.number }),
+            progress = progressOf(chapterRows),
+            missing = missing,
         )
     }
 
-    private fun formatLabelFor(series: SeriesEntity, settingsJson: String?): String {
+    private fun subtitleFor(series: SeriesEntity, settingsJson: String?): String {
         val kind = series.mangaType?.replaceFirstChar { it.uppercase() } ?: "Manga"
         val settings = settingsJson?.let {
             runCatching { ProtocolJson.decodeFromString(PcSettings.serializer(), it) }.getOrNull()
@@ -303,53 +354,77 @@ class SeriesViewModel(
 }
 
 /** Numero affiche (et cle de selection) d'une ligne : les hors-serie 7.5 se rangent sous 7. */
-private val ChapterJoinRow.number: Int get() = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
+internal val ChapterJoinRow.number: Int get() = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
 
-private fun ChapterJoinRow.toSeriesChapter(quality: ChapterQualityEntity?): SeriesChapter {
-    val job = facts.latestJob
-    val untranslatedPages = quality?.alerts?.map { it.page }?.distinct()?.size ?: 0
-    val pagesTranslated = (quality?.totalPages ?: 0) - untranslatedPages
-    val (kind, label, color) = when (status) {
-        ChapterStatus.TO_SEND -> Triple(StatusTone.Send, "Sur le téléphone · à envoyer", TmmColors.dangerText)
-        ChapterStatus.QUEUED -> Triple(StatusTone.Busy, "En file sur le PC", TmmColors.ink)
-        ChapterStatus.TRANSLATING -> {
-            val pct = job?.let { translatingPercent(it) } ?: 0
-            Triple(StatusTone.Busy, "Traduction en cours · $pct %", TmmColors.ink)
-        }
-        ChapterStatus.TO_FETCH -> Triple(StatusTone.Get, "Traduit · à récupérer", TmmColors.info)
-        ChapterStatus.UP_TO_DATE -> if (untranslatedPages > 0) {
-            val s = if (untranslatedPages > 1) "s" else ""
-            Triple(StatusTone.Ok, "À jour · $untranslatedPages page$s restée$s en VO", TmmColors.absentText)
+private val JobTarget.number: Int get() = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
+
+private fun ChapterJoinRow.active(): Boolean = facts.latestJob?.isActive() == true
+
+// Predicats des actions : memes regles que JobRepository.createJobs, pour que les comptes affiches
+// correspondent a ce qui partira vraiment.
+internal fun canTranslate(row: ChapterJoinRow): Boolean = !row.active() &&
+    (row.status == ChapterStatus.TO_SEND || row.status == ChapterStatus.NOT_TRANSLATED || row.status == ChapterStatus.FAILED)
+
+internal fun canInstall(row: ChapterJoinRow): Boolean = row.facts.latestJob?.phoneState == "RESULT_READY"
+
+internal fun canReprocess(row: ChapterJoinRow): Boolean =
+    !row.active() && row.status == ChapterStatus.UP_TO_DATE && row.facts.index?.original == true
+
+internal fun canCopy(row: ChapterJoinRow): Boolean = !row.active() && row.status == ChapterStatus.TO_SEND
+
+internal fun actionCounts(rows: List<ChapterJoinRow>) = ActionCounts(
+    translate = rows.count(::canTranslate),
+    install = rows.count(::canInstall),
+    verify = rows.count(::canReprocess),
+    retranslate = rows.count(::canReprocess),
+    copy = rows.count(::canCopy),
+)
+
+private fun progressOf(rows: List<SeriesRow>) = SeriesProgress(
+    inMihon = rows.count { it.kind == ChapterKind.InMihon },
+    ready = rows.count { it.kind == ChapterKind.Ready },
+    busy = rows.count { it.kind == ChapterKind.Waiting || it.kind is ChapterKind.Translating },
+    toTranslate = rows.count { it.kind == ChapterKind.ToTranslate || it.kind == ChapterKind.OnPc || it.kind is ChapterKind.Failed },
+    notDownloaded = rows.count { it.kind == ChapterKind.NotDownloaded },
+    total = rows.size,
+)
+
+/** Regroupe les chapitres non telecharges consecutifs (liste triee par numero decroissant) : « Ch. 1 à 4 ». */
+internal fun groupNotDownloaded(sortedDesc: List<SeriesRow>): List<SeriesRow> {
+    val out = mutableListOf<SeriesRow>()
+    for (row in sortedDesc) {
+        val last = out.lastOrNull()
+        if (row.kind == ChapterKind.NotDownloaded && last?.kind == ChapterKind.NotDownloaded && last.number - row.number <= 1) {
+            out[out.lastIndex] = SeriesRow(row.number, ChapterKind.NotDownloaded, rangeEnd = last.rangeEnd ?: last.number)
         } else {
-            Triple(StatusTone.Ok, "À jour partout", TmmColors.success)
+            out += row
         }
-        ChapterStatus.FAILED -> {
-            val suffix = job?.pcErrorPage?.let { " · page $it" } ?: ""
-            Triple(StatusTone.Send, "Échec$suffix", TmmColors.dangerText)
-        }
-        ChapterStatus.NOT_TRANSLATED -> Triple(StatusTone.Absent, "Original sur le PC · non traduit", TmmColors.textMuted)
-        ChapterStatus.CATALOG_ONLY -> Triple(StatusTone.Absent, "Dans Mihon, non téléchargé", TmmColors.textMuted)
     }
-    val progress = if (status == ChapterStatus.TRANSLATING) (job?.let { translatingPercent(it) } ?: 0) / 100f else null
+    return out.map { if (it.rangeEnd == it.number) it.copy(rangeEnd = null) else it }
+}
+
+private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?): SeriesRow {
+    val job = facts.latestJob
+    val kind = when (status) {
+        ChapterStatus.TO_SEND -> ChapterKind.ToTranslate
+        ChapterStatus.NOT_TRANSLATED -> ChapterKind.OnPc
+        ChapterStatus.QUEUED -> ChapterKind.Waiting
+        ChapterStatus.TRANSLATING -> ChapterKind.Translating(job?.let { translatingPercent(it) } ?: 0)
+        ChapterStatus.FAILED -> ChapterKind.Failed(job?.pcErrorPage)
+        ChapterStatus.TO_FETCH -> ChapterKind.Ready
+        ChapterStatus.UP_TO_DATE -> ChapterKind.InMihon
+        ChapterStatus.CATALOG_ONLY -> ChapterKind.NotDownloaded
+    }
     val stats = quality?.let {
+        val untranslatedPages = it.alerts.map { a -> a.page }.distinct().size
         SeriesChapterStats(
             pagesTotal = it.totalPages,
-            pagesTranslated = pagesTranslated,
+            pagesTranslated = it.totalPages - untranslatedPages,
             bubblesTranslated = it.translatedBubbles,
             bubblesUntranslated = it.untranslatedBubbles,
             sfxKept = it.sfxKept,
             verifiedDate = it.verifiedAt?.let { at -> Formatters.verifiedDateFr(at) },
         )
     }
-    return SeriesChapter(
-        number = number,
-        kind = kind,
-        statusLabel = label,
-        statusColor = color,
-        onPhone = facts.downloaded,
-        onPc = facts.index?.original == true,
-        onFr = facts.localFr,
-        translationProgress = progress,
-        stats = stats,
-    )
+    return SeriesRow(number = number, kind = kind, stats = stats)
 }

@@ -10,27 +10,33 @@ import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.isFailed
+import com.tmm.mobile.data.status.isInActivity
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
 import java.time.ZoneId
-import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel reel de l'ecran File (E10, PLAN_GEMINI.md 7.5, Queue.dc.html).
- * Le heartbeat (activeJobIds/slots) dit quels jobs tournent reellement sur le PC ; le reste de la
- * pipeline ("Ensuite") est derive de job.phoneState comme dans ChapterStatus.deriveStatus().
+ * ViewModel de l'écran Activité (maquette v2, écran 7), fusion de File et Transferts.
+ * Le heartbeat (activeJobIds/slots) dit quels jobs tournent réellement sur le PC ; les envois et
+ * retours en cours viennent de job.phoneState (UPLOADING, DOWNLOADING) ; le reste de la pipeline
+ * (« Ensuite ») est dérivé de job.phoneState comme dans ChapterStatus.deriveStatus().
  */
 class QueueViewModel(private val container: AppContainer) : ViewModel() {
     private val db = container.db
@@ -51,22 +57,46 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         val downloaded: List<DownloadedChapterEntity>,
         val pcIndex: List<PcIndexChapterEntity>,
         val heartbeatJson: String?,
+        val autoSeries: Set<String>,
     )
 
     // combine() type s'arrete a 5 flux : les trois premiers sont regroupes en amont.
     private val raw = combine(
-        combine(db.jobDao().observeAll(), db.chapterQualityDao().observeAll(), db.seriesDao().observeAll(), ::Triple),
+        combine(db.jobDao().observeAll().ignoringProgress(), db.chapterQualityDao().observeAll(), db.seriesDao().observeAll(), ::Triple),
         db.downloadedChapterDao().observeAll(),
         db.pcIndexChapterDao().observeAll(),
         prefs.heartbeatJson,
-    ) { (jobs, quality, seriesList), downloaded, pcIndex, heartbeatJson ->
-        Raw(jobs, quality, seriesList, downloaded, pcIndex, heartbeatJson)
+        db.seriesSettingsDao().observeAutoTranslateSeriesKeys(),
+    ) { (jobs, quality, seriesList), downloaded, pcIndex, heartbeatJson, autoSeries ->
+        Raw(jobs, quality, seriesList, downloaded, pcIndex, heartbeatJson, autoSeries.toSet())
     }
 
     private val _ui = MutableStateFlow(QueueUi())
 
-    val state: StateFlow<QueueState> = combine(raw, _ui) { r, ui -> buildState(r, ui) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), QueueState(slotsCount = 0, pcName = "PC"))
+    /** Etat lourd + titrage des transferts, pour ne pas rejouer l'agregation a chaque tick d'envoi. */
+    private class Built(val state: QueueState, val titleOf: (JobEntity) -> String)
+
+    // Jobs en cours de transfert, a chaque tick de progression. La partie lourde ignore ces ticks
+    // (ignoringProgress) et n'est recalculee que sur un vrai changement.
+    private val liveTransfers = db.jobDao().observeAll()
+        .map { jobs -> jobs.filter { it.isInActivity() && (it.phoneState == "UPLOADING" || it.phoneState == "DOWNLOADING") } }
+        .distinctUntilChanged()
+
+    // Hors thread principal : avec ~2000 jobs, buildState figeait l'ecran a chaque ecriture en base.
+    val state: StateFlow<QueueState> = combine(combine(raw, _ui, ::buildState), liveTransfers) { built, live ->
+        built.state.copy(
+            transfers = live.sortedBy { it.createdAt }.map { job ->
+                TransferRow(
+                    title = built.titleOf(job),
+                    isUpload = job.phoneState == "UPLOADING",
+                    doneBytes = job.transferredBytes,
+                    totalBytes = job.transferTotal,
+                )
+            },
+        )
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), QueueState())
 
     fun onEvent(event: QueueEvent) {
         when (event) {
@@ -96,22 +126,26 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    private fun buildState(r: Raw, ui: QueueUi): QueueState {
+    private fun buildState(r: Raw, ui: QueueUi): Built {
         val now = clock.nowMillis()
         val heartbeat = r.heartbeatJson?.let {
             runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull()
         }
         val pcName = heartbeat?.pcName ?: "PC"
         val slotsMax = heartbeat?.slots ?: 4
-        val activeJobIds = heartbeat?.activeJobIds ?: emptyList()
+        val eligiblePcJobs = r.jobs.filter { it.isInActivity() && it.phoneState in setOf("SENT", "CANCEL_REQUESTED") }
+            .mapTo(HashSet()) { it.jobId }
+        val activeJobIds = heartbeat?.activeJobIds.orEmpty().filter { it in eligiblePcJobs }.distinct()
 
         val jobsById = r.jobs.associateBy { it.jobId }
         val seriesByKey = r.seriesList.associateBy { it.seriesKey }
         val downloadedByPath = r.downloaded.associateBy { it.mihonPath }
         val qualityByPath = r.quality.associateBy { it.mihonPath }
 
+        fun seriesKey(job: JobEntity) = job.seriesKey ?: job.seriesDir
         fun seriesTitle(job: JobEntity) = job.seriesKey?.let { seriesByKey[it]?.title } ?: job.seriesDir
-        fun seriesColor(job: JobEntity) = TmmColors.placeholderFor(job.seriesKey ?: job.seriesDir)
+        fun coverUrl(job: JobEntity) = job.seriesKey?.let { seriesByKey[it]?.thumbnailUrl }
+        fun seriesColor(job: JobEntity) = TmmColors.placeholderFor(seriesKey(job))
         fun chapterLabel(job: JobEntity): String {
             val number = downloadedByPath[job.mihonPath]?.number
             return number?.let { Formatters.chapterRangeFr(listOf(it)) } ?: job.chapterDir
@@ -126,40 +160,50 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         // En cours : jobs que le PC traduit reellement en ce moment (heartbeat.activeJobIds, dans l'ordre PC).
         val activeJobs = activeJobIds.mapNotNull { id -> jobsById[id] }.map { job ->
             ActiveJob(
+                seriesKey = seriesKey(job),
+                coverUrl = coverUrl(job),
                 title = jobLabel(job),
                 color = seriesColor(job),
                 type = jobType(job.mode),
                 currentPage = job.pcPage ?: 0,
                 totalPages = job.pcPages ?: 0,
-                currentStepIndex = STEP_NAMES.indexOf(job.pcStage).coerceAtLeast(0),
-                // ponytail: pas de source fiable pour "N bulles a revoir" (verification) hors du
-                // moteur pcEngine - upgrade si le protocole PC expose un resume de verification.
-                extra = job.pcEngine ?: "",
+                currentStepIndex = stepIndexOf(job.pcStage),
+                engine = job.pcEngine ?: "",
             )
         }
 
-        // Ensuite : jobs encore dans la pipeline de traduction, pas actifs sur le PC actuellement.
-        val pipelinePhoneStates = setOf("PREPARING", "UPLOADING", "SENT", "CANCEL_REQUESTED")
-        val waitingCandidates = r.jobs.filter { it.phoneState in pipelinePhoneStates && it.jobId !in activeJobIds }
-        val sortedWaiting = waitingCandidates.sortedWith(
-            compareByDescending<JobEntity> { it.phoneState == "PREPARING" || it.phoneState == "UPLOADING" }
-                .thenBy { it.pcQueuePosition ?: Int.MAX_VALUE }
-                .thenBy { it.createdAt },
-        )
-        val waitingJobs = sortedWaiting.mapIndexed { index, job ->
-            val isPhoneSource = job.phoneState == "PREPARING" || job.phoneState == "UPLOADING"
-            WaitingJob(
-                id = job.jobId,
-                position = String.format(Locale.FRANCE, "%02d", activeJobIds.size + index + 1),
-                title = jobLabel(job),
-                color = seriesColor(job),
-                source = "${jobType(job.mode).label} · " + if (isPhoneSource) "depuis le téléphone" else "original déjà sur le PC",
-                isPhone = isPhoneSource,
+        // Ensuite : jobs encore dans la pipeline, ni actifs sur le PC ni en cours d'envoi (ceux-la
+        // sont des lignes « Envoi »).
+        val pipelinePhoneStates = setOf("PREPARING", "SENT", "CANCEL_REQUESTED")
+        val waitingJobs = r.jobs
+            .filter { it.isInActivity() && it.phoneState in pipelinePhoneStates && it.jobId !in activeJobIds }
+            .sortedWith(
+                compareByDescending<JobEntity> { it.phoneState == "PREPARING" }
+                    .thenBy { it.pcQueuePosition ?: Int.MAX_VALUE }
+                    .thenBy { it.createdAt },
             )
-        }
+            .map { job ->
+                WaitingJob(
+                    id = job.jobId,
+                    seriesKey = seriesKey(job),
+                    coverUrl = coverUrl(job),
+                    title = jobLabel(job),
+                    color = seriesColor(job),
+                    type = jobType(job.mode),
+                    // ponytail: le job ne dit pas qui l'a cree ; on marque « suivi auto » les traductions
+                    // des series suivies. Upgrade : une colonne origine sur JobEntity.
+                    auto = job.mode == JobMode.TRANSLATE && job.seriesKey in r.autoSeries,
+                )
+            }
 
-        // Terminees (7 derniers jours) : dernier job par mihonPath, pret a recuperer ou deja installe.
+        // Terminees (7 derniers jours) : dernier job par mihonPath, pret a installer ou deja installe.
         val latestJobByPath = r.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { job -> job.createdAt } }
+        // Pages en cours de verification par chapitre, calculees une fois (et non un parcours de
+        // r.jobs par alerte).
+        val verifyingPagesByPath = r.jobs.asSequence()
+            .filter { it.mode == JobMode.VERIFY && it.isActive() }
+            .groupBy({ it.mihonPath }, { it.pages.orEmpty() })
+            .mapValues { (_, pages) -> pages.flatten().toSet() }
         val doneJobs = latestJobByPath.values
             .filter { it.phoneState == "RESULT_READY" || it.phoneState == "INSTALLED" }
             .map { it to jobReferenceMillis(it) }
@@ -168,23 +212,21 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             .map { (job, at) ->
                 val quality = qualityByPath[job.mihonPath]
                 val alerts = quality?.alerts.orEmpty().map { alert ->
-                    val isChecked = r.jobs.any { active ->
-                        active.mihonPath == job.mihonPath && active.mode == JobMode.VERIFY &&
-                            active.isActive() && active.pages?.contains(alert.page) == true
-                    }
+                    val isChecked = verifyingPagesByPath[job.mihonPath]?.contains(alert.page) == true
                     // alert.page est base 0 (protocole) ; affichage attendu base 1 (plan 7.5).
                     DoneJobAlert(page = alert.page + 1, code = alert.kind, isChecked = isChecked)
                 }
                 DoneJob(
                     mihonPath = job.mihonPath,
+                    seriesKey = seriesKey(job),
+                    coverUrl = coverUrl(job),
                     title = jobLabel(job),
                     whenText = whenLabel(at, now),
-                    stateText = if (job.phoneState == "INSTALLED") "Dans Mihon" else "À récupérer",
-                    stateColor = if (job.phoneState == "INSTALLED") TmmColors.success else TmmColors.info,
+                    installed = job.phoneState == "INSTALLED",
                     color = seriesColor(job),
                     totalPages = quality?.totalPages ?: 0,
                     // ponytail: ChapterQualityEntity n'a pas de compteur "pages traduites" distinct de
-                    // totalPages - on suppose la traduction complete faute de champ dedie (cf rapport).
+                    // totalPages - on suppose la traduction complete faute de champ dedie.
                     translatedPages = quality?.totalPages ?: 0,
                     totalBubbles = quality?.translatedBubbles ?: 0,
                     untranslatedBubbles = quality?.untranslatedBubbles ?: 0,
@@ -207,18 +249,24 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             .map { job ->
                 val page = job.pcErrorPage
                 val refAt = job.statusUpdatedAt?.let { parseIsoMillis(it) } ?: job.updatedAt
-                val relative = Formatters.relativeFr(refAt, now)
+                val origin = job.pcEngine ?: Formatters.relativeFr(refAt, now).replaceFirstChar { it.uppercase() }
+                val message = job.pcErrorMessage ?: job.errorMessage ?: "erreur inconnue"
                 FailedJob(
                     jobId = job.jobId,
+                    seriesKey = seriesKey(job),
+                    coverUrl = coverUrl(job),
                     title = jobLabel(job),
                     color = seriesColor(job),
                     page = page,
-                    message = job.pcErrorMessage ?: job.errorMessage ?: "erreur inconnue",
-                    keptInfo = if (page != null && page > 1) "$relative · les pages 1 à ${page - 1} sont conservées" else relative,
+                    message = message,
+                    keptInfo = if (page != null && page > 1) "$origin · les pages 1 à ${page - 1} sont conservées" else origin,
+                    // ponytail: le protocole n'a pas de code d'erreur « quota » documente ; on cherche le
+                    // mot dans le code et le message. Upgrade quand le PC exposera un code stable.
+                    quota = listOfNotNull(job.pcErrorCode, message).any { it.contains("quota", ignoreCase = true) },
                 )
             }
 
-        return QueueState(
+        val state = QueueState(
             activeTab = ui.activeTab,
             slotsCount = activeJobIds.size,
             slotsMax = slotsMax,
@@ -229,6 +277,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             doneJobs = doneJobs,
             failedJobs = failedJobs,
         )
+        return Built(state, ::jobLabel)
     }
 
     private fun jobReferenceMillis(job: JobEntity): Long =
@@ -236,20 +285,23 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
 
     private fun parseIsoMillis(iso: String): Long? = runCatching { Instant.parse(iso).toEpochMilli() }.getOrNull()
 
+    /** « Il y a 12 min » le jour même, « Hier » la veille, puis « Il y a 3 jours ». */
     private fun whenLabel(millis: Long, now: Long): String {
         val zone = ZoneId.systemDefault()
-        val dt = Instant.ofEpochMilli(millis).atZone(zone)
-        val nowDt = Instant.ofEpochMilli(now).atZone(zone)
-        val time = String.format(Locale.FRANCE, "%02d:%02d", dt.hour, dt.minute)
-        return when {
-            dt.toLocalDate() == nowDt.toLocalDate() -> "Aujourd’hui $time"
-            dt.toLocalDate() == nowDt.toLocalDate().minusDays(1) -> "Hier $time"
-            else -> String.format(Locale.FRANCE, "%02d/%02d %s", dt.dayOfMonth, dt.monthValue, time)
-        }
+        val day = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return if (day == today.minusDays(1)) "Hier" else Formatters.relativeFr(millis, now).replaceFirstChar { it.uppercase() }
     }
 
     private companion object {
-        val STEP_NAMES = listOf("fetch", "ocr", "translate", "lettering", "verify")
         const val SEVEN_DAYS_MS = 7L * 24 * 60 * 60 * 1000
+
+        /** Etapes PC fetch, ocr, translate, lettering, verify ramenees a Lecture, Traduction, Lettrage, Verification. */
+        fun stepIndexOf(stage: String?): Int = when (stage) {
+            "translate" -> 1
+            "lettering" -> 2
+            "verify" -> 3
+            else -> 0
+        }
     }
 }

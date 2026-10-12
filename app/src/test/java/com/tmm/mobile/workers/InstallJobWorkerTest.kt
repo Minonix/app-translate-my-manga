@@ -9,9 +9,13 @@ import com.tmm.mobile.fake.FakeFile
 import com.tmm.mobile.protocol.FileRef
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.ResultJson
+import java.security.MessageDigest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,13 +62,13 @@ class InstallJobWorkerTest {
 
     // Fichier stocke dans le faux Drive avec un contenu different du sha256/size annonces par
     // resultJson.file : la verification post-telechargement doit echouer avant tout acces MihonFs.
-    private fun resultJson(jobId: String) = ProtocolJson.encodeToString(
+    private fun resultJson(jobId: String, size: Long = 999L, sha256: String = "0".repeat(64)) = ProtocolJson.encodeToString(
         ResultJson.serializer(),
         ResultJson(
             jobId = jobId,
             finishedAt = "2026-01-01T00:00:00Z",
             mode = "verify",
-            file = FileRef(name = "result.cbz", size = 999L, sha256 = "0".repeat(64)),
+            file = FileRef(name = "result.cbz", size = size, sha256 = sha256),
             localFolderName = "Titre",
             chapterFileName = "Chapitre 1.cbz",
             pages = 10,
@@ -82,6 +86,7 @@ class InstallJobWorkerTest {
         assertEquals(Result.retry(), firstResult)
         val afterFirst = env.db.jobDao().get("job-2")!!
         assertEquals("DOWNLOADING", afterFirst.phoneState)
+        assertEquals(resultFile.bytes.size.toLong(), afterFirst.transferredBytes)
 
         // Deuxieme appel simulant la derniere tentative WorkManager : DOWNLOADING -> FAILED.
         val secondResult = buildWorker("job-2", runAttemptCount = MAX_RETRY_ATTEMPTS).doWork()
@@ -89,5 +94,22 @@ class InstallJobWorkerTest {
         val afterSecond = env.db.jobDao().get("job-2")!!
         assertEquals("FAILED", afterSecond.phoneState)
         assertEquals("download", afterSecond.failedStep)
+    }
+
+    // Job oublie (remise a plat, suppression) pendant le telechargement : le resultat n'est pas installe
+    // et la ligne n'est pas recreee par une ecriture faite a partir du job lu avant le reseau.
+    @Test fun doWork_jobDeletedDuringDownload_skipsInstallAndDoesNotResurrectRow() = runTest {
+        val bytes = "contenu-valide".toByteArray()
+        val sha = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        val resultFile = FakeFile(name = "result.cbz", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.comicbook+zip", modifiedTime = "2026-01-01T00:00:00Z", bytes = bytes)
+        env.drive.files[resultFile.id] = resultFile
+        env.db.jobDao().upsert(job("job-3", phoneState = "RESULT_READY", resultFileId = resultFile.id, resultJson = resultJson("job-3", bytes.size.toLong(), sha)))
+        env.drive.beforeMediaGet = { runBlocking { env.db.jobDao().get("job-3")?.let { env.db.jobDao().delete(it) } } }
+
+        val result = buildWorker("job-3").doWork()
+
+        assertEquals(Result.success(), result)
+        assertNull(env.db.jobDao().get("job-3"))
+        assertEquals(0, env.db.localFrChapterDao().observeAll().first().size)
     }
 }

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Réglages de traduction</title>
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=IBM+Plex+Mono:wght@500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E4D8;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16161A}
+a{color:#C8391F}a:hover{color:#9E2A14}
+.d{font-family:'Bricolage Grotesque',Georgia,serif}
+.m{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tone{background-image:radial-gradient(rgba(22,22,26,.28) 1px,transparent 1.3px);background-size:5px 5px}
+svg{display:block;flex-shrink:0}
+button,input,select{font-family:inherit}
+button{cursor:pointer}button:disabled{cursor:default}
+.scroll{overflow-y:auto;scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.hscroll{overflow-x:auto;scrollbar-width:none}.hscroll::-webkit-scrollbar{display:none}
+.press{transition:transform .15s ease,box-shadow .2s ease,background-color .2s ease}.press:active{transform:scale(.97)}
+.lift:hover{box-shadow:0 6px 18px rgba(22,22,26,.08)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.r1{animation-delay:.05s}.r2{animation-delay:.12s}.r3{animation-delay:.19s}.r4{animation-delay:.26s}.r5{animation-delay:.33s}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,125,79,.55)}70%{box-shadow:0 0 0 7px rgba(47,125,79,0)}100%{box-shadow:0 0 0 0 rgba(47,125,79,0)}}
+.pulse{animation:pulse 2s ease-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+@keyframes stripes{to{background-position:24px 0}}
+.stripes{background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 6px,transparent 6px 12px);background-size:24px 24px;animation:stripes .9s linear infinite}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+.pop{animation:pop .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes toast{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.toast{animation:toast .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pill{from{transform:scaleX(.4);opacity:.3}to{transform:none;opacity:1}}
+.pill{animation:pill .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+.sheet{animation:sheet .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.fade{animation:fade .4s ease both}
+@keyframes slide{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+.slide{animation:slide .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.grow{transform-origin:left center;animation:grow 1.1s cubic-bezier(.2,.8,.2,1) both .2s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.float{animation:float 3.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.blink{animation:blink 1.4s ease-in-out infinite}@keyframes travel{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 8px);opacity:0}}.travel{animation:travel 1.8s linear infinite}
+@keyframes shimmer{from{background-position:-200px 0}to{background-position:200px 0}}
+.shimmer{background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);background-size:200px 100%;background-repeat:no-repeat;animation:shimmer 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F1EA; overflow: hidden; position: relative">
+<header style="padding: 10px 12px 0; display: flex; align-items: center; flex-shrink: 0">
+<a href="Settings.dc.html" aria-label="Retour aux réglages" class="press" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #16161A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+</header>
+<main class="scroll" style="flex-grow: 1; min-height: 0; padding: 0 20px 24px; display: flex; flex-direction: column; gap: 20px">
+<div class="rise" style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="d" style="margin: 0; font-size: 32px; line-height: 1.05; font-weight: 800">Traduction sur le PC</h1>
+<div style="font-size: 13px; color: #5E5A52">Les mêmes réglages que dans TMM-Win</div>
+</div>
+<section class="rise r1" role="status" aria-live="polite" style="background: #16161A; color: #F4F1EA; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px">
+<span style="width: 36px; height: 36px; border-radius: 10px; background: {{ syncBg }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background-color .3s ease">
+<sc-if value="{{ sending }}" hint-placeholder-val="{{ false }}"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg></sc-if>
+<sc-if value="{{ notSending }}" hint-placeholder-val="{{ true }}"><svg class="pop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></sc-if>
+</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 14px; font-weight: 600">{{ syncTitle }}</div>
+<div style="font-size: 12px; color: #CFC8B8">{{ syncHint }}</div>
+</div>
+</section>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+<section class="rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: {{ g.delay }}">
+<h2 style="margin: 0; padding: 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5E5A52">{{ g.title }}</h2>
+<div style="background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px; overflow: hidden">
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+<sc-if value="{{ r.isPick }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ r.open }}" class="press" style="width: 100%; min-height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 0; border-bottom: 1px solid #ECE7DC; background: {{ r.flash }}; color: #16161A; text-align: left; font: inherit; transition: background-color .6s ease">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 500">{{ r.label }}</span><span style="font-size: 12px; color: #5E5A52; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.value }}</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+</button>
+</sc-if>
+<sc-if value="{{ r.isSeg }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 12px 14px; border-bottom: 1px solid #ECE7DC; display: flex; flex-direction: column; gap: 8px; background: {{ r.flash }}; transition: background-color .6s ease">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 500">{{ r.label }}</span><span style="font-size: 12px; color: #5E5A52">{{ r.hint }}</span></div>
+<div role="radiogroup" aria-label="{{ r.label }}" style="display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #ECE7DC">
+<sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="4">
+<button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" class="m" style="flex-grow: 1; flex-basis: 0; height: 34px; border: 0; border-radius: 7px; background: {{ o.bg }}; color: {{ o.fg }}; box-shadow: {{ o.shadow }}; font-size: 13px; font-weight: 600; transition: background-color .2s ease">{{ o.v }}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}">
+<div style="min-height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ECE7DC; background: {{ r.flash }}; transition: background-color .6s ease">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><div style="font-size: 14px; font-weight: 500">{{ r.label }}</div><div style="font-size: 12px; color: #5E5A52; line-height: 1.4">{{ r.value }}</div></div>
+<button type="button" role="switch" aria-checked="{{ r.on }}" aria-label="{{ r.label }}" onClick="{{ r.act }}" style="width: 52px; height: 32px; padding: 0; border: 0; border-radius: 16px; background: {{ r.track }}; position: relative; transition: background-color .25s ease; flex-shrink: 0">
+<span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(22,22,26,.25); transform: translateX({{ r.knob }}); transition: transform .25s cubic-bezier(.2,.8,.2,1)"></span>
+</button>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</section>
+</sc-for>
+<button type="button" onClick="{{ toggleAdv }}" aria-expanded="{{ advExp }}" class="press rise r5" style="height: 48px; border-radius: 12px; border: 1px dashed #D5CDBC; background: transparent; color: #16161A; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">{{ advLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate({{ advRot }}); transition: transform .25s ease"><path d="M6 9l6 6 6-6"/></svg></button>
+<sc-if value="{{ adv }}" hint-placeholder-val="{{ false }}">
+<section class="fade" style="background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px; overflow: hidden">
+<sc-for list="{{ advRows }}" as="r" hint-placeholder-count="5">
+<button type="button" onClick="{{ r.open }}" class="press" style="width: 100%; min-height: 56px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 0; border-bottom: 1px solid #ECE7DC; background: {{ r.flash }}; color: #16161A; text-align: left; font: inherit; transition: background-color .6s ease">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 500">{{ r.label }}</span><span style="font-size: 12px; color: #5E5A52">{{ r.value }}</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+</button>
+</sc-for>
+</section>
+</sc-if>
+<div class="rise r5" style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #ECE7DC; font-size: 12px; color: #5E5A52; line-height: 1.5">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+<span>Les clés API et le dossier de sortie restent sur le PC. Un changement s'applique aux prochaines pages, sans redémarrer ni interrompre les chapitres en cours.</span>
+</div>
+</main>
+<sc-if value="{{ hasSheet }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ close }}" class="fade" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(22,22,26,.45); z-index: 5"></div>
+<section role="dialog" aria-modal="true" aria-label="{{ sheetTitle }}" class="sheet" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; max-height: 640px; background: #F4F1EA; border-radius: 24px 24px 0 0; padding: 10px 20px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 -12px 40px rgba(22,22,26,.2)">
+<div style="display: flex; justify-content: center"><span style="width: 40px; height: 5px; border-radius: 3px; background: #D5CDBC"></span></div>
+<h2 class="d" style="margin: 0; font-size: 22px; font-weight: 800">{{ sheetTitle }}</h2>
+<div role="radiogroup" aria-label="{{ sheetTitle }}" class="scroll" style="background: #FFFFFF; border: 1px solid #DDD6C8; border-radius: 16px; overflow: auto; min-height: 0">
+<sc-for list="{{ sheetOpts }}" as="o" hint-placeholder-count="4">
+<button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" class="press" style="width: 100%; min-height: 52px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 8px 14px; border: 0; border-bottom: 1px solid #ECE7DC; background: #FFFFFF; color: #16161A; text-align: left; font: inherit">
+<span style="width: 20px; height: 20px; border-radius: 10px; box-sizing: border-box; border: {{ o.ring }}; flex-shrink: 0; transition: border .2s ease"></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: {{ o.w }}">{{ o.label }}</span><span style="font-size: 12px; color: #5E5A52">{{ o.hint }}</span></span>
+</button>
+</sc-for>
+</div>
+</section>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  state = {
+    v: { sourceLanguage: 'auto', targetLanguage: 'FRA', translationProvider: 'gemini', autoFailoverToLocalLlm: true,
+      autoVerifyAfterTranslate: true, chapterConcurrency: 4, concurrency: 2, pileSize: 3, useGpu: true,
+      detector: 'default', preferredOcr: 'auto', inpainter: 'lama_large', inpaintingSize: 1280, font: 'Anime Ace' },
+    sync: 'ok', last: null, sheet: null, adv: false
+  };
+  componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.f); }
+  set(k, val) {
+    this.setState((s) => ({ v: { ...s.v, [k]: val }, sync: 'sending', last: k, sheet: null }));
+    clearTimeout(this.t); clearTimeout(this.f);
+    this.t = setTimeout(() => this.setState({ sync: 'ok' }), 1100);
+    this.f = setTimeout(() => this.setState({ last: null }), 1800);
+  }
+  renderVals() {
+    const s = this.state, v = s.v;
+    const O = {
+      sourceLanguage: ['Langue source', [['auto', 'Détection automatique'], ['JPN', 'Japonais', 'Manga'], ['KOR', 'Coréen', 'Webtoon'], ['CHS', 'Chinois simplifié']]],
+      targetLanguage: ['Langue cible', [['FRA', 'Français'], ['ENG', 'Anglais'], ['SPA', 'Espagnol'], ['DEU', 'Allemand']]],
+      translationProvider: ['Moteur de traduction', [['gemini', 'Google Gemini 2.5 Flash', 'Recommandé'], ['openai', 'OpenAI GPT-4.1 mini'], ['claude', 'Anthropic Claude Sonnet 5'], ['deepl', 'DeepL API'], ['groq', 'Groq GPT-OSS 120B'], ['openrouter', 'OpenRouter', 'Hy-MT2'], ['tokenhub', 'Tencent TokenHub', 'Hy-MT2 Plus'], ['offline', 'Hors ligne', 'Sugoi / M2M100'], ['local_llm', 'LLM local', 'Ollama sur le PC']]],
+      detector: ['Détecteur de bulles', [['default', 'Comic-Text-Detector', 'Automatique'], ['ctd', 'CTD explicite'], ['paddle', 'PaddleOCR Detector']]],
+      preferredOcr: ['OCR', [['auto', 'Automatique', 'Manga-OCR + PaddleOCR'], ['mocr', 'Manga-OCR'], ['48px', '48px multi-langues'], ['32px', '32px standard']]],
+      inpainter: ['Effacement du texte', [['lama_large', 'LaMa Large'], ['lama_mpe', 'LaMa MPE'], ['sd', 'Stable Diffusion'], ['none', 'Aucun effacement']]],
+      inpaintingSize: ['Taille d’effacement', [[1024, '1024 px', 'Plus rapide'], [1280, '1280 px', 'Recommandé'], [1800, '1800 px', 'HD'], [2048, '2048 px', 'Maximum']]],
+      font: ['Police par défaut', [['Anime Ace', 'Anime Ace'], ['Manga Temple', 'Manga Temple']]]
+    };
+    const labelOf = (k) => { const o = O[k][1].find((x) => x[0] === v[k]); return o[1] + (o[2] ? ' · ' + o[2] : ''); };
+    const flash = (k) => s.last === k ? '#FBF1D6' : '#FFFFFF';
+    const pick = (k) => ({ isPick: true, isSeg: false, isToggle: false, label: O[k][0], value: labelOf(k), flash: flash(k), open: () => this.setState({ sheet: k }) });
+    const seg = (k, label, max, hint) => ({ isPick: false, isSeg: true, isToggle: false, label, hint, flash: flash(k),
+      opts: Array.from({ length: max }, (_, i) => i + 1).map((n) => {
+        const on = v[k] === n;
+        return { v: String(n), on: String(on), pick: () => this.set(k, n),
+          bg: on ? '#16161A' : 'transparent', fg: on ? '#F4F1EA' : '#5E5A52', shadow: on ? '0 1px 3px rgba(22,22,26,.2)' : 'none' };
+      }) });
+    const tog = (k, label, value) => ({ isPick: false, isSeg: false, isToggle: true, label, value, flash: flash(k),
+      on: String(v[k]), track: v[k] ? '#16161A' : '#D5CDBC', knob: v[k] ? '20px' : '0px', act: () => this.set(k, !v[k]) });
+    const sending = s.sync === 'sending';
+    const sk = s.sheet;
+    return {
+      sending, notSending: !sending,
+      syncBg: sending ? '#2B4C7E' : '#2F7D4F',
+      syncTitle: sending ? 'Envoi au PC...' : s.last ? 'Appliqué sur PC-BUREAU' : 'Synchronisé avec PC-BUREAU',
+      syncHint: sending ? 'Via Google Drive, quelques secondes' : 'Pris en compte tout de suite, sans redémarrage',
+      groups: [
+        { title: 'Langues', rows: [pick('sourceLanguage'), pick('targetLanguage')] },
+        { title: 'Moteur', rows: [pick('translationProvider'),
+          tog('autoFailoverToLocalLlm', 'Secours LLM local', 'Si le moteur échoue ou atteint son quota, bascule sur Ollama')] },
+        { title: 'Après traduction', rows: [
+          tog('autoVerifyAfterTranslate', 'Vérifier automatiquement', 'Relance une vérification après chaque chapitre traduit')] },
+        { title: 'Performance', rows: [
+          seg('chapterConcurrency', 'Chapitres simultanés', 4, v.chapterConcurrency === 1 ? 'Un à la fois' : v.chapterConcurrency + ' en parallèle'),
+          seg('concurrency', 'Pages simultanées', 4, v.concurrency === 2 ? 'Recommandé' : 'par chapitre'),
+          seg('pileSize', 'Pages par envoi au moteur', 3, v.pileSize === 3 ? 'Recommandé' : 'Plus de contexte si élevé'),
+          tog('useGpu', 'Utiliser la carte graphique', v.useGpu ? 'DirectML / CUDA' : 'Processeur uniquement, plus lent')] }
+      ].map((g, i) => ({ ...g, delay: (0.12 + i * 0.05) + 's' })),
+      adv: s.adv, advExp: String(s.adv), advRot: s.adv ? '180deg' : '0deg',
+      advLabel: s.adv ? 'Masquer la vision avancée' : 'Vision avancée (5 réglages)',
+      toggleAdv: () => this.setState((p) => ({ adv: !p.adv })),
+      advRows: ['detector', 'preferredOcr', 'inpainter', 'inpaintingSize', 'font'].map(pick),
+      hasSheet: !!sk, close: () => this.setState({ sheet: null }),
+      sheetTitle: sk ? O[sk][0] : '',
+      sheetOpts: sk ? O[sk][1].map(([val, label, hint]) => {
+        const on = v[sk] === val;
+        return { label, hint: hint || '', on: String(on), w: on ? '600' : '400',
+          ring: on ? '6px solid #C8391F' : '2px solid #B9B0A0', pick: () => this.set(sk, val) };
+      }) : []
+    };
+  }
+}
+</script>
+
+</body>
+</html>

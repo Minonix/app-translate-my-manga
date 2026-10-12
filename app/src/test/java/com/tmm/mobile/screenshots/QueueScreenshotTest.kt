@@ -15,11 +15,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Captures Roborazzi de l'écran File (E4.5, Queue.dc.html).
+ * Captures Roborazzi de l'écran Activité (maquette v2, écran 7).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp")
+@Config(qualifiers = "w390dp-h844dp-xhdpi")
 class QueueScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()

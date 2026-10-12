@@ -16,7 +16,12 @@ data class MainQueueJob(
     val color: Color,
     val type: MainJobType,
     val progressFraction: Float,
+    val page: Int? = null,
+    val pages: Int? = null,
 )
+
+data class MainFollowedSeries(val seriesKey: String, val title: String)
+data class MainGap(val seriesKey: String, val title: String, val numbers: List<Int>)
 
 data class MainRecentChapter(
     val title: String,
@@ -29,7 +34,6 @@ data class MainRecentChapter(
 
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
 sealed interface MainToast {
-    data class Sent(val count: Int) : MainToast
     data class Received(val count: Int) : MainToast
 }
 
@@ -41,8 +45,8 @@ data class MainState(
     // PLAN_GEMINI.md 7.1 : bandeau "PC hors ligne depuis..." - masque sans heartbeat connu.
     val offlineSinceLabel: String? = null,
     val toSendCount: Int,
-    val toSendSummary: String,
-    val sendState: BusyState = BusyState.Idle,
+    // Nombre de series concernees, rendu « dans N series » par un pluriel Android.
+    val toSendSeriesCount: Int,
     val toGetCount: Int,
     val toGetSummary: String,
     val getState: BusyState = BusyState.Idle,
@@ -55,6 +59,9 @@ data class MainState(
     val lastScanLabel: String,
     val recentChapters: List<MainRecentChapter>,
     val toast: MainToast? = null,
+    val followedSeries: List<MainFollowedSeries> = emptyList(),
+    val gaps: List<MainGap> = emptyList(),
+    val installTotal: Int = 0,
 ) {
     val isOffline: Boolean get() = pcTone == PcTone.Offline
 }
@@ -62,7 +69,6 @@ data class MainState(
 sealed interface MainEvent {
     data object Refresh : MainEvent
     data object RefreshFinished : MainEvent
-    data object SendPending : MainEvent
     data object FetchTranslated : MainEvent
     data object DismissToast : MainEvent
 }

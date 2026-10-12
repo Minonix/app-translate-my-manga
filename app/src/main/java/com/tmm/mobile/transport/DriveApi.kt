@@ -78,7 +78,7 @@ class DriveApi(
     private suspend fun <T> execute(
         attempt: Int = 0,
         build: () -> Request,
-        onResponse: (Response) -> T,
+        onResponse: suspend (Response) -> T,
     ): T {
         val accessToken = token(false)
         val request = build().newBuilder().header("Authorization", "Bearer $accessToken").build()
@@ -257,10 +257,12 @@ class DriveApi(
                     if (read == -1) break
                     sink.write(buffer, 0, read)
                     sent += read
+                    // Progression par bloc (l'appelant limite les ecritures en base) : un seul appel en
+                    // fin de flux faisait sauter la barre de 0 a 100 %.
+                    onProgress(sent, total)
                 }
-                sent to total
             }
-        }.also { (sent, total) -> onProgress(sent, total) }
+        }
     }
 
     suspend fun readText(fileId: String): String {

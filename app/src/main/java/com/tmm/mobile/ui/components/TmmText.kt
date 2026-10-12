@@ -41,6 +41,15 @@ fun TmmText(
     modifier: Modifier = Modifier,
     style: TextStyle = TmmType.sans(15),
     color: Color = TmmColors.ink,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    textAlign: TextAlign? = null,
 ) {
-    BasicText(text = text, modifier = modifier, style = style.copy(color = color))
+    BasicText(
+        text = text,
+        modifier = modifier,
+        style = style.copy(color = color, textAlign = textAlign ?: style.textAlign),
+        maxLines = maxLines,
+        overflow = overflow,
+    )
 }

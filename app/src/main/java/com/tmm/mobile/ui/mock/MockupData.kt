@@ -2,13 +2,18 @@ package com.tmm.mobile.ui.mock
 
 import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.screens.library.LibraryState
+import com.tmm.mobile.ui.screens.main.MainFollowedSeries
+import com.tmm.mobile.ui.screens.main.MainGap
 import com.tmm.mobile.ui.screens.main.MainJobType
 import com.tmm.mobile.ui.screens.main.MainQueueJob
 import com.tmm.mobile.ui.screens.main.MainRecentChapter
 import com.tmm.mobile.ui.screens.main.MainState
 import com.tmm.mobile.ui.screens.main.PcTone
-import com.tmm.mobile.ui.screens.series.SeriesChapter
+import com.tmm.mobile.ui.screens.series.ActionCounts
+import com.tmm.mobile.ui.screens.series.ChapterKind
 import com.tmm.mobile.ui.screens.series.SeriesChapterStats
+import com.tmm.mobile.ui.screens.series.SeriesProgress
+import com.tmm.mobile.ui.screens.series.SeriesRow
 import com.tmm.mobile.ui.screens.series.SeriesState
 import com.tmm.mobile.ui.screens.queue.ActiveJob
 import com.tmm.mobile.ui.screens.queue.DoneJob
@@ -17,19 +22,17 @@ import com.tmm.mobile.ui.screens.queue.FailedJob
 import com.tmm.mobile.ui.screens.queue.QueueJobType
 import com.tmm.mobile.ui.screens.queue.QueueState
 import com.tmm.mobile.ui.screens.queue.QueueTab
+import com.tmm.mobile.ui.screens.queue.TransferRow
 import com.tmm.mobile.ui.screens.queue.WaitingJob
-import com.tmm.mobile.ui.screens.catalog.CatalogState
 import com.tmm.mobile.ui.screens.empty.EmptyState
 import com.tmm.mobile.ui.screens.offline.OfflineState
 import com.tmm.mobile.ui.screens.permission.PermissionState
-import com.tmm.mobile.ui.screens.newtranslation.NewTranslationState
 import com.tmm.mobile.ui.screens.onboarding.OnboardingState
 import com.tmm.mobile.ui.screens.settings.SettingsState
 import com.tmm.mobile.ui.screens.translationsettings.TranslationSettingsState
-import com.tmm.mobile.ui.screens.transfers.LiveTransferItem
-import com.tmm.mobile.ui.screens.transfers.SyncFetchItem
-import com.tmm.mobile.ui.screens.transfers.SyncSeriesItem
-import com.tmm.mobile.ui.screens.transfers.SyncState
+import com.tmm.mobile.ui.screens.translate.TranslateChapter
+import com.tmm.mobile.ui.screens.translate.TranslateSeries
+import com.tmm.mobile.ui.screens.translate.TranslateState
 import com.tmm.mobile.ui.theme.TmmColors
 import kotlinx.serialization.Serializable
 
@@ -88,31 +91,34 @@ object MockupData {
         "Webtoons" to 9,
     )
 
-    /** Main.dc.html, etat initial (page=0, animations des compteurs deja terminees). */
+    /** Maquette v2, ecran 1 (Accueil) : valeurs recopiees de maquettes/v2-simplifiee/index.html. */
     val main = MainState(
         pcTone = PcTone.Online,
         lastCheckLabel = "il y a 4 min",
-        toSendCount = 12,
-        toSendSummary = "5 séries · environ 180 Mo",
-        toGetCount = 8,
-        toGetSummary = "4 séries · vers Mihon/local",
+        toSendCount = 11,
+        toSendSeriesCount = 4,
+        toGetCount = 2,
+        toGetSummary = "Frieren, One Piece",
         queueCount = 7,
         queueParallelCount = 4,
         queueMachineName = "PC-BUREAU",
-        queueNextCount = 3,
+        queueNextCount = 5,
         queueJobs = listOf(
-            MainQueueJob("Solo Leveling · 201", TmmColors.CC9D3DE, MainJobType.Translation, 0.64f),
-            MainQueueJob("Kagurabachi · 52", TmmColors.CCFD8C6, MainJobType.Translation, 0.26f),
-            MainQueueJob("One Piece · 1119", TmmColors.CE6DCC0, MainJobType.Verification, 0.53f),
-            MainQueueJob("Blue Lock · 205", TmmColors.CD8D2E4, MainJobType.Retranslation, 0.08f),
+            MainQueueJob("Solo Leveling · ch. 201", TmmColors.CC9D3DE, MainJobType.Translation, 0.73f, page = 16, pages = 22),
+            MainQueueJob("Kagurabachi · ch. 52", TmmColors.CCFD8C6, MainJobType.Translation, 0.42f, page = 9, pages = 21),
         ),
-        lastScanLabel = "Dernier scan il y a 4 min",
+        lastScanLabel = "",
         recentChapters = listOf(
-            MainRecentChapter("Frieren", "Ch. 140", TmmColors.CE2C6BB, inMihon = false, onPc = true, seriesKey = "frieren"),
-            MainRecentChapter("Kagurabachi", "Ch. 51 à 54", TmmColors.CCFD8C6, inMihon = true, onPc = false, seriesKey = "kagurabachi"),
-            MainRecentChapter("Blue Lock", "Ch. 212", TmmColors.CD8D2E4, inMihon = false, onPc = true, seriesKey = "blue-lock"),
-            MainRecentChapter("One Piece", "Ch. 1120", TmmColors.CE6DCC0, inMihon = true, onPc = false, seriesKey = "one-piece"),
+            MainRecentChapter("Frieren", "ch. 140", TmmColors.CE2C6BB, inMihon = true, onPc = false, seriesKey = "frieren"),
+            MainRecentChapter("Blue Lock", "ch. 212", TmmColors.CD8D2E4, inMihon = true, onPc = false, seriesKey = "blue-lock"),
+            MainRecentChapter("One Piece", "ch. 1120", TmmColors.CE6DCC0, inMihon = false, onPc = true, seriesKey = "one-piece"),
         ),
+        followedSeries = listOf(
+            MainFollowedSeries("blue-lock", "Blue Lock"),
+            MainFollowedSeries("kagurabachi", "Kagurabachi"),
+            MainFollowedSeries("one-piece", "One Piece"),
+        ),
+        gaps = listOf(MainGap("blue-lock", "Blue Lock", listOf(23))),
     )
 
     /** Library.dc.html, etat initial (aucune categorie/vue/selection active). */
@@ -121,275 +127,113 @@ object MockupData {
         allSeries = series,
     )
 
-    /** Series.dc.html, etat initial (detail de Blue Lock, chapitres recopies tel quel depuis le JS de la maquette). */
+    /** Maquette v2, ecran 3 : fiche de Blue Lock (chapitres recopies depuis la maquette). */
     val seriesDetail = SeriesState(
         title = "Blue Lock",
         categoryLabel = "En cours",
-        formatLabel = "Manga · anglais vers français",
+        subtitle = "Manga · anglais vers français",
         coverColor = TmmColors.CD8D2E4,
-        onPhoneCount = 212,
-        onPcCount = 213,
-        frCount = 205,
-        totalChapters = 214,
-        chapters = listOf(
-            SeriesChapter(214, StatusTone.Send, "Sur le téléphone · à envoyer", TmmColors.dangerText, onPhone = true, onPc = false, onFr = false),
-            SeriesChapter(213, StatusTone.Busy, "Traduction en cours · 45 %", TmmColors.ink, onPhone = false, onPc = true, onFr = false, translationProgress = 0.45f),
-            SeriesChapter(
-                212, StatusTone.Get, "Traduit · à récupérer", TmmColors.info, onPhone = true, onPc = true, onFr = true,
-                stats = SeriesChapterStats(pagesTotal = 22, pagesTranslated = 22, bubblesTranslated = 184, bubblesUntranslated = 3, sfxKept = 12, verifiedDate = null),
+        progress = SeriesProgress(inMihon = 205, ready = 2, busy = 1, toTranslate = 1, notDownloaded = 5, total = 214),
+        rows = listOf(
+            SeriesRow(214, ChapterKind.ToTranslate),
+            SeriesRow(213, ChapterKind.Translating(45)),
+            SeriesRow(212, ChapterKind.Ready),
+            SeriesRow(
+                211, ChapterKind.InMihon,
+                stats = SeriesChapterStats(pagesTotal = 22, pagesTranslated = 22, bubblesTranslated = 184, bubblesUntranslated = 2, sfxKept = 5, verifiedDate = "3 oct."),
             ),
-            SeriesChapter(
-                211, StatusTone.Ok, "À jour partout", TmmColors.success, onPhone = true, onPc = true, onFr = true,
-                stats = SeriesChapterStats(pagesTotal = 20, pagesTranslated = 20, bubblesTranslated = 161, bubblesUntranslated = 0, sfxKept = 8, verifiedDate = "24/09"),
+            SeriesRow(
+                210, ChapterKind.InMihon,
+                stats = SeriesChapterStats(pagesTotal = 20, pagesTranslated = 20, bubblesTranslated = 161, bubblesUntranslated = 0, sfxKept = 8, verifiedDate = null),
             ),
-            SeriesChapter(
-                210, StatusTone.Ok, "À jour · 1 page restée en VO", TmmColors.absentText, onPhone = true, onPc = true, onFr = true,
-                stats = SeriesChapterStats(pagesTotal = 19, pagesTranslated = 18, bubblesTranslated = 142, bubblesUntranslated = 6, sfxKept = 9, verifiedDate = null),
-            ),
-            SeriesChapter(
-                209, StatusTone.Ok, "À jour partout", TmmColors.success, onPhone = true, onPc = true, onFr = true,
-                stats = SeriesChapterStats(pagesTotal = 21, pagesTranslated = 21, bubblesTranslated = 170, bubblesUntranslated = 0, sfxKept = 15, verifiedDate = "24/09"),
-            ),
-            SeriesChapter(23, StatusTone.Gap, "Manquant partout", TmmColors.dangerText, onPhone = false, onPc = false, onFr = false),
+            SeriesRow(209, ChapterKind.OnPc),
+            SeriesRow(208, ChapterKind.Failed(12)),
+            SeriesRow(23, ChapterKind.Missing),
+            SeriesRow(1, ChapterKind.NotDownloaded, rangeEnd = 4),
         ),
-        selected = setOf(214, 212, 210),
-        expandedStats = setOf(212),
-        // 212 et 210 ont l'original sur le PC et deja une traduction (214 est a envoyer).
-        selectionToTranslate = 2,
-        selectionRetranslates = true,
+        missing = listOf(23),
+        nextExpected = 215,
+        expandedStats = setOf(211),
+        seriesCounts = ActionCounts(translate = 3, install = 1, verify = 2, retranslate = 2, copy = 1),
+        selectionCounts = ActionCounts(translate = 1, install = 1, verify = 1, retranslate = 1, copy = 1),
+        toTranslateNumbers = listOf(214),
+        selected = setOf(214, 212, 211),
+        selectionToDelete = 3,
     )
 
-    /** Sync.dc.html, etat initial (Transferts). */
-    val sync = SyncState(
-        pcName = "PC-BUREAU",
-        upCount = 12,
-        downCount = 8,
-        liveTransfers = listOf(
-            LiveTransferItem(
-                title = "Blue Lock · Ch. 214",
-                info = "envoi 38 %",
-                progress = 0.38f,
-                isUpload = true,
-            ),
-        ),
-        upSeries = listOf(
-            SyncSeriesItem(
-                title = "Kagurabachi",
-                chapters = "Ch. 52 à 54",
-                color = TmmColors.CCFD8C6,
-                size = "41 Mo",
-            ),
-            SyncSeriesItem(
-                title = "Blue Lock",
-                chapters = "Ch. 214",
-                color = TmmColors.CD8D2E4,
-                size = "13 Mo",
-            ),
-            SyncSeriesItem(
-                title = "Sakamoto Days",
-                chapters = "Ch. 1 à 12",
-                color = TmmColors.CC9D3DE,
-                size = "126 Mo",
-            ),
-        ),
-        otherSeriesCount = 3,
-        otherChaptersCount = 8,
-        autoTranslate = true,
-        downSeries = listOf(
-            SyncFetchItem(
-                title = "Frieren",
-                chapters = "Ch. 140",
-                color = TmmColors.CE2C6BB,
-                size = "14 Mo",
-                isDone = false,
-            ),
-            SyncFetchItem(
-                title = "One Piece",
-                chapters = "Ch. 1121 à 1122",
-                color = TmmColors.CE6DCC0,
-                size = "31 Mo",
-                isDone = false,
-            ),
-            SyncFetchItem(
-                title = "Blue Lock",
-                chapters = "Ch. 212",
-                color = TmmColors.CD8D2E4,
-                size = "12 Mo",
-                isDone = false,
-            ),
-        ),
-        scanning = false,
-        scannedAgo = "il y a 4 min",
-        missingCount = 2,
-    )
-
+    /** Maquette v2, écran 7 « Activité ». */
     val queue = QueueState(
         activeTab = QueueTab.Active,
-        slotsCount = 4,
+        slotsCount = 3,
         slotsMax = 4,
         pcName = "PC-BUREAU",
         focusedJobIndex = 0,
         activeJobs = listOf(
-            ActiveJob(
-                title = "Solo Leveling · Ch. 201",
-                color = TmmColors.CC9D3DE,
-                type = QueueJobType.Translation,
-                currentPage = 14,
-                totalPages = 22,
-                currentStepIndex = 3,
-                extra = "Gemini",
-            ),
-            ActiveJob(
-                title = "Kagurabachi · Ch. 52",
-                color = TmmColors.CCFD8C6,
-                type = QueueJobType.Translation,
-                currentPage = 6,
-                totalPages = 19,
-                currentStepIndex = 2,
-                extra = "Gemini",
-            ),
-            ActiveJob(
-                title = "One Piece · Ch. 1119",
-                color = TmmColors.CE6DCC0,
-                type = QueueJobType.Verification,
-                currentPage = 11,
-                totalPages = 17,
-                currentStepIndex = 4,
-                extra = "7 bulles à revoir",
-            ),
-            ActiveJob(
-                title = "Blue Lock · Ch. 205",
-                color = TmmColors.CD8D2E4,
-                type = QueueJobType.Retranslation,
-                currentPage = 3,
-                totalPages = 24,
-                currentStepIndex = 1,
-                extra = "Gemini",
-            ),
+            ActiveJob("solo", null, "Solo Leveling · ch. 201", TmmColors.CC9D3DE, QueueJobType.Translation, 16, 22, 2, "Gemini"),
+            ActiveJob("kagurabachi", null, "Kagurabachi · ch. 52", TmmColors.CCFD8C6, QueueJobType.Translation, 8, 19, 1, "Gemini"),
+            ActiveJob("onepiece", null, "One Piece · ch. 1119", TmmColors.CE6DCC0, QueueJobType.Verification, 13, 17, 3, "Gemini"),
+        ),
+        transfers = listOf(
+            TransferRow("Blue Lock · ch. 214", isUpload = true, doneBytes = 98, totalBytes = 100),
+            TransferRow("Frieren · ch. 140", isUpload = false, doneBytes = 3L * 1_048_576, totalBytes = 4L * 1_048_576),
         ),
         waitingJobs = listOf(
-            WaitingJob(
-                id = "k53",
-                position = "05",
-                title = "Kagurabachi · Ch. 53",
-                color = TmmColors.CCFD8C6,
-                source = "Traduction · depuis le téléphone",
-                isPhone = true,
-            ),
-            WaitingJob(
-                id = "b213",
-                position = "06",
-                title = "Blue Lock · Ch. 213",
-                color = TmmColors.CD8D2E4,
-                source = "Traduction · original déjà sur le PC",
-                isPhone = false,
-            ),
-            WaitingJob(
-                id = "v1",
-                position = "07",
-                title = "Vinland Saga · 214 ch.",
-                color = TmmColors.CDCCFC4,
-                source = "Vérification · série entière",
-                isPhone = false,
-            ),
+            WaitingJob("k53", "kagurabachi", null, "Kagurabachi · ch. 53", TmmColors.CCFD8C6, QueueJobType.Translation, auto = true),
+            WaitingJob("bl209", "bluelock", null, "Blue Lock · ch. 209", TmmColors.CD8D2E4, QueueJobType.Translation, auto = false),
+            WaitingJob("op1121", "onepiece", null, "One Piece · ch. 1121", TmmColors.CE6DCC0, QueueJobType.Verification, auto = false),
         ),
         doneJobs = listOf(
             DoneJob(
-                mihonPath = "mihon/frieren/ch140",
-                title = "Frieren · Ch. 140",
-                whenText = "Aujourd’hui 14:02",
-                stateText = "À récupérer",
-                stateColor = TmmColors.C2B4C7E,
-                color = TmmColors.CE2C6BB,
-                totalPages = 18,
-                translatedPages = 18,
-                totalBubbles = 131,
-                untranslatedBubbles = 0,
-                sfxCount = 7,
-                alerts = emptyList(),
-                isExpanded = false,
-            ),
-            DoneJob(
-                mihonPath = "mihon/blue-lock/ch212",
-                title = "Blue Lock · Ch. 212",
-                whenText = "Aujourd’hui 13:40",
-                stateText = "À récupérer",
-                stateColor = TmmColors.C2B4C7E,
-                color = TmmColors.CD8D2E4,
-                totalPages = 22,
-                translatedPages = 22,
-                totalBubbles = 184,
-                untranslatedBubbles = 3,
-                sfxCount = 12,
-                alerts = listOf(
-                    DoneJobAlert(page = 7, code = "source_text"),
-                    DoneJobAlert(page = 15, code = "overflow"),
-                ),
+                mihonPath = "Mihon/frieren/139", seriesKey = "frieren", coverUrl = null, title = "Frieren · ch. 139",
+                whenText = "Il y a 12 min", installed = true, color = TmmColors.CE2C6BB,
+                totalPages = 21, translatedPages = 21, totalBubbles = 176, untranslatedBubbles = 1, sfxCount = 4,
+                alerts = listOf(DoneJobAlert(4, "source_text", false), DoneJobAlert(17, "overflow", false)),
                 isExpanded = true,
             ),
             DoneJob(
-                mihonPath = "mihon/one-piece/ch1122",
-                title = "One Piece · Ch. 1122",
-                whenText = "Aujourd’hui 11:15",
-                stateText = "À récupérer",
-                stateColor = TmmColors.C2B4C7E,
-                color = TmmColors.CE6DCC0,
-                totalPages = 17,
-                translatedPages = 17,
-                totalBubbles = 203,
-                untranslatedBubbles = 0,
-                sfxCount = 21,
-                alerts = emptyList(),
-                isExpanded = false,
+                mihonPath = "Mihon/bluelock/212", seriesKey = "bluelock", coverUrl = null, title = "Blue Lock · ch. 212",
+                whenText = "Il y a 40 min", installed = false, color = TmmColors.CD8D2E4,
+                totalPages = 19, translatedPages = 19, totalBubbles = 143, untranslatedBubbles = 0, sfxCount = 0,
+                alerts = emptyList(), isExpanded = false,
             ),
             DoneJob(
-                mihonPath = "mihon/kagurabachi/ch51",
-                title = "Kagurabachi · Ch. 51",
-                whenText = "Hier 22:10",
-                stateText = "Dans Mihon",
-                stateColor = TmmColors.C2F7D4F,
-                color = TmmColors.CCFD8C6,
-                totalPages = 19,
-                translatedPages = 18,
-                totalBubbles = 142,
-                untranslatedBubbles = 6,
-                sfxCount = 9,
-                alerts = listOf(
-                    DoneJobAlert(page = 11, code = "source_copy"),
-                ),
-                isExpanded = false,
+                mihonPath = "Mihon/onepiece/1120", seriesKey = "onepiece", coverUrl = null, title = "One Piece · ch. 1120",
+                whenText = "Hier", installed = true, color = TmmColors.CE6DCC0,
+                totalPages = 17, translatedPages = 17, totalBubbles = 201, untranslatedBubbles = 0, sfxCount = 2,
+                alerts = emptyList(), isExpanded = false,
             ),
             DoneJob(
-                mihonPath = "mihon/solo-leveling/ch200",
-                title = "Solo Leveling · Ch. 200",
-                whenText = "Hier 21:48",
-                stateText = "Dans Mihon",
-                stateColor = TmmColors.C2F7D4F,
-                color = TmmColors.CC9D3DE,
-                totalPages = 21,
-                translatedPages = 21,
-                totalBubbles = 170,
-                untranslatedBubbles = 0,
-                sfxCount = 15,
-                alerts = emptyList(),
-                isExpanded = false,
+                mihonPath = "Mihon/vagabond/327", seriesKey = "vagabond", coverUrl = null, title = "Vagabond · ch. 327",
+                whenText = "Hier", installed = true, color = TmmColors.CDCCFC4,
+                totalPages = 24, translatedPages = 24, totalBubbles = 88, untranslatedBubbles = 0, sfxCount = 0,
+                alerts = emptyList(), isExpanded = false,
             ),
         ),
         failedJobs = listOf(
             FailedJob(
-                jobId = "f139",
-                title = "Frieren · Ch. 139",
-                color = TmmColors.CE2C6BB,
-                page = 9,
-                message = "moteur indisponible",
-                keptInfo = "Il y a 20 min · les pages 1 à 8 sont conservées",
+                jobId = "csm171", seriesKey = "chainsaw", coverUrl = null, title = "Chainsaw Man · ch. 171",
+                color = TmmColors.CE2C6BB, page = 12, message = "quota du moteur atteint",
+                keptInfo = "Gemini · les pages 1 à 11 sont conservées", quota = true,
             ),
         ),
     )
 
-    val catalog = CatalogState()
-
-    val newTranslation = NewTranslationState()
+    /** Maquette v2, écran 6 : 8 chapitres cochés sur 11, Kagurabachi déplié. */
+    val translate = run {
+        fun ch(series: String, n: Int, pages: Int) = TranslateChapter("Mihon/$series/$n", n.toFloat(), pages)
+        val series = listOf(
+            TranslateSeries("sakamoto", "Sakamoto Days", null, TmmColors.CC9D3DE, (7..11).map { ch("sakamoto", it, 20) }),
+            TranslateSeries("kagurabachi", "Kagurabachi", null, TmmColors.CCFD8C6, listOf(ch("kagurabachi", 52, 21), ch("kagurabachi", 53, 22), ch("kagurabachi", 54, 23))),
+            TranslateSeries("blue-lock", "Blue Lock", null, TmmColors.CD8D2E4, listOf(ch("blue-lock", 214, 19))),
+            TranslateSeries("kaiju", "Kaiju No. 8", null, TmmColors.CE6DCC0, listOf(ch("kaiju", 118, 22), ch("kaiju", 119, 21))),
+        )
+        val unchecked = setOf("Mihon/kagurabachi/54", "Mihon/kaiju/118", "Mihon/kaiju/119")
+        TranslateState(
+            series = series,
+            selected = series.flatMap { s -> s.chapters.map { it.mihonPath } }.filterNot { it in unchecked }.toSet(),
+            expanded = setOf("kagurabachi"),
+        )
+    }
 
     val settings = SettingsState()
 

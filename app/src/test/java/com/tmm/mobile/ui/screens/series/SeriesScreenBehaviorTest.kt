@@ -3,6 +3,10 @@ package com.tmm.mobile.ui.screens.series
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -10,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmTheme
 import org.junit.Assert.assertEquals
@@ -23,7 +26,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Tests de comportement de l'écran Fiche série (E4.3, Series.dc.html).
+ * Tests de comportement de la fiche série (maquette v2, écrans 3 à 5).
+ * Le ViewModel est remplacé par un réducteur local : seuls le rendu et les événements émis sont testés ici.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -46,49 +50,31 @@ class SeriesScreenBehaviorTest {
         return { state }
     }
 
+    private fun toggle(set: Set<Int>, n: Int): Set<Int> = if (n in set) set - n else set + n
+
     private fun reduce(state: SeriesState, event: SeriesEvent): SeriesState = when (event) {
+        SeriesEvent.StartSelection -> state.copy(selecting = true)
+        SeriesEvent.EndSelection -> state.copy(selecting = false, selected = emptySet())
         is SeriesEvent.ToggleChapter -> {
-            val chapter = state.chapters.firstOrNull { c -> c.number == event.number }
-            if (chapter == null || chapter.locked) {
+            val row = state.rows.firstOrNull { it.number == event.number }
+            if (row == null || row.locked || row.kind == ChapterKind.NotDownloaded) {
                 state
             } else {
-                state.copy(selected = state.selected.toMutableSet().apply {
-                    if (!add(event.number)) remove(event.number)
-                })
+                state.copy(selected = toggle(state.selected, event.number))
             }
         }
-        SeriesEvent.SelectTodo -> {
-            val todo = state.chapters.filter { c -> c.kind == StatusTone.Send || c.kind == StatusTone.Get }.map { c -> c.number }
-            state.copy(selected = todo.toSet())
-        }
-        SeriesEvent.ClearSelection -> state.copy(selected = emptySet())
+        is SeriesEvent.ToggleStats -> state.copy(expandedStats = toggle(state.expandedStats, event.number))
         SeriesEvent.DismissGap -> state.copy(showGap = false)
-        is SeriesEvent.ToggleStats -> state.copy(expandedStats = state.expandedStats.toMutableSet().apply {
-            if (!add(event.number)) remove(event.number)
-        })
-        SeriesEvent.SendToPc -> state.copy(toast = SeriesToast.Sent(state.selectionToSend), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.FetchToMihon -> state.copy(toast = SeriesToast.Received(state.selectionToGet), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.VerifyPending -> state.copy(toast = SeriesToast.Verified(state.selectionToVerify), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.RequestRetranslateSelection -> when {
-            state.selectionToTranslate == 0 -> state
-            state.selectionRetranslates -> state.copy(sheet = SeriesSheet.Confirm(state.selectionToTranslate))
-            else -> state.copy(toast = SeriesToast.Translated(state.selectionToTranslate), sheet = SeriesSheet.None, selected = emptySet())
-        }
-        SeriesEvent.OpenSeriesSheet -> state.copy(sheet = SeriesSheet.SeriesActions)
+        SeriesEvent.TranslateAll -> state.copy(toast = SeriesToast.Translated(state.toTranslateNumbers.size))
+        SeriesEvent.OpenSeriesMore -> state.copy(sheet = SeriesSheet.More(allSeries = true))
+        SeriesEvent.OpenSelectionMore -> state.copy(sheet = SeriesSheet.More(allSeries = false))
         SeriesEvent.CloseSheet -> state.copy(sheet = SeriesSheet.None)
-        SeriesEvent.SeriesSendMissing -> state.copy(toast = SeriesToast.Sent(state.chapters.count { c -> c.kind == StatusTone.Send }), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.SeriesFetchMissing -> state.copy(toast = SeriesToast.Received(state.chapters.count { c -> c.kind == StatusTone.Get }), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.SeriesVerifyAll -> state.copy(toast = SeriesToast.Verified(state.frCount), sheet = SeriesSheet.None, selected = emptySet())
-        SeriesEvent.SeriesRequestRetranslateAll -> state.copy(sheet = SeriesSheet.Confirm(state.frCount))
-        SeriesEvent.ConfirmRetranslate -> {
-            val count = (state.sheet as? SeriesSheet.Confirm)?.chapterCount ?: state.selectionToTranslate
-            state.copy(toast = SeriesToast.Retranslated(count), sheet = SeriesSheet.None, selected = emptySet())
-        }
-        SeriesEvent.RequestDelete -> if (state.selectionToDelete == 0) {
-            state
-        } else {
-            state.copy(sheet = SeriesSheet.Delete(state.selectionToDelete, state.selectionDeleteSkipped))
-        }
+        SeriesEvent.Translate -> state.copy(toast = SeriesToast.Translated(1), sheet = SeriesSheet.None)
+        SeriesEvent.Install -> state.copy(toast = SeriesToast.Installing(1), sheet = SeriesSheet.None)
+        SeriesEvent.Verify -> state.copy(toast = SeriesToast.Verified(1), sheet = SeriesSheet.None)
+        SeriesEvent.Retranslate -> state.copy(toast = SeriesToast.Retranslated(1), sheet = SeriesSheet.None)
+        SeriesEvent.CopyToPc -> state.copy(toast = SeriesToast.Copied(1), sheet = SeriesSheet.None)
+        SeriesEvent.RequestDelete -> state.copy(sheet = SeriesSheet.Delete(state.selectionToDelete, state.selectionDeleteSkipped))
         is SeriesEvent.ToggleDeleteTarget -> (state.sheet as? SeriesSheet.Delete)?.let { sheet ->
             state.copy(
                 sheet = when (event.target) {
@@ -101,40 +87,56 @@ class SeriesScreenBehaviorTest {
         SeriesEvent.ConfirmDelete -> (state.sheet as? SeriesSheet.Delete)?.takeIf { it.anyChecked }?.let { sheet ->
             state.copy(toast = SeriesToast.Deleted(sheet.chapterCount), sheet = SeriesSheet.None, selected = emptySet())
         } ?: state
+        is SeriesEvent.SetFollow ->
+            if (event.follow) state.copy(sheet = SeriesSheet.Follow(state.toTranslateNumbers)) else state.copy(followed = false)
+        SeriesEvent.ConfirmFollow -> state.copy(
+            followed = true,
+            sheet = SeriesSheet.None,
+            toast = SeriesToast.Followed((state.sheet as? SeriesSheet.Follow)?.numbers?.size ?: 0),
+        )
+        SeriesEvent.UndoFollow -> state.copy(followed = false, toast = null)
         SeriesEvent.DismissToast -> state.copy(toast = null)
     }
 
     @Test
-    fun initialState_showsTitleAndCounts() {
-        val getState = setState(MockupData.seriesDetail)
+    fun initialState_showsProgressAndBigButton() {
+        setState(MockupData.seriesDetail)
         composeRule.onNodeWithText("Blue Lock").assertExists()
-        composeRule.onNodeWithText("212").assertExists()
-        composeRule.onNodeWithText("213").assertExists()
-        composeRule.onNodeWithText("205").assertExists()
-        assertEquals(3, getState().selectionCount)
+        composeRule.onNodeWithText("205 chapitres en VF sur 214").assertExists()
+        composeRule.onNodeWithText("Traduire le ch. 214").assertExists()
+        // Liste paresseuse : la ligne n'existe qu'une fois amenee a l'ecran.
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ch. 1 à 4"))
+        composeRule.onNodeWithText("Ch. 1 à 4").assertExists()
     }
 
     @Test
-    fun selectTodo_selectsSendAndGetChapters() {
-        val getState = setState(MockupData.seriesDetail.copy(selected = emptySet()))
-        composeRule.onNodeWithText("Tout ce qui reste à faire").performClick()
-        composeRule.waitForIdle()
-        assertEquals(setOf(214, 212), getState().selected)
-    }
-
-    @Test
-    fun clearSelection_clearsAllSelected() {
+    fun bigButton_translatesAll() {
         val getState = setState(MockupData.seriesDetail)
-        composeRule.onNodeWithText("Désélectionner").performClick()
+        composeRule.onNodeWithText("Traduire le ch. 214").performClick()
         composeRule.waitForIdle()
-        assertTrue(getState().selected.isEmpty())
-        assertFalse(getState().hasSelection)
+        assertEquals(SeriesToast.Translated(1), getState().toast)
+    }
+
+    @Test
+    fun followSwitch_opensSheet_thenConfirmFollows() {
+        val getState = setState(MockupData.seriesDetail)
+        composeRule.onNodeWithContentDescription("Suivre cette série").performClick()
+        composeRule.waitForIdle()
+        assertEquals(SeriesSheet.Follow(listOf(214)), getState().sheet)
+        composeRule.onNodeWithText("1 chapitre déjà téléchargé partira aussi", substring = true).assertExists()
+
+        composeRule.onNodeWithText("Suivre Blue Lock").performClick()
+        composeRule.waitForIdle()
+        assertTrue(getState().followed)
+        assertEquals(SeriesToast.Followed(1), getState().toast)
+        composeRule.onNodeWithText("Série suivie").assertExists()
+        composeRule.onNodeWithText("Blue Lock est suivie. 1 chapitre part au PC.").assertExists()
     }
 
     @Test
     fun dismissGap_hidesAlert() {
         val getState = setState(MockupData.seriesDetail)
-        composeRule.onNodeWithText("Ignorer").performClick()
+        composeRule.onNodeWithText("Ignorer").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertFalse(getState().showGap)
     }
@@ -142,46 +144,51 @@ class SeriesScreenBehaviorTest {
     @Test
     fun toggleStats_expandsChapterStats() {
         val getState = setState(MockupData.seriesDetail.copy(expandedStats = emptySet()))
-        composeRule.onNodeWithContentDescription("Détails de traduction du chapitre 212").performScrollTo().performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasContentDescription("Détails de traduction du chapitre 211"))
+        composeRule.onNodeWithContentDescription("Détails de traduction du chapitre 211").performClick()
         composeRule.waitForIdle()
-        assertTrue(getState().expandedStats.contains(212))
+        assertTrue(211 in getState().expandedStats)
         composeRule.onNodeWithText("22/22 pages").assertExists()
     }
 
     @Test
-    fun sendAction_triggersToast() {
-        val getState = setState(MockupData.seriesDetail)
-        composeRule.onAllNodesWithText("Envoyer au PC (1)").onFirst().performClick()
+    fun selection_skipsLockedRows_thenOpensSheet() {
+        val getState = setState(MockupData.seriesDetail.copy(selected = emptySet()))
+        composeRule.onNodeWithText("Sélectionner").performScrollTo().performClick()
         composeRule.waitForIdle()
-        val toast = getState().toast
-        assertTrue(toast is SeriesToast.Sent)
-        assertEquals(1, (toast as SeriesToast.Sent).chapterCount)
+        assertTrue(getState().selecting)
+
+        composeRule.onNodeWithText("Ch. 214").performScrollTo().performClick()
+        composeRule.onNodeWithText("Ch. 213").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertEquals(setOf(214), getState().selected)
+
+        composeRule.onNodeWithText("Que faire ?").performClick()
+        composeRule.waitForIdle()
+        assertEquals(SeriesSheet.More(allSeries = false), getState().sheet)
+        composeRule.onNodeWithText("Corriger les oublis").assertExists()
+        composeRule.onNodeWithText("Le ch. 213 est en cours de traduction : il n'est pas sélectionnable.").assertExists()
     }
 
     @Test
-    fun retranslateAction_opensConfirmSheetAndConfirmRetranslates() {
+    fun moreButton_opensAllSeriesSheet_copyWithoutTranslation() {
         val getState = setState(MockupData.seriesDetail)
-        composeRule.onAllNodesWithText("Retraduire (2)").onFirst().performClick()
+        composeRule.onNodeWithContentDescription("Actions sur toute la série").performClick()
         composeRule.waitForIdle()
-        assertTrue(getState().sheet is SeriesSheet.Confirm)
-        assertEquals(2, (getState().sheet as SeriesSheet.Confirm).chapterCount)
-
-        composeRule.onAllNodesWithText("Retraduire").onFirst().performClick()
+        assertEquals(SeriesSheet.More(allSeries = true), getState().sheet)
+        composeRule.onNodeWithText("Copier sur le PC sans traduire").performClick()
         composeRule.waitForIdle()
-        val toast = getState().toast
-        assertTrue(toast is SeriesToast.Retranslated)
-        assertEquals(2, (toast as SeriesToast.Retranslated).chapterCount)
+        assertEquals(SeriesToast.Copied(1), getState().toast)
     }
 
     @Test
-    fun deleteAction_opensSheet_confirmDisabledWithoutChoice_thenDeletes() {
-        val getState = setState(MockupData.seriesDetail.copy(selectionToDelete = 2, selectionDeleteSkipped = 1))
-        composeRule.onAllNodesWithText("Supprimer (2)").onFirst().performClick()
-        composeRule.waitForIdle()
-        assertEquals(SeriesSheet.Delete(chapterCount = 2, skippedCount = 1), getState().sheet)
+    fun deleteSheet_confirmBlockedWithoutChoice_thenDeletes() {
+        val getState = setState(
+            MockupData.seriesDetail.copy(selectionToDelete = 2, selectionDeleteSkipped = 1, sheet = SeriesSheet.Delete(2, 1)),
+        )
         composeRule.onNodeWithText("1 chapitre ignoré : traitement en cours.").assertExists()
 
-        // Seule la case "Traduction sur le telephone" est cochee par defaut : la decocher bloque la confirmation.
+        // Seule « Traduction sur le téléphone » est cochée par défaut : la décocher bloque la confirmation.
         composeRule.onNodeWithText("Traduction sur le téléphone").performClick()
         composeRule.waitForIdle()
         assertFalse((getState().sheet as SeriesSheet.Delete).anyChecked)
@@ -195,18 +202,5 @@ class SeriesScreenBehaviorTest {
         composeRule.onAllNodesWithText("Supprimer").onFirst().performClick()
         composeRule.waitForIdle()
         assertEquals(SeriesToast.Deleted(2), getState().toast)
-        assertTrue(getState().selected.isEmpty())
-    }
-
-    @Test
-    fun openSeriesSheet_showsAllSeriesOptions() {
-        val getState = setState(MockupData.seriesDetail)
-        composeRule.onNodeWithText("Toute la série").performClick()
-        composeRule.waitForIdle()
-        assertEquals(SeriesSheet.SeriesActions, getState().sheet)
-        composeRule.onNodeWithText("Envoyer ce qui manque").assertExists()
-        composeRule.onNodeWithText("Récupérer les traductions").assertExists()
-        composeRule.onNodeWithText("Vérifier toute la série").assertExists()
-        composeRule.onNodeWithText("Retraduire toute la série").assertExists()
     }
 }

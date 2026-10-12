@@ -25,7 +25,7 @@ class EmptyScreenBehaviorTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private var catalogOpened = false
+    private var readBackupClicked = false
 
     private fun setState(initial: EmptyState = MockupData.empty): () -> EmptyState {
         var state by mutableStateOf(initial)
@@ -34,7 +34,7 @@ class EmptyScreenBehaviorTest {
                 EmptyScreen(
                     state = state,
                     onEvent = { event -> state = reduce(state, event) },
-                    onOpenCatalog = { catalogOpened = true },
+                    onReadBackup = { readBackupClicked = true },
                 )
             }
         }
@@ -60,11 +60,11 @@ class EmptyScreenBehaviorTest {
     }
 
     @Test
-    fun clickReadBackup_opensCatalog() {
+    fun clickReadBackup_invokesCallback() {
         setState()
-        assertFalse(catalogOpened)
+        assertFalse(readBackupClicked)
         composeRule.onNodeWithText("J'ai une sauvegarde, la lire").performClick()
-        assertTrue(catalogOpened)
+        assertTrue(readBackupClicked)
     }
 
     @Test

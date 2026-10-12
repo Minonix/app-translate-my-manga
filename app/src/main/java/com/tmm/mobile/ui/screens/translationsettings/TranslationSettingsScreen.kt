@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -81,22 +82,29 @@ fun TranslationSettingsScreen(
                     .padding(start = 12.dp, top = 10.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable(
                             role = Role.Button,
                             onClickLabel = backCd,
                             onClick = onNavigateBack,
-                        ),
-                    contentAlignment = Alignment.Center,
+                        )
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     TmmIcon(
                         icon = TmmIconId.ChevronLeft,
                         size = 22.dp,
-                        tint = TmmColors.ink,
+                        tint = TmmColors.textMuted,
                         contentDescription = backCd,
+                    )
+                    TmmText(
+                        text = stringResource(R.string.settings_title),
+                        style = TmmType.sans(15),
+                        color = TmmColors.textMuted,
                     )
                 }
             }
@@ -114,15 +122,10 @@ fun TranslationSettingsScreen(
                 // Titre
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     TmmText(
-                        text = stringResource(R.string.trans_settings_title),
+                        text = stringResource(R.string.settings_v2_translation),
                         style = TmmType.display(32, weight = 800),
                         color = TmmColors.ink,
                         modifier = Modifier.semantics { heading() },
-                    )
-                    TmmText(
-                        text = stringResource(R.string.trans_settings_subtitle),
-                        style = TmmType.sans(13),
-                        color = TmmColors.textMuted,
                     )
                 }
 
@@ -130,33 +133,36 @@ fun TranslationSettingsScreen(
                 SyncStatusCard(status = state.syncStatus, isReadOnly = state.isReadOnly, pcName = state.pcName)
 
                 // Groupe 1 : Langues
-                SettingsGroup(title = stringResource(R.string.trans_settings_group_languages)) {
+                SettingsGroup(title = stringResource(R.string.settings_v2_essential)) {
                     PickRow(
-                        label = stringResource(R.string.trans_settings_source_language),
+                        label = stringResource(R.string.settings_v2_source),
                         value = state.sourceLanguage.displaySummary,
                         onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.SourceLanguage)) },
                         enabled = enabled,
                     )
                     PickRow(
-                        label = stringResource(R.string.trans_settings_target_language),
+                        label = stringResource(R.string.settings_v2_target),
                         value = state.targetLanguage.displaySummary,
                         onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.TargetLanguage)) },
-                        showDivider = false,
                         enabled = enabled,
                     )
-                }
 
-                // Groupe 2 : Moteur
-                SettingsGroup(title = stringResource(R.string.trans_settings_group_engine)) {
                     PickRow(
-                        label = stringResource(R.string.trans_settings_engine),
+                        label = stringResource(R.string.settings_v2_engine),
                         value = state.translationProvider.displaySummary,
                         onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.TranslationProvider)) },
                         enabled = enabled,
                     )
                     ToggleRow(
-                        label = stringResource(R.string.trans_settings_auto_failover),
-                        description = stringResource(R.string.trans_settings_auto_failover_desc),
+                        label = stringResource(R.string.settings_v2_verify),
+                        description = stringResource(R.string.settings_v2_verify_hint),
+                        checked = state.autoVerifyAfterTranslate,
+                        onCheckedChange = { onEvent(TranslationSettingsEvent.SetAutoVerify(it)) },
+                        enabled = enabled,
+                    )
+                    ToggleRow(
+                        label = stringResource(R.string.settings_v2_failover),
+                        description = stringResource(R.string.settings_v2_failover_hint),
                         checked = state.autoFailoverToLocalLlm,
                         onCheckedChange = { onEvent(TranslationSettingsEvent.SetAutoFailover(it)) },
                         showDivider = false,
@@ -164,28 +170,18 @@ fun TranslationSettingsScreen(
                     )
                 }
 
-                // Groupe 3 : Après traduction
-                SettingsGroup(title = stringResource(R.string.trans_settings_group_after_translation)) {
-                    ToggleRow(
-                        label = stringResource(R.string.trans_settings_auto_verify),
-                        description = stringResource(R.string.trans_settings_auto_verify_desc),
-                        checked = state.autoVerifyAfterTranslate,
-                        onCheckedChange = { onEvent(TranslationSettingsEvent.SetAutoVerify(it)) },
-                        showDivider = false,
-                        enabled = enabled,
-                    )
-                }
-
                 // Groupe 4 : Performance
-                SettingsGroup(title = stringResource(R.string.trans_settings_group_performance)) {
-                    val chapterHint = if (state.chapterConcurrency == 1) {
-                        stringResource(R.string.trans_settings_single_chapter)
-                    } else {
-                        stringResource(R.string.trans_settings_parallel_chapters_fmt, state.chapterConcurrency)
-                    }
+                CollapsibleGroup(stringResource(R.string.settings_v2_speed),
+                    pluralStringResource(
+                        if (state.useGpu) R.plurals.settings_v2_speed_hint else R.plurals.settings_v2_speed_hint_cpu,
+                        state.chapterConcurrency,
+                        state.chapterConcurrency,
+                    ),
+                    state.speedExpanded,
+                    { onEvent(TranslationSettingsEvent.ToggleSpeed) }) {
                     SegmentedRow(
-                        label = stringResource(R.string.trans_settings_chapter_concurrency),
-                        hint = chapterHint,
+                        label = stringResource(R.string.settings_v2_chapters_at_once),
+                        hint = "${state.chapterConcurrency}",
                         options = listOf(1, 2, 3, 4),
                         selected = state.chapterConcurrency,
                         onSelect = { onEvent(TranslationSettingsEvent.SetChapterConcurrency(it)) },
@@ -193,35 +189,27 @@ fun TranslationSettingsScreen(
                     )
 
                     val pageHint = if (state.concurrency == 2) {
-                        stringResource(R.string.trans_settings_recommended)
+                        stringResource(R.string.settings_v2_pages_hint_recommended_fmt, state.concurrency)
                     } else {
-                        stringResource(R.string.trans_settings_per_chapter)
+                        stringResource(R.string.settings_v2_pages_hint_fmt, state.concurrency)
                     }
-                    SegmentedRow(
-                        label = stringResource(R.string.trans_settings_page_concurrency),
-                        hint = pageHint,
-                        options = listOf(1, 2, 3, 4),
-                        selected = state.concurrency,
-                        onSelect = { onEvent(TranslationSettingsEvent.SetConcurrency(it)) },
+                    // Maquette v2 : seule « Chapitres à la fois » reste en segmente, les deux autres
+                    // sont des lignes a chevron qui ouvrent la feuille de choix.
+                    PickRow(
+                        label = stringResource(R.string.settings_v2_pages_at_once),
+                        value = pageHint,
+                        onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.PagesAtOnce)) },
                         enabled = enabled,
                     )
-
-                    val pileHint = if (state.pileSize == 3) {
-                        stringResource(R.string.trans_settings_recommended)
-                    } else {
-                        stringResource(R.string.trans_settings_more_context)
-                    }
-                    SegmentedRow(
+                    PickRow(
                         label = stringResource(R.string.trans_settings_pile_size),
-                        hint = pileHint,
-                        options = listOf(1, 2, 3),
-                        selected = state.pileSize,
-                        onSelect = { onEvent(TranslationSettingsEvent.SetPileSize(it)) },
+                        value = stringResource(R.string.settings_v2_pile_hint_fmt, state.pileSize),
+                        onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.PagesPerBatch)) },
                         enabled = enabled,
                     )
 
                     ToggleRow(
-                        label = stringResource(R.string.trans_settings_use_gpu),
+                        label = stringResource(R.string.settings_v2_gpu),
                         description = if (state.useGpu) {
                             stringResource(R.string.trans_settings_gpu_on_desc)
                         } else {
@@ -234,62 +222,14 @@ fun TranslationSettingsScreen(
                     )
                 }
 
-                // Bouton vision avancée
-                val advLabel = if (state.isAdvancedExpanded) {
-                    stringResource(R.string.trans_settings_adv_collapse)
-                } else {
-                    stringResource(R.string.trans_settings_adv_expand)
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .dashedBorder(color = TmmColors.CD5CDBC, width = 1.dp, cornerRadius = 12.dp)
-                        .clickable(
-                            role = Role.Button,
-                            onClickLabel = advLabel,
-                            onClick = { onEvent(TranslationSettingsEvent.ToggleAdvanced) },
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TmmText(
-                            text = advLabel,
-                            style = TmmType.sans(14, weight = 600),
-                            color = TmmColors.ink,
-                        )
-                        TmmIcon(
-                            icon = TmmIconId.ChevronDown,
-                            size = 14.dp,
-                            tint = TmmColors.ink,
-                            modifier = Modifier.rotate(if (state.isAdvancedExpanded) 180f else 0f),
-                        )
-                    }
-                }
-
-                // Section vision avancée
-                AnimatedVisibility(visible = state.isAdvancedExpanded) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp))
-                            .background(TmmColors.surface),
-                    ) {
+                CollapsibleGroup(stringResource(R.string.settings_v2_rendering),
+                    stringResource(R.string.settings_v2_rendering_hint_fmt, state.font.label, state.inpainter.label),
+                    state.renderingExpanded || state.isAdvancedExpanded,
+                    { onEvent(TranslationSettingsEvent.ToggleRendering) }) {
                         PickRow(
-                            label = stringResource(R.string.trans_settings_detector),
-                            value = state.detector.displaySummary,
-                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.BubbleDetector)) },
-                            enabled = enabled,
-                        )
-                        PickRow(
-                            label = stringResource(R.string.trans_settings_ocr),
-                            value = state.preferredOcr.displaySummary,
-                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.PreferredOcr)) },
+                            label = stringResource(R.string.settings_v2_font),
+                            value = state.font.displaySummary,
+                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.Font)) },
                             enabled = enabled,
                         )
                         PickRow(
@@ -303,37 +243,39 @@ fun TranslationSettingsScreen(
                             value = state.inpaintingSize.displaySummary,
                             onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.InpaintingSize)) },
                             enabled = enabled,
+                            showDivider = false,
+                        )
+                }
+                CollapsibleGroup(stringResource(R.string.settings_v2_reading),
+                    if (state.detector == BubbleDetector.Default && state.preferredOcr == PreferredOcr.Auto) {
+                        stringResource(R.string.settings_v2_reading_hint_auto)
+                    } else {
+                        state.detector.label + " · " + state.preferredOcr.label
+                    },
+                    state.readingExpanded || state.isAdvancedExpanded,
+                    { onEvent(TranslationSettingsEvent.ToggleReading) }) {
+                        PickRow(
+                            label = stringResource(R.string.trans_settings_detector),
+                            value = state.detector.displaySummary,
+                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.BubbleDetector)) },
+                            enabled = enabled,
                         )
                         PickRow(
-                            label = stringResource(R.string.trans_settings_font),
-                            value = state.font.displaySummary,
-                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.Font)) },
+                            label = stringResource(R.string.settings_v2_ocr),
+                            value = state.preferredOcr.displaySummary,
+                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.PreferredOcr)) },
                             enabled = enabled,
                             showDivider = false,
                         )
-                    }
                 }
 
-                // Note d'information de sécurité
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(TmmColors.line)
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    TmmIcon(
-                        icon = TmmIconId.Lock,
-                        size = 16.dp,
-                        tint = TmmColors.textMuted,
-                    )
-                    TmmText(
-                        text = stringResource(R.string.trans_settings_security_note),
-                        style = TmmType.sans(12, lineHeight = 18f),
-                        color = TmmColors.textMuted,
-                    )
-                }
+                // Note de bas de page : les cles API ne quittent pas le PC.
+                TmmText(
+                    text = stringResource(R.string.settings_v2_footer_note),
+                    style = TmmType.sans(12, lineHeight = 18f),
+                    color = TmmColors.textMuted,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
 
                 Box(modifier = Modifier.height(16.dp))
             }
@@ -384,6 +326,15 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
         else -> stringResource(R.string.trans_settings_sync_synced_hint)
     }
 
+    if (!waiting && !sending) {
+        Row(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TmmIcon(icon = TmmIconId.CheckSimple, size = 18.dp, tint = TmmColors.C2F7D4F)
+            TmmText(text = stringResource(R.string.settings_v2_applied, pcName), style = TmmType.sans(13, weight = 600), color = TmmColors.C2F7D4F)
+        }
+        return
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "spin")
     val spinAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -398,7 +349,7 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(TmmColors.ink)
+            .background(if (waiting) TmmColors.C8A5A00 else TmmColors.ink)
             .semantics { liveRegion = LiveRegionMode.Polite }
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -438,6 +389,21 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
                 style = TmmType.sans(12),
                 color = TmmColors.CCFC8B8,
             )
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleGroup(title: String, summary: String, expanded: Boolean, onToggle: () -> Unit, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp))
+            .background(TmmColors.surface)) {
+            PickRow(label = title, value = summary, onClick = onToggle, showDivider = false)
+        }
+        if (expanded) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                .border(1.dp, TmmColors.lineStrong, RoundedCornerShape(16.dp)).background(TmmColors.surface)) { content() }
         }
     }
 }
@@ -670,15 +636,18 @@ private fun SettingsBottomSheet(
     modifier: Modifier = Modifier,
 ) {
     val title = when (activeSheet) {
-        ActiveSheet.SourceLanguage -> stringResource(R.string.trans_settings_source_language)
-        ActiveSheet.TargetLanguage -> stringResource(R.string.trans_settings_target_language)
-        ActiveSheet.TranslationProvider -> stringResource(R.string.trans_settings_engine)
+        ActiveSheet.SourceLanguage -> stringResource(R.string.settings_v2_source)
+        ActiveSheet.TargetLanguage -> stringResource(R.string.settings_v2_target)
+        ActiveSheet.TranslationProvider -> stringResource(R.string.settings_v2_engine)
         ActiveSheet.BubbleDetector -> stringResource(R.string.trans_settings_detector)
-        ActiveSheet.PreferredOcr -> stringResource(R.string.trans_settings_ocr)
+        ActiveSheet.PreferredOcr -> stringResource(R.string.settings_v2_ocr)
         ActiveSheet.Inpainter -> stringResource(R.string.trans_settings_inpainter)
         ActiveSheet.InpaintingSize -> stringResource(R.string.trans_settings_inpainting_size)
-        ActiveSheet.Font -> stringResource(R.string.trans_settings_font)
+        ActiveSheet.Font -> stringResource(R.string.settings_v2_font)
+        ActiveSheet.PagesAtOnce -> stringResource(R.string.settings_v2_pages_at_once)
+        ActiveSheet.PagesPerBatch -> stringResource(R.string.trans_settings_pile_size)
     }
+    val recommended = stringResource(R.string.settings_v2_recommended)
 
     val options: List<SheetOptionItem> = when (activeSheet) {
         ActiveSheet.SourceLanguage -> SourceLanguage.entries.map { lang ->
@@ -753,6 +722,24 @@ private fun SettingsBottomSheet(
                 onClick = { onEvent(TranslationSettingsEvent.SelectFont(fnt)) },
             )
         }
+        ActiveSheet.PagesAtOnce -> (1..4).map { n ->
+            SheetOptionItem(
+                id = "$n",
+                label = stringResource(R.string.settings_v2_pages_hint_fmt, n),
+                hint = if (n == 2) recommended else "",
+                isSelected = state.concurrency == n,
+                onClick = { onEvent(TranslationSettingsEvent.SetConcurrency(n)) },
+            )
+        }
+        ActiveSheet.PagesPerBatch -> (1..3).map { n ->
+            SheetOptionItem(
+                id = "$n",
+                label = "$n",
+                hint = "",
+                isSelected = state.pileSize == n,
+                onClick = { onEvent(TranslationSettingsEvent.SetPileSize(n)) },
+            )
+        }
     }
 
     Column(
@@ -820,7 +807,7 @@ private fun SettingsBottomSheet(
                         )
                         if (option.hint.isNotEmpty()) {
                             TmmText(
-                                text = option.hint,
+                                text = option.hint.replaceFirstChar { it.titlecase() },
                                 style = TmmType.sans(12),
                                 color = TmmColors.textMuted,
                             )

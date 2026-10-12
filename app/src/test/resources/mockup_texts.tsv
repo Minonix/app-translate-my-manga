@@ -1,526 +1,4 @@
 fichier	texte exact	type	ressource	quantité	arguments
-Main.dc.html	Réglages	STR	home_settings_cd
-Main.dc.html	Accueil	STR	home_title
-Main.dc.html	Vérifié il y a 4 min	FMT	home_last_check_fmt		["il y a 4 min"]
-Main.dc.html	PC en ligne	STR	home_pc_online
-Main.dc.html	PC vu il y a 3 h	FMT	home_pc_seen_fmt		["3 h"]
-Main.dc.html	PC hors ligne	STR	home_pc_offline
-Main.dc.html	PC hors ligne depuis 2 jours.	STR	home_offline_bold
-Main.dc.html	Vos envois attendent sur Google Drive et partiront dès qu'il se rallume.	STR	home_offline_rest
-Main.dc.html	Décalage entre Mihon et le PC	STR	home_todo_section_cd
-Main.dc.html	À faire · Mihon ↔ PC	STR	home_todo_section_label
-Main.dc.html	Détails	STR	home_details
-Main.dc.html	chapitres à envoyer au PC	STR	home_send_label
-Main.dc.html	5 séries · environ 180 Mo	DEMO
-Main.dc.html	Envoyer	STR	home_send_button
-Main.dc.html	Envoi en cours	STR	home_send_in_progress_cd
-Main.dc.html	En file	STR	home_send_done
-Main.dc.html	traductions à récupérer	STR	home_get_label
-Main.dc.html	4 séries · vers Mihon/local	DEMO
-Main.dc.html	Récupérer	STR	home_get_button
-Main.dc.html	0 / 8	FMT	home_get_progress_fmt		[0, 8]
-Main.dc.html	8 / 8	FMT	home_get_progress_fmt		[8, 8]
-Main.dc.html	Sur le PC	STR	home_status_on_pc
-Main.dc.html	Dans Mihon	STR	home_status_in_mihon
-Main.dc.html	Sur le PC en ce moment	STR	home_now_on_pc_title
-Main.dc.html	File (7)	FMT	home_queue_link_fmt		[7]
-Main.dc.html	4 chapitres en parallèle sur PC-BUREAU	FMT	home_parallel_status_fmt		[4, "PC-BUREAU"]
-Main.dc.html	+3 ensuite	FMT	home_next_fmt		[3]
-Main.dc.html	Traduction	STR	home_job_type_translation
-Main.dc.html	Vérification	STR	home_job_type_verification
-Main.dc.html	Retraduction	STR	home_job_type_retranslation
-Main.dc.html	Solo Leveling · 201	DEMO
-Main.dc.html	Kagurabachi · 52	DEMO
-Main.dc.html	One Piece · 1119	DEMO
-Main.dc.html	Blue Lock · 205	DEMO
-Main.dc.html	Nouvelle traduction	STR	home_new_translation_title
-Main.dc.html	Choisir des chapitres	STR	home_new_translation_subtitle
-Main.dc.html	Scanner Mihon	STR	home_scan_mihon_title
-Main.dc.html	Dernier scan il y a 4 min	DEMO
-Main.dc.html	Derniers chapitres traduits	STR	home_recent_title
-Main.dc.html	Tout voir	STR	home_see_all
-Main.dc.html	Frieren	DEMO
-Main.dc.html	Ch. 140	DEMO
-Main.dc.html	Kagurabachi	DEMO
-Main.dc.html	Ch. 51 à 54	DEMO
-Main.dc.html	Blue Lock	DEMO
-Main.dc.html	Ch. 212	DEMO
-Main.dc.html	One Piece	DEMO
-Main.dc.html	Ch. 1120	DEMO
-Main.dc.html	FR	DEMO
-Main.dc.html	12 chapitres partent vers le PC via Google Drive.	FMT	home_toast_sent_fmt		[12]
-Main.dc.html	8 chapitres traduits rangés dans Mihon/local.	FMT	home_toast_received_fmt		[8]
-Main.dc.html	Voir	STR	home_toast_action
-Library.dc.html	Bibliothèque	STR	library_title
-Library.dc.html	142 séries · 7 catégories Mihon	STR	library_subtitle_default
-Library.dc.html	1 série sélectionnée	PLU	library_series_selected	1	[1]
-Library.dc.html	3 séries sélectionnées	PLU	library_series_selected	3	[3]
-Library.dc.html	Catégories	STR	library_categories_cd
-Library.dc.html	Catégories Mihon	STR	library_categories_tablist_cd
-Library.dc.html	Sélectionner	STR	library_select_button
-Library.dc.html	Terminer	STR	library_finish_button
-Library.dc.html	Rechercher une série	STR	library_search_placeholder
-Library.dc.html	Tous	DEMO
-Library.dc.html	En cours	DEMO
-Library.dc.html	À lire	DEMO
-Library.dc.html	Terminé	DEMO
-Library.dc.html	Favoris	DEMO
-Library.dc.html	Webtoons	DEMO
-Library.dc.html	Toutes	STR	library_view_all
-Library.dc.html	À traduire	STR	library_view_todo
-Library.dc.html	Téléchargées	STR	library_view_downloaded
-Library.dc.html	Sur le PC	STR	library_view_on_pc
-Library.dc.html	Non téléchargées	STR	library_view_absent
-Library.dc.html	Touchez les séries à inclure	STR	library_picking_hint
-Library.dc.html	Tout cocher (6)	FMT	library_select_all_fmt		[6]
-Library.dc.html	Tout décocher	STR	library_deselect_all
-Library.dc.html	Blue Lock	DEMO
-Library.dc.html	Solo Leveling	DEMO
-Library.dc.html	Frieren	DEMO
-Library.dc.html	Kagurabachi	DEMO
-Library.dc.html	Dandadan	DEMO
-Library.dc.html	One Piece	DEMO
-Library.dc.html	Vinland Saga	DEMO
-Library.dc.html	Sakamoto Days	DEMO
-Library.dc.html	Chainsaw Man	DEMO
-Library.dc.html	1 à envoyer	DEMO
-Library.dc.html	Traduction en cours	DEMO
-Library.dc.html	1 à récupérer	DEMO
-Library.dc.html	3 à envoyer	DEMO
-Library.dc.html	Non téléchargée	DEMO
-Library.dc.html	2 à récupérer	DEMO
-Library.dc.html	À jour	DEMO
-Library.dc.html	12 à envoyer	DEMO
-Library.dc.html	FR 205/214	FMT	library_fr_progress_fmt		[205, 214]
-Library.dc.html	Dans Mihon seulement	STR	library_fr_mihon_only
-Library.dc.html	Aucune série ici	STR	library_empty_title
-Library.dc.html	Essayez une autre catégorie ou un autre filtre.	STR	library_empty_subtitle
-Library.dc.html	Envoyer au PC	STR	library_action_send_label
-Library.dc.html	Récupérer	STR	library_action_get_label
-Library.dc.html	Vérifier	STR	library_action_verify_label
-Library.dc.html	Retraduire	STR	library_action_retranslate_label
-Library.dc.html	absents du PC	STR	library_action_hint_send
-Library.dc.html	vers Mihon	STR	library_action_hint_get
-Library.dc.html	corrige les oublis	STR	library_action_hint_verify
-Library.dc.html	refait tout	STR	library_action_hint_retranslate
-Library.dc.html	1 chapitre	PLU	library_chapters_count	1	[1]
-Library.dc.html	4 chapitres	PLU	library_chapters_count	4	[4]
-Library.dc.html	1 série	PLU	library_series_count	1	[1]
-Library.dc.html	2 séries	PLU	library_series_count	2	[2]
-Library.dc.html	Retraduire 4 chapitres ?	FMT	library_confirm_title_fmt		["4 chapitres"]
-Library.dc.html	Sur 2 séries. Les versions françaises actuelles restent lisibles dans Mihon jusqu'à ce que les nouvelles soient prêtes.	FMT	library_confirm_text_fmt		["2 séries"]
-Library.dc.html	Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.	STR	library_confirm_info
-Library.dc.html	Annuler	STR	common_cancel
-Library.dc.html	Voir la file	STR	library_toast_action
-Library.dc.html	1 chapitre envoyé au PC.	PLU	library_toast_sent	1	[1]
-Library.dc.html	4 chapitres envoyés au PC.	PLU	library_toast_sent	4	[4]
-Library.dc.html	1 traduction en téléchargement.	PLU	library_toast_received	1	[1]
-Library.dc.html	3 traductions en téléchargement.	PLU	library_toast_received	3	[3]
-Library.dc.html	1 chapitre ajouté en vérification.	PLU	library_toast_verified	1	[1]
-Library.dc.html	4 chapitres ajoutés en vérification.	PLU	library_toast_verified	4	[4]
-Library.dc.html	1 chapitre ajouté en retraduction.	PLU	library_toast_retranslated	1	[1]
-Library.dc.html	4 chapitres ajoutés en retraduction.	PLU	library_toast_retranslated	4	[4]
-Series.dc.html	Retour à la bibliothèque	STR	series_back_cd
-Series.dc.html	Où sont les chapitres	STR	series_location_stats_cd
-Series.dc.html	Bibliothèque	STR	library_title
-Series.dc.html	Toute la série	STR	series_sheet_title
-Series.dc.html	En cours	DEMO
-Series.dc.html	Blue Lock	DEMO
-Series.dc.html	Manga · anglais vers français	DEMO
-Series.dc.html	Téléphone	STR	series_legend_phone
-Series.dc.html	PC original	STR	series_stat_pc_original
-Series.dc.html	FR	STR	series_stat_fr_tag
-Series.dc.html	Traduits	STR	series_stat_translated_label
-Series.dc.html	Trou dans la suite : ch. 23.	FMT	series_gap_bold_fmt		[23]
-Series.dc.html	Il manque partout. Téléchargez-le dans Mihon ou ignorez-le.	STR	series_gap_rest
-Series.dc.html	Ignorer	STR	series_gap_dismiss
-Series.dc.html	Chapitres	STR	series_chapters_title
-Series.dc.html	Tout ce qui reste à faire	STR	series_select_todo_button
-Series.dc.html	PC	STR	series_legend_pc
-Series.dc.html	Français	STR	series_legend_fr
-Series.dc.html	Absent	STR	series_legend_absent
-Series.dc.html	Ch. 214	DEMO
-Series.dc.html	Ch. 213	DEMO
-Series.dc.html	Ch. 212	DEMO
-Series.dc.html	Ch. 211	DEMO
-Series.dc.html	Ch. 210	DEMO
-Series.dc.html	Ch. 209	DEMO
-Series.dc.html	Ch. 23	DEMO
-Series.dc.html	Sur le téléphone · à envoyer	DEMO
-Series.dc.html	Traduction en cours · 45 %	DEMO
-Series.dc.html	Traduit · à récupérer	DEMO
-Series.dc.html	À jour partout	DEMO
-Series.dc.html	À jour · 1 page restée en VO	DEMO
-Series.dc.html	Manquant partout	DEMO
-Series.dc.html	22/22 pages	DEMO
-Series.dc.html	184 bulles traduites	DEMO
-Series.dc.html	3 non traduites	DEMO
-Series.dc.html	12 SFX gardés	DEMO
-Series.dc.html	Jamais vérifié	STR	series_chip_never_verified
-Series.dc.html	20/20 pages	DEMO
-Series.dc.html	161 bulles traduites	DEMO
-Series.dc.html	0 non traduites	DEMO
-Series.dc.html	8 SFX gardés	DEMO
-Series.dc.html	Vérifié le 24/09	DEMO
-Series.dc.html	18/19 pages	DEMO
-Series.dc.html	142 bulles traduites	DEMO
-Series.dc.html	6 non traduites	DEMO
-Series.dc.html	9 SFX gardés	DEMO
-Series.dc.html	21/21 pages	DEMO
-Series.dc.html	170 bulles traduites	DEMO
-Series.dc.html	15 SFX gardés	DEMO
-Series.dc.html	1 chapitre sélectionné	PLU	series_chapters_selected	1	[1]
-Series.dc.html	3 chapitres sélectionnés	PLU	series_chapters_selected	3	[3]
-Series.dc.html	Désélectionner	STR	series_deselect_all
-Series.dc.html	Envoyer au PC	STR	library_action_send_label
-Series.dc.html	Récupérer	STR	library_action_get_label
-Series.dc.html	Vérifier	STR	library_action_verify_label
-Series.dc.html	Retraduire	STR	library_action_retranslate_label
-Series.dc.html	Absents du PC	STR	series_action_hint_send
-Series.dc.html	Vers Mihon/local	STR	series_action_hint_get
-Series.dc.html	Corrige les oublis	STR	series_action_hint_verify
-Series.dc.html	Refait tout	STR	series_action_hint_retranslate
-Series.dc.html	Non applicable	STR	common_not_applicable
-Series.dc.html	Blue Lock · 214 chapitres	DEMO
-Series.dc.html	Confirmation	STR	series_confirm_kicker
-Series.dc.html	Envoyer ce qui manque	STR	series_sheet_action_send_label
-Series.dc.html	Chapitres du téléphone absents du PC	STR	series_sheet_action_send_hint
-Series.dc.html	Récupérer les traductions	STR	series_sheet_action_get_label
-Series.dc.html	Traduites mais pas encore dans Mihon	STR	series_sheet_action_get_hint
-Series.dc.html	Vérifier toute la série	STR	series_sheet_action_verify_label
-Series.dc.html	Relit tout, ne corrige que les oublis	STR	series_sheet_action_verify_hint
-Series.dc.html	Retraduire toute la série	STR	series_sheet_action_retranslate_label
-Series.dc.html	Refait la traduction de zéro	STR	series_sheet_action_retranslate_hint
-Series.dc.html	1 ch.	DEMO
-Series.dc.html	205 ch.	DEMO
-Series.dc.html	La version française actuelle sera remplacée une fois la nouvelle prête. Elle reste lisible dans Mihon en attendant.	STR	series_confirm_text
-Series.dc.html	Juste quelques bulles oubliées ? « Vérifier » est plus rapide : il ne renvoie au moteur que les bulles restées en version originale.	STR	library_confirm_info
-Series.dc.html	Annuler	STR	common_cancel
-Series.dc.html	1 chapitre envoyé au PC.	PLU	series_toast_sent	1	[1]
-Series.dc.html	2 chapitres envoyés au PC.	PLU	series_toast_sent	2	[2]
-Series.dc.html	1 traduction en téléchargement vers Mihon.	PLU	series_toast_received	1	[1]
-Series.dc.html	2 traductions en téléchargement vers Mihon.	PLU	series_toast_received	2	[2]
-Series.dc.html	1 chapitre ajouté à la file en vérification.	PLU	series_toast_verified	1	[1]
-Series.dc.html	2 chapitres ajoutés à la file en vérification.	PLU	series_toast_verified	2	[2]
-Series.dc.html	1 chapitre ajouté à la file en retraduction.	PLU	series_toast_retranslated	1	[1]
-Series.dc.html	2 chapitres ajoutés à la file en retraduction.	PLU	series_toast_retranslated	2	[2]
-Series.dc.html	Voir la file	STR	library_toast_action
-Sync.dc.html	Transferts	STR	sync_title
-Sync.dc.html	Les fichiers qui voyagent entre ce téléphone et le PC	STR	sync_subtitle
-Sync.dc.html	Comment ça marche	STR	sync_how_it_works_cd
-Sync.dc.html	Téléphone	STR	series_legend_phone
-Sync.dc.html	Google Drive	STR	sync_cloud_label
-Sync.dc.html	PC-BUREAU	DEMO
-Sync.dc.html	à envoyer au PC	STR	sync_up_label
-Sync.dc.html	à récupérer	STR	sync_down_label
-Sync.dc.html	Tout passe par votre Google Drive : le PC peut être éteint, les fichiers l'y attendent. Rien n'est traduit ici, la traduction se suit dans	STR	sync_explain_text
-Sync.dc.html	File	STR	sync_explain_queue_link
-Sync.dc.html	En cours maintenant	STR	sync_now_title
-Sync.dc.html	Aucun transfert en cours	STR	sync_no_live
-Sync.dc.html	Blue Lock · Ch. 214	DEMO
-Sync.dc.html	envoi 38 %	DEMO
-Sync.dc.html	12 chapitres vers Drive	DEMO
-Sync.dc.html	À envoyer au PC	STR	sync_up_section_title
-Sync.dc.html	12 chapitres	FMT	sync_up_title_fmt		[12]
-Sync.dc.html	Tout est parti	STR	sync_up_title_done
-Sync.dc.html	Téléchargés dans Mihon, absents du PC	STR	sync_up_section_subtitle
-Sync.dc.html	Kagurabachi	DEMO
-Sync.dc.html	Ch. 52 à 54	DEMO
-Sync.dc.html	41 Mo	DEMO
-Sync.dc.html	Blue Lock	DEMO
-Sync.dc.html	Ch. 214	DEMO
-Sync.dc.html	13 Mo	DEMO
-Sync.dc.html	Sakamoto Days	DEMO
-Sync.dc.html	Ch. 1 à 12	DEMO
-Sync.dc.html	126 Mo	DEMO
-Sync.dc.html	+3 autres séries (8 ch.)	FMT	sync_more_series_fmt		[3, 8]
-Sync.dc.html	Traduire dès l'arrivée sur le PC	STR	sync_auto_translate_title
-Sync.dc.html	Ils entreront directement dans la file de traduction	STR	sync_auto_translate_hint_on
-Sync.dc.html	Ils seront seulement copiés sur le PC	STR	sync_auto_translate_hint_off
-Sync.dc.html	Envoyer 12 chapitres	FMT	sync_up_button_fmt		[12]
-Sync.dc.html	Envoi en cours...	STR	sync_up_button_busy
-Sync.dc.html	12 chapitres déposés sur Drive	FMT	sync_up_done_fmt		[12]
-Sync.dc.html	Suivre	STR	sync_up_follow_action
-Sync.dc.html	À récupérer	STR	sync_down_section_title
-Sync.dc.html	8 chapitres traduits	FMT	sync_down_title_fmt		[8]
-Sync.dc.html	Tout est dans Mihon	STR	sync_down_title_done
-Sync.dc.html	Traduits par le PC, pas encore dans Mihon	STR	sync_down_section_subtitle
-Sync.dc.html	Frieren	DEMO
-Sync.dc.html	Ch. 140	DEMO
-Sync.dc.html	14 Mo	DEMO
-Sync.dc.html	One Piece	DEMO
-Sync.dc.html	Ch. 1121 à 1122	DEMO
-Sync.dc.html	31 Mo	DEMO
-Sync.dc.html	Ch. 212	DEMO
-Sync.dc.html	12 Mo	DEMO
-Sync.dc.html	FR	STR	series_stat_fr_tag
-Sync.dc.html	Rangé	STR	sync_down_status_stored
-Sync.dc.html	Rangés dans Mihon/local/<série>, lisibles comme une série locale.	STR	sync_down_info_text
-Sync.dc.html	Télécharger 8 chapitres ici	FMT	sync_down_button_fmt		[8]
-Sync.dc.html	Téléchargement 1/3...	FMT	sync_down_button_busy_fmt		[1, 3]
-Sync.dc.html	Récupéré	STR	sync_down_button_done
-Sync.dc.html	Ces listes viennent du scan de Mihon	STR	sync_scan_source_info
-Sync.dc.html	Rescanner	STR	sync_rescan_button
-Sync.dc.html	Analyse de 104 séries...	FMT	sync_scan_scanning_fmt		[104]
-Sync.dc.html	Mihon/downloads · scanné il y a 4 min	FMT	sync_scan_last_fmt		["il y a 4 min"]
-Sync.dc.html	Mihon/downloads · scanné à l’instant	FMT	sync_scan_last_fmt		["à l’instant"]
-Sync.dc.html	2 chapitres manquants partout	PLU	sync_missing_count	2	[2]
-Queue.dc.html	File	STR	queue_title
-Queue.dc.html	Traductions et vérifications envoyées au PC	STR	queue_subtitle
-Queue.dc.html	Nouvelle traduction	STR	queue_new_translation_cd
-Queue.dc.html	État des traductions	STR	queue_tablist_cd
-Queue.dc.html	Actives	STR	queue_tab_active
-Queue.dc.html	Terminées	STR	queue_tab_done
-Queue.dc.html	Échecs	STR	queue_tab_fail
-Queue.dc.html	4/4 en parallèle sur PC-BUREAU	FMT	queue_parallel_on_pc_fmt		["PC-BUREAU"]
-Queue.dc.html	Régler	STR	queue_settings_action
-Queue.dc.html	Chapitres en cours	STR	queue_active_section_cd
-Queue.dc.html	Traduction	STR	home_job_type_translation
-Queue.dc.html	Vérification	STR	home_job_type_verification
-Queue.dc.html	Retraduction	STR	home_job_type_retranslation
-Queue.dc.html	Solo Leveling · Ch. 201	DEMO
-Queue.dc.html	Kagurabachi · Ch. 52	DEMO
-Queue.dc.html	One Piece · Ch. 1119	DEMO
-Queue.dc.html	Blue Lock · Ch. 205	DEMO
-Queue.dc.html	Page 14 sur 22 · Gemini	FMT	queue_page_detail_fmt		[14, 22, "Gemini"]
-Queue.dc.html	64%	DEMO
-Queue.dc.html	Étapes	STR	queue_steps_cd
-Queue.dc.html	Récup.	STR	queue_step_fetch
-Queue.dc.html	OCR	STR	queue_step_ocr
-Queue.dc.html	Trad.	STR	queue_step_translate
-Queue.dc.html	Lettrage	STR	queue_step_lettering
-Queue.dc.html	Vérif.	STR	queue_step_verify
-Queue.dc.html	Voir le détail de Kagurabachi · Ch. 52	FMT	queue_see_details_aria_fmt		["Kagurabachi · Ch. 52"]
-Queue.dc.html	Touchez un chapitre pour le détail	STR	queue_touch_hint
-Queue.dc.html	Retour auto	STR	queue_auto_return
-Queue.dc.html	Ensuite (3)	FMT	queue_waiting_title_fmt		[3]
-Queue.dc.html	Kagurabachi · Ch. 53	DEMO
-Queue.dc.html	Traduction · depuis le téléphone	DEMO
-Queue.dc.html	Retirer Kagurabachi · Ch. 53 de la file	FMT	queue_remove_cd_fmt		["Kagurabachi · Ch. 53"]
-Queue.dc.html	Blue Lock · Ch. 213	DEMO
-Queue.dc.html	Traduction · original déjà sur le PC	DEMO
-Queue.dc.html	Vinland Saga · 214 ch.	DEMO
-Queue.dc.html	Vérification · série entière	DEMO
-Queue.dc.html	Rien d'autre en attente.	STR	queue_no_waiting
-Queue.dc.html	Frieren · Ch. 140	DEMO
-Queue.dc.html	Aujourd’hui 14:02	DEMO
-Queue.dc.html	À récupérer	DEMO
-Queue.dc.html	Alerte	STR	queue_alert_cd
-Queue.dc.html	Détails de traduction, Blue Lock · Ch. 212	FMT	queue_done_details_cd_fmt		["Blue Lock · Ch. 212"]
-Queue.dc.html	Blue Lock · Ch. 212	DEMO
-Queue.dc.html	22/22 pages	FMT	series_chip_pages_fmt		[22, 22]
-Queue.dc.html	184 bulles traduites	FMT	series_chip_bubbles_translated_fmt		[184]
-Queue.dc.html	3 non traduites	FMT	series_chip_bubbles_untranslated_fmt		[3]
-Queue.dc.html	12 SFX gardés	FMT	series_chip_sfx_fmt		[12]
-Queue.dc.html	2 alertes	PLU	queue_alerts_count	2	[2]
-Queue.dc.html	Aucune alerte	STR	queue_no_alerts
-Queue.dc.html	p. 7 · texte resté en VO	FMT	queue_alert_row_fmt		[7, "texte resté en VO"]
-Queue.dc.html	bulle recopiée en VO	STR	queue_alert_source_copy
-Queue.dc.html	texte resté en VO	STR	queue_alert_source_text
-Queue.dc.html	texte qui déborde	STR	queue_alert_overflow
-Queue.dc.html	police trop petite	STR	queue_alert_too_small
-Queue.dc.html	Vérifier la page	STR	queue_verify_page_action
-Queue.dc.html	Dans la file	STR	queue_in_queue_status
-Queue.dc.html	Frieren · Ch. 139	DEMO
-Queue.dc.html	Échec page 9 : moteur indisponible	FMT	queue_fail_message_fmt		[9, "moteur indisponible"]
-Queue.dc.html	Il y a 20 min · les pages 1 à 8 sont conservées	FMT	queue_fail_kept_fmt		["Il y a 20 min", 8]
-Queue.dc.html	Réessayer à partir de la page 9	FMT	queue_retry_button_fmt		[9]
-Queue.dc.html	Remis dans la file	STR	queue_retried_title
-Queue.dc.html	Aucun échec en cours.	STR	queue_no_failures
-Catalog.dc.html	Catalogue	STR	catalog_title
-Catalog.dc.html	Votre bibliothèque Mihon, séries et catégories	STR	catalog_subtitle
-Catalog.dc.html	Sauvegarde Mihon	STR	catalog_backup_label
-Catalog.dc.html	com.mihon_2026-09-26.tachibk	DEMO
-Catalog.dc.html	Importée aujourd'hui 03:00 · depuis Mihon/autobackup	FMT	catalog_imported_fmt		["aujourd'hui 03:00"]
-Catalog.dc.html	Importée à l'instant · depuis Mihon/autobackup	FMT	catalog_imported_fmt		["à l'instant"]
-Catalog.dc.html	Lecture du fichier...	STR	catalog_step_reading_file
-Catalog.dc.html	Décompression...	STR	catalog_step_decompression
-Catalog.dc.html	Lecture des 142 séries...	FMT	catalog_step_reading_series_fmt		[142]
-Catalog.dc.html	Catégories...	STR	catalog_step_categories
-Catalog.dc.html	Comparaison avec le téléphone...	STR	catalog_step_comparison
-Catalog.dc.html	Relire la dernière sauvegarde	STR	catalog_reimport_button
-Catalog.dc.html	Mihon crée une sauvegarde automatique chaque jour. Elle est relue à chaque ouverture de l'app.	STR	catalog_backup_info
-Catalog.dc.html	142	DEMO
-Catalog.dc.html	séries	STR	catalog_stat_series
-Catalog.dc.html	38	DEMO
-Catalog.dc.html	non téléchargées	STR	catalog_stat_absent
-Catalog.dc.html	7	DEMO
-Catalog.dc.html	catégories	STR	catalog_stat_categories
-Catalog.dc.html	Catégories	STR	catalog_categories_title
-Catalog.dc.html	Lecture seule en V1	STR	catalog_readonly_hint
-Catalog.dc.html	En cours	DEMO
-Catalog.dc.html	24	DEMO
-Catalog.dc.html	À lire	DEMO
-Catalog.dc.html	31	DEMO
-Catalog.dc.html	Terminé	DEMO
-Catalog.dc.html	58	DEMO
-Catalog.dc.html	Favoris	DEMO
-Catalog.dc.html	12	DEMO
-Catalog.dc.html	Webtoons	DEMO
-Catalog.dc.html	9	DEMO
-Catalog.dc.html	Abandonné	DEMO
-Catalog.dc.html	5	DEMO
-Catalog.dc.html	Sans catégorie	DEMO
-Catalog.dc.html	3	DEMO
-Catalog.dc.html	Ouvrir la catégorie En cours	FMT	catalog_open_category_cd_fmt		["En cours"]
-NewTranslation.dc.html	Fermer	STR	new_trans_close_cd
-NewTranslation.dc.html	Changer de série	STR	new_trans_change_series_cd
-NewTranslation.dc.html	Étape 1 sur 2 · série	STR	new_trans_step1_label
-NewTranslation.dc.html	Étape 2 sur 2 · chapitres	STR	new_trans_step2_label
-NewTranslation.dc.html	Nouvelle traduction	STR	new_trans_title
-NewTranslation.dc.html	Série téléchargée dans Mihon	STR	new_trans_search_placeholder
-NewTranslation.dc.html	Chercher une série	STR	new_trans_search_cd
-NewTranslation.dc.html	Séries avec des chapitres pas encore envoyés	STR	new_trans_series_subtitle
-NewTranslation.dc.html	Kagurabachi	DEMO
-NewTranslation.dc.html	En cours · anglais	DEMO
-NewTranslation.dc.html	3 à envoyer	FMT	new_trans_to_send_badge_fmt		[3]
-NewTranslation.dc.html	Sakamoto Days	DEMO
-NewTranslation.dc.html	À lire · anglais	DEMO
-NewTranslation.dc.html	12 à envoyer	FMT	new_trans_to_send_badge_fmt		[12]
-NewTranslation.dc.html	Blue Lock	DEMO
-NewTranslation.dc.html	1 à envoyer	FMT	new_trans_to_send_badge_fmt		[1]
-NewTranslation.dc.html	Kaiju No. 8	DEMO
-NewTranslation.dc.html	Webtoons · coréen	DEMO
-NewTranslation.dc.html	2 à envoyer	FMT	new_trans_to_send_badge_fmt		[2]
-NewTranslation.dc.html	Téléchargés dans Mihon, absents du PC	STR	new_trans_chapters_subtitle
-NewTranslation.dc.html	Tout décocher	STR	new_trans_uncheck_all
-NewTranslation.dc.html	Tout cocher	STR	new_trans_check_all
-NewTranslation.dc.html	Ch. 52	FMT	new_trans_chapter_item_fmt		[52]
-NewTranslation.dc.html	18 pages	FMT	new_trans_pages_count_fmt		[18]
-NewTranslation.dc.html	Traduire à l'arrivée	STR	new_trans_translate_on_arrival_title
-NewTranslation.dc.html	Retour automatique dans Mihon une fois traduit	STR	new_trans_translate_hint_on
-NewTranslation.dc.html	Simple copie sur le PC, sans traduction	STR	new_trans_translate_hint_off
-NewTranslation.dc.html	Choisissez une série	STR	new_trans_btn_pick_series
-NewTranslation.dc.html	Cochez des chapitres	STR	new_trans_btn_check_chapters
-NewTranslation.dc.html	Dépôt sur Google Drive...	STR	new_trans_btn_busy
-NewTranslation.dc.html	Envoyer 1 chapitre	STR	new_trans_btn_send_single
-NewTranslation.dc.html	Envoyer 3 chapitres	FMT	new_trans_btn_send_multi_fmt		[3]
-NewTranslation.dc.html	Ajouté à la file · Voir	STR	new_trans_btn_done
-Settings.dc.html	Retour à l'accueil	STR	settings_back_cd
-Settings.dc.html	Réglages	STR	settings_title
-Settings.dc.html	État du PC	STR	settings_pc_status_cd
-Settings.dc.html	PC-BUREAU	DEMO
-Settings.dc.html	TMM-Win 2.4.1 · protocole v1	DEMO
-Settings.dc.html	En ligne	STR	settings_pc_online
-Settings.dc.html	Dernier signal %1$s · le PC écrit sur Drive toutes les minutes	FMT	settings_pc_last_signal_fmt		["il y a 12 s"]
-Settings.dc.html	il y a 12 s	DEMO
-Settings.dc.html	Google Drive	STR	settings_group_drive
-Settings.dc.html	Compte	STR	settings_row_account
-Settings.dc.html	vous@gmail.com	DEMO
-Settings.dc.html	Changer	STR	settings_action_change
-Settings.dc.html	Choix du compte Google	STR	settings_toast_choose_account
-Settings.dc.html	Dossier partagé	STR	settings_row_shared_folder
-Settings.dc.html	TranslateMyManga/	DEMO
-Settings.dc.html	Conservation sur Drive	STR	settings_row_drive_retention
-Settings.dc.html	Jamais supprimer	STR	settings_retention_never
-Settings.dc.html	Après 30 jours	STR	settings_retention_30_days
-Settings.dc.html	Après récupération	STR	settings_retention_after_download
-Settings.dc.html	Modifier	STR	settings_action_edit
-Settings.dc.html	Mihon	STR	settings_group_mihon
-Settings.dc.html	Dossier Mihon	STR	settings_row_mihon_folder
-Settings.dc.html	/Documents/Mihon	DEMO
-Settings.dc.html	Sélecteur de dossier Android	STR	settings_toast_folder_picker
-Settings.dc.html	Dernière sauvegarde lue	STR	settings_row_last_backup
-Settings.dc.html	Aujourd'hui 03:00 · 142 séries	DEMO
-Settings.dc.html	Refaire l'installation	STR	settings_row_reinstall
-Settings.dc.html	3 étapes, rien n’est effacé	STR	settings_row_reinstall_desc
-Settings.dc.html	Traduction	STR	settings_group_translation
-Settings.dc.html	Réglages de traduction du PC	STR	settings_row_pc_translation_settings
-Settings.dc.html	Gemini · japonais vers français · 4 en parallèle	DEMO
-Settings.dc.html	Réseau	STR	settings_group_network
-Settings.dc.html	Wi-Fi uniquement	STR	settings_row_wifi_only
-Settings.dc.html	Envois aussi en données mobiles	STR	settings_wifi_only_off_desc
-Settings.dc.html	Les envois attendent le Wi-Fi	STR	settings_wifi_only_on_desc
-Settings.dc.html	Diagnostic	STR	settings_group_diagnostic
-Settings.dc.html	Journaux	STR	settings_row_logs
-Settings.dc.html	7 derniers jours · 240 Ko	DEMO
-Settings.dc.html	Exporter	STR	settings_action_export
-Settings.dc.html	Journaux prêts à partager	STR	settings_toast_logs_ready
-Settings.dc.html	Connexion directe	STR	settings_group_direct
-Settings.dc.html	État	STR	settings_row_direct_state
-Settings.dc.html	Directe via Tailscale	STR	settings_direct_on
-Settings.dc.html	PC injoignable, Google Drive utilisé	STR	settings_direct_unreachable
-Settings.dc.html	Non associée	STR	settings_direct_unpaired
-Settings.dc.html	Appairage expiré	STR	settings_direct_expired
-Settings.dc.html	Adresse du PC	STR	settings_row_direct_url
-Settings.dc.html	Code à 6 chiffres	STR	settings_direct_code_hint
-Settings.dc.html	Associer	STR	settings_action_pair
-Settings.dc.html	Oublier ce PC	STR	settings_action_forget
-Settings.dc.html	PC associé	STR	settings_toast_paired
-Settings.dc.html	Association impossible, vérifiez l'adresse et le code	STR	settings_toast_pair_failed
-Settings.dc.html	TMM Mobile 1.0.0 · protocole v1	FMT	settings_footer_app_version		["1.0.0"]
-TranslationSettings.dc.html	Retour aux réglages	STR	trans_settings_back_cd
-TranslationSettings.dc.html	Traduction sur le PC	STR	trans_settings_title
-TranslationSettings.dc.html	Les mêmes réglages que dans TMM-Win	STR	trans_settings_subtitle
-TranslationSettings.dc.html	Envoi au PC...	STR	trans_settings_sync_sending_title
-TranslationSettings.dc.html	Via Google Drive, quelques secondes	STR	trans_settings_sync_sending_hint
-TranslationSettings.dc.html	Appliqué sur PC-BUREAU	FMT	trans_settings_sync_applied_title_fmt		["PC-BUREAU"]
-TranslationSettings.dc.html	Synchronisé avec PC-BUREAU	FMT	trans_settings_sync_synced_title_fmt		["PC-BUREAU"]
-TranslationSettings.dc.html	Pris en compte tout de suite, sans redémarrage	STR	trans_settings_sync_synced_hint
-TranslationSettings.dc.html	Langues	STR	trans_settings_group_languages
-TranslationSettings.dc.html	Langue source	STR	trans_settings_source_language
-TranslationSettings.dc.html	Langue cible	STR	trans_settings_target_language
-TranslationSettings.dc.html	Moteur	STR	trans_settings_group_engine
-TranslationSettings.dc.html	Moteur de traduction	STR	trans_settings_engine
-TranslationSettings.dc.html	Secours LLM local	STR	trans_settings_auto_failover
-TranslationSettings.dc.html	Si le moteur échoue ou atteint son quota, bascule sur Ollama	STR	trans_settings_auto_failover_desc
-TranslationSettings.dc.html	Après traduction	STR	trans_settings_group_after_translation
-TranslationSettings.dc.html	Vérifier automatiquement	STR	trans_settings_auto_verify
-TranslationSettings.dc.html	Relance une vérification après chaque chapitre traduit	STR	trans_settings_auto_verify_desc
-TranslationSettings.dc.html	Performance	STR	trans_settings_group_performance
-TranslationSettings.dc.html	Chapitres simultanés	STR	trans_settings_chapter_concurrency
-TranslationSettings.dc.html	Pages simultanées	STR	trans_settings_page_concurrency
-TranslationSettings.dc.html	Pages par envoi au moteur	STR	trans_settings_pile_size
-TranslationSettings.dc.html	Utiliser la carte graphique	STR	trans_settings_use_gpu
-TranslationSettings.dc.html	DirectML / CUDA	STR	trans_settings_gpu_on_desc
-TranslationSettings.dc.html	Processeur uniquement, plus lent	STR	trans_settings_gpu_off_desc
-TranslationSettings.dc.html	Vision avancée (5 réglages)	STR	trans_settings_adv_expand
-TranslationSettings.dc.html	Masquer la vision avancée	STR	trans_settings_adv_collapse
-TranslationSettings.dc.html	Détecteur de bulles	STR	trans_settings_detector
-TranslationSettings.dc.html	OCR	STR	trans_settings_ocr
-TranslationSettings.dc.html	Effacement du texte	STR	trans_settings_inpainter
-TranslationSettings.dc.html	Taille d’effacement	STR	trans_settings_inpainting_size
-TranslationSettings.dc.html	Police par défaut	STR	trans_settings_font
-TranslationSettings.dc.html	Les clés API et le dossier de sortie restent sur le PC. Un changement s'applique aux prochaines pages, sans redémarrer ni interrompre les chapitres en cours.	STR	trans_settings_security_note
-TranslationSettings.dc.html	Un à la fois	STR	trans_settings_single_chapter
-TranslationSettings.dc.html	4 en parallèle	FMT	trans_settings_parallel_chapters_fmt		[4]
-TranslationSettings.dc.html	Recommandé	STR	trans_settings_recommended
-TranslationSettings.dc.html	par chapitre	STR	trans_settings_per_chapter
-TranslationSettings.dc.html	Plus de contexte si élevé	STR	trans_settings_more_context
-TranslationSettings.dc.html	Détection automatique	DEMO
-TranslationSettings.dc.html	Japonais · Manga	DEMO
-TranslationSettings.dc.html	Coréen · Webtoon	DEMO
-TranslationSettings.dc.html	Chinois simplifié	DEMO
-TranslationSettings.dc.html	Français	DEMO
-TranslationSettings.dc.html	Anglais	DEMO
-TranslationSettings.dc.html	Espagnol	DEMO
-TranslationSettings.dc.html	Allemand	DEMO
-TranslationSettings.dc.html	Google Gemini 2.5 Flash · Recommandé	DEMO
-TranslationSettings.dc.html	OpenAI GPT-4.1 mini	DEMO
-TranslationSettings.dc.html	Anthropic Claude Sonnet 5	DEMO
-TranslationSettings.dc.html	DeepL API	DEMO
-TranslationSettings.dc.html	Groq GPT-OSS 120B	DEMO
-TranslationSettings.dc.html	OpenRouter · Hy-MT2	DEMO
-TranslationSettings.dc.html	Tencent TokenHub · Hy-MT2 Plus	DEMO
-TranslationSettings.dc.html	Hors ligne · Sugoi / M2M100	DEMO
-TranslationSettings.dc.html	LLM local · Ollama sur le PC	DEMO
-TranslationSettings.dc.html	Comic-Text-Detector · Automatique	DEMO
-TranslationSettings.dc.html	CTD explicite	DEMO
-TranslationSettings.dc.html	PaddleOCR Detector	DEMO
-TranslationSettings.dc.html	Automatique · Manga-OCR + PaddleOCR	DEMO
-TranslationSettings.dc.html	Manga-OCR	DEMO
-TranslationSettings.dc.html	48px multi-langues	DEMO
-TranslationSettings.dc.html	32px standard	DEMO
-TranslationSettings.dc.html	LaMa Large	DEMO
-TranslationSettings.dc.html	LaMa MPE	DEMO
-TranslationSettings.dc.html	Stable Diffusion	DEMO
-TranslationSettings.dc.html	Aucun effacement	DEMO
-TranslationSettings.dc.html	1024 px · Plus rapide	DEMO
-TranslationSettings.dc.html	1280 px · Recommandé	DEMO
-TranslationSettings.dc.html	1800 px · HD	DEMO
-TranslationSettings.dc.html	2048 px · Maximum	DEMO
-TranslationSettings.dc.html	Anime Ace	DEMO
-TranslationSettings.dc.html	Manga Temple	DEMO
 Onboarding.dc.html	訳	STR	app_name_glyph
 Onboarding.dc.html	Progression de l'installation	STR	onb_progress_cd
 Onboarding.dc.html	1/3	FMT	onb_progress_step_fmt		[1]
@@ -596,3 +74,282 @@ Permission.dc.html	Choisir à nouveau le dossier	STR	perm_btn_pick
 Permission.dc.html	Vérification...	STR	perm_btn_verifying
 Permission.dc.html	Revenir à l'accueil	STR	perm_btn_back_home
 Permission.dc.html	Aide et réglages	STR	perm_link_settings
+v2-simplifiee/index.html#serie	Bibliothèque	STR	series_back_label
+v2-simplifiee/index.html#serie	Retour à la bibliothèque	STR	series_back_cd
+v2-simplifiee/index.html#serie	Actions sur toute la série	STR	series_more_cd
+v2-simplifiee/index.html#serie	Suivie	STR	series_followed_tag
+v2-simplifiee/index.html#serie	Blue Lock	DEMO	
+v2-simplifiee/index.html#serie	Manga · anglais vers français	DEMO	
+v2-simplifiee/index.html#serie	205 chapitres en VF sur 214	PLU	series_progress_title	205	[205, 214]
+v2-simplifiee/index.html#serie	95 %	FMT	series_progress_percent_fmt		[95]
+v2-simplifiee/index.html#serie	205 dans Mihon	FMT	series_legend_in_mihon_fmt		[205]
+v2-simplifiee/index.html#serie	2 à installer	FMT	series_legend_ready_fmt		[2]
+v2-simplifiee/index.html#serie	1 en cours	FMT	series_legend_busy_fmt		[1]
+v2-simplifiee/index.html#serie	1 à traduire	FMT	series_legend_to_translate_fmt		[1]
+v2-simplifiee/index.html#serie	5 pas téléchargés	PLU	series_legend_not_downloaded	5	[5]
+v2-simplifiee/index.html#serie	Suivre cette série	STR	series_follow_title
+v2-simplifiee/index.html#serie	Chaque nouveau chapitre téléchargé dans Mihon partira en traduction tout seul.	STR	series_follow_desc
+v2-simplifiee/index.html#serie	Série suivie	STR	series_followed_title
+v2-simplifiee/index.html#serie	Traduire le ch. 214	FMT	series_translate_one_fmt		[214]
+v2-simplifiee/index.html#serie	Ch. 23 manquant partout.	FMT	series_gap_bold_one_fmt		["23"]
+v2-simplifiee/index.html#serie	Téléchargez-le dans Mihon.	STR	series_gap_hint_one
+v2-simplifiee/index.html#serie	Ignorer	STR	series_gap_dismiss
+v2-simplifiee/index.html#serie	Chapitres	STR	series_chapters_title
+v2-simplifiee/index.html#serie	Sélectionner	STR	series_select
+v2-simplifiee/index.html#serie	Terminer	STR	series_select_done
+v2-simplifiee/index.html#serie	Ch. 214	FMT	series_chapter_number_fmt		[214]
+v2-simplifiee/index.html#serie	Ch. 1 à 4	FMT	series_chapter_range_fmt		[1, 4]
+v2-simplifiee/index.html#serie	À traduire	STR	series_status_to_translate
+v2-simplifiee/index.html#serie	Sur le PC, pas traduit	STR	series_status_on_pc
+v2-simplifiee/index.html#serie	Traduction 45 %	FMT	series_status_translating_fmt		[45]
+v2-simplifiee/index.html#serie	Échec page 12	FMT	series_status_failed_page_fmt		[12]
+v2-simplifiee/index.html#serie	Prête à installer	STR	series_status_ready
+v2-simplifiee/index.html#serie	Dans Mihon	STR	series_status_in_mihon
+v2-simplifiee/index.html#serie	Pas téléchargés	STR	series_status_not_downloaded_many
+v2-simplifiee/index.html#serie	Manquant	STR	series_status_missing
+v2-simplifiee/index.html#serie	22/22 pages	FMT	series_chip_pages_fmt		[22, 22]
+v2-simplifiee/index.html#serie	184 bulles	PLU	series_chip_bubbles	184	[184]
+v2-simplifiee/index.html#serie	2 restées en VO	PLU	series_chip_left_in_vo	2	[2]
+v2-simplifiee/index.html#serie	5 SFX gardés	FMT	series_chip_sfx_fmt		[5]
+v2-simplifiee/index.html#serie	Vérifié le 3 oct.	FMT	series_chip_verified_fmt		["3 oct."]
+v2-simplifiee/index.html#serie	Que faire ?	STR	series_sheet_more_title
+v2-simplifiee/index.html#serie	Toute la série	STR	series_sheet_all_series
+v2-simplifiee/index.html#serie	Installer dans Mihon	STR	series_action_install_label
+v2-simplifiee/index.html#serie	Traduction prête, pas encore dans Mihon	STR	series_action_install_hint
+v2-simplifiee/index.html#serie	Corriger les oublis	STR	series_action_verify_label
+v2-simplifiee/index.html#serie	Ne retraduit que les bulles restées en VO. Rapide.	STR	series_action_verify_hint
+v2-simplifiee/index.html#serie	Retraduire de zéro	STR	series_action_retranslate_label
+v2-simplifiee/index.html#serie	La VF actuelle reste lisible jusqu'à la nouvelle	STR	series_action_retranslate_hint
+v2-simplifiee/index.html#serie	Copier sur le PC sans traduire	STR	series_action_copy_label
+v2-simplifiee/index.html#serie	Pour traduire plus tard depuis TMM-Win	STR	series_action_copy_hint
+v2-simplifiee/index.html#serie	Supprimer…	STR	series_action_delete_more_label
+v2-simplifiee/index.html#serie	Choisir : VF du téléphone, téléchargement Mihon, PC	STR	series_action_delete_hint
+v2-simplifiee/index.html#serie	3 chapitres sélectionnés	PLU	series_chapters_selected	3	[3]
+v2-simplifiee/index.html#serie	Le ch. 213 est en cours de traduction : il n'est pas sélectionnable.	FMT	series_locked_note_one_fmt		["213"]
+v2-simplifiee/index.html#serie	Suivre cette série ?	STR	series_follow_sheet_title
+v2-simplifiee/index.html#serie	Mihon télécharge un nouveau chapitre	STR	series_follow_step1_title
+v2-simplifiee/index.html#serie	Comme d'habitude, rien à changer.	STR	series_follow_step1_desc
+v2-simplifiee/index.html#serie	TMM l'envoie au PC	STR	series_follow_step2_title
+v2-simplifiee/index.html#serie	À la prochaine ouverture de TMM ou actualisation.	STR	series_follow_step2_desc
+v2-simplifiee/index.html#serie	La VF arrive dans Mihon	STR	series_follow_step3_title
+v2-simplifiee/index.html#serie	Bibliothèque locale, sans rien toucher.	STR	series_follow_step3_desc
+v2-simplifiee/index.html#serie	1 chapitre déjà téléchargé partira aussi	PLU	series_follow_catchup_bold	1	[1]
+v2-simplifiee/index.html#serie	(ch. 214), car il n'est pas encore traduit.	FMT	series_follow_catchup_rest_one_fmt		["214"]
+v2-simplifiee/index.html#serie	Suivre Blue Lock	FMT	series_follow_confirm_fmt		["Blue Lock"]
+v2-simplifiee/index.html#serie	Annuler	STR	common_cancel
+v2-simplifiee/index.html#serie	Traduction sur le téléphone	STR	series_delete_option_fr_label
+v2-simplifiee/index.html#serie	Téléchargement Mihon	STR	series_delete_option_mihon_label
+v2-simplifiee/index.html#serie	Fichiers sur le PC (original et traduction)	STR	series_delete_option_pc_label
+v2-simplifiee/index.html#serie	Supprimer	STR	series_action_delete_label
+v2-simplifiee/index.html#serie	Blue Lock est suivie. 1 chapitre part au PC.	PLU	series_toast_followed	1	["Blue Lock", 1]
+v2-simplifiee/index.html#serie	1 chapitre part en traduction.	PLU	series_toast_translated	1	[1]
+v2-simplifiee/index.html#serie	1 chapitre copié sur le PC, sans traduction.	PLU	series_toast_copied	1	[1]
+v2-simplifiee/index.html#traduire	11 chapitres téléchargés, jamais traduits	PLU	translate_kick	11	[11]
+v2-simplifiee/index.html#traduire	Que traduire ?	STR	translate_title
+v2-simplifiee/index.html#traduire	Fermer	STR	translate_close_cd
+v2-simplifiee/index.html#traduire	Chercher une série	STR	translate_search
+v2-simplifiee/index.html#traduire	Sakamoto Days	DEMO	
+v2-simplifiee/index.html#traduire	Ch. 7 à 11 · 5 ch.	FMT	translate_desc_range_fmt		["7", "11", 5]
+v2-simplifiee/index.html#traduire	2 sur 3 cochés	FMT	translate_desc_partial_fmt		[2, 3]
+v2-simplifiee/index.html#traduire	Ch. 52	FMT	translate_chapter_fmt		["52"]
+v2-simplifiee/index.html#traduire	21 p.	FMT	translate_pages_fmt		[21]
+v2-simplifiee/index.html#traduire	Ch. 118, 119	FMT	translate_desc_two_fmt		["118", "119"]
+v2-simplifiee/index.html#traduire	Traduire 8 chapitres	PLU	translate_button	8	[8]
+v2-simplifiee/index.html#traduire	ou	STR	translate_copy_prefix
+v2-simplifiee/index.html#traduire	copier sur le PC sans traduire	STR	translate_copy_link
+v2-simplifiee/index.html#traduire	Le PC peut être éteint : ils l'attendront sur Google Drive.	STR	translate_note
+v2-simplifiee/index.html#traduire	8 chapitres partent en traduction.	PLU	series_toast_translated	8	[8]
+v2-simplifiee/index.html#activite	Activité	STR	activity_title
+v2-simplifiee/index.html#activite	Ce qui part, ce que traduit le PC, ce qui revient	STR	activity_subtitle
+v2-simplifiee/index.html#activite	En cours	STR	activity_tab_active
+v2-simplifiee/index.html#activite	Terminées	STR	activity_tab_done
+v2-simplifiee/index.html#activite	Échecs	STR	activity_tab_fail
+v2-simplifiee/index.html#activite	PC-BUREAU · 4 chapitres à la fois	PLU	activity_slots_fmt	4	[PC-BUREAU, 4]
+v2-simplifiee/index.html#activite	Régler	STR	activity_settings_link
+v2-simplifiee/index.html#activite	Solo Leveling · ch. 201	DEMO
+v2-simplifiee/index.html#activite	Page 16 sur 22 · Gemini	FMT	activity_page_detail_fmt		[16, 22, Gemini]
+v2-simplifiee/index.html#activite	73 %	FMT	activity_percent_fmt		[73]
+v2-simplifiee/index.html#activite	Envoi ✓	STR	activity_phase_upload_done
+v2-simplifiee/index.html#activite	Traduction	STR	activity_type_translation
+v2-simplifiee/index.html#activite	Retour dans Mihon	STR	activity_phase_return
+v2-simplifiee/index.html#activite	Lecture ✓	FMT	activity_step_done_fmt		[Lecture]
+v2-simplifiee/index.html#activite	Lettrage en cours	FMT	activity_step_current_fmt		[Lettrage]
+v2-simplifiee/index.html#activite	Lecture	STR	activity_step_read
+v2-simplifiee/index.html#activite	Traduction	STR	activity_step_translate
+v2-simplifiee/index.html#activite	Lettrage	STR	activity_step_lettering
+v2-simplifiee/index.html#activite	Vérification	STR	activity_step_verify
+v2-simplifiee/index.html#activite	Traduction 42 %	FMT	activity_row_progress_fmt		[Traduction, 42]
+v2-simplifiee/index.html#activite	Correction	STR	activity_type_verification
+v2-simplifiee/index.html#activite	Envoi 98 %	FMT	activity_upload_fmt		[98]
+v2-simplifiee/index.html#activite	Retour 3/4 Mo	FMT	activity_download_fmt		[3, 4]
+v2-simplifiee/index.html#activite	Ensuite (3)	FMT	activity_next_fmt		[3]
+v2-simplifiee/index.html#activite	suivi auto	STR	activity_auto
+v2-simplifiee/index.html#activite	Correction des oublis	STR	activity_waiting_verification
+v2-simplifiee/index.html#activite	Il y a 12 min · dans Mihon	FMT	activity_done_installed_fmt		[Il y a 12 min]
+v2-simplifiee/index.html#activite	Il y a 40 min · prête à installer	FMT	activity_done_ready_fmt		[Il y a 40 min]
+v2-simplifiee/index.html#activite	2 alertes	PLU	activity_alerts	2	[2]
+v2-simplifiee/index.html#activite	Aucune alerte	STR	activity_no_alert
+v2-simplifiee/index.html#activite	21/21 pages	FMT	activity_pages_fmt		[21, 21]
+v2-simplifiee/index.html#activite	176 bulles	PLU	activity_bubbles	176	[176]
+v2-simplifiee/index.html#activite	4 SFX gardés	FMT	activity_sfx_fmt		[4]
+v2-simplifiee/index.html#activite	p. 4	FMT	activity_alert_page_fmt		[4]
+v2-simplifiee/index.html#activite	texte resté en VO	STR	activity_alert_source_text
+v2-simplifiee/index.html#activite	texte qui déborde	STR	activity_alert_overflow
+v2-simplifiee/index.html#activite	Corriger la page	STR	activity_fix_page
+v2-simplifiee/index.html#activite	Échec page 12 : quota du moteur atteint	FMT	activity_fail_page_fmt		[12, quota du moteur atteint]
+v2-simplifiee/index.html#activite	Gemini · les pages 1 à 11 sont conservées	DEMO
+v2-simplifiee/index.html#activite	Reprendre à la page 12	FMT	activity_resume_page_fmt		[12]
+v2-simplifiee/index.html#activite	Astuce : activez « Secours LLM local » dans Réglages, Traduction, pour basculer sur Ollama quand le quota est atteint.	STR	activity_quota_tip
+v2-simplifiee/index.html#bibliotheque	Bibliothèque	STR	library_title
+v2-simplifiee/index.html#bibliotheque	142 séries · 38 non téléchargées	FMT	library_v2_subtitle		[142, 38]
+v2-simplifiee/index.html#bibliotheque	Rechercher une série	STR	library_search_placeholder
+v2-simplifiee/index.html#bibliotheque	Trier et filtrer	STR	library_filters_title
+v2-simplifiee/index.html#bibliotheque	Catégorie : toutes	FMT	library_v2_category		[toutes]
+v2-simplifiee/index.html#bibliotheque	toutes	STR	library_v2_all_categories
+v2-simplifiee/index.html#bibliotheque	Toutes	STR	library_view_all
+v2-simplifiee/index.html#bibliotheque	À traduire	STR	library_view_todo
+v2-simplifiee/index.html#bibliotheque	Suivies	STR	library_v2_followed
+v2-simplifiee/index.html#bibliotheque	Non téléchargées	STR	library_view_absent
+v2-simplifiee/index.html#bibliotheque	Ajoutées récemment	STR	library_sort_recent
+v2-simplifiee/index.html#bibliotheque	Sélectionner	STR	library_select_button
+v2-simplifiee/index.html#bibliotheque	Blue Lock	DEMO
+v2-simplifiee/index.html#bibliotheque	1 à traduire	FMT	library_v2_translate		[1]
+v2-simplifiee/index.html#bibliotheque	205 sur 214 en VF	FMT	library_v2_progress		[205, 214]
+v2-simplifiee/index.html#bibliotheque	Traduction	STR	library_v2_busy
+v2-simplifiee/index.html#bibliotheque	1 à installer	FMT	library_v2_install		[1]
+v2-simplifiee/index.html#bibliotheque	Absente	STR	library_v2_absent
+v2-simplifiee/index.html#bibliotheque	Dans Mihon seulement	STR	library_fr_mihon_only
+v2-simplifiee/index.html#bibliotheque	À jour	STR	library_v2_current
+v2-simplifiee/index.html#bibliotheque	1 échec	PLU	library_v2_failures	1	[1]
+v2-simplifiee/index.html#bibliotheque	Catégorie Mihon	STR	library_v2_mihon_category
+v2-simplifiee/index.html#bibliotheque	En cours	DEMO
+v2-simplifiee/index.html#bibliotheque	Afficher	STR	library_view_section
+v2-simplifiee/index.html#bibliotheque	Téléchargées	STR	library_view_downloaded
+v2-simplifiee/index.html#bibliotheque	Sur le PC	STR	library_view_on_pc
+v2-simplifiee/index.html#bibliotheque	Trier	STR	library_sort_section
+v2-simplifiee/index.html#bibliotheque	Titre A-Z	STR	library_sort_title
+v2-simplifiee/index.html#bibliotheque	À traduire d'abord	STR	library_sort_todo_first
+v2-simplifiee/index.html#bibliotheque	+ 4 autres	PLU	library_v2_more_categories	4	[4]
+v2-simplifiee/index.html#bibliotheque	Catégories lues dans la sauvegarde Mihon du jour (03:00). La relire : Réglages, Mihon.	FMT	library_v2_filters_note_today_fmt		[03:00]
+v2-simplifiee/index.html#accueil	訳	STR	app_name_glyph
+v2-simplifiee/index.html#accueil	TMM	STR	home_v2_brand
+v2-simplifiee/index.html#accueil	PC allumé	STR	home_v2_pc_online
+v2-simplifiee/index.html#accueil	PC vu il y a 12 min	FMT	home_pc_seen_fmt		[12 min]
+v2-simplifiee/index.html#accueil	PC éteint	STR	home_v2_pc_offline
+v2-simplifiee/index.html#accueil	Accueil	STR	home_title
+v2-simplifiee/index.html#accueil	Mihon vérifié il y a 4 min	FMT	home_v2_last_check		[il y a 4 min]
+v2-simplifiee/index.html#accueil	À faire	STR	home_v2_todo
+v2-simplifiee/index.html#accueil	11	DEMO
+v2-simplifiee/index.html#accueil	chapitres à traduire	STR	home_v2_translate_label
+v2-simplifiee/index.html#accueil	dans 4 séries	PLU	home_v2_to_send_series	4	[4]
+v2-simplifiee/index.html#accueil	Traduire	STR	home_v2_translate
+v2-simplifiee/index.html#accueil	2	DEMO
+v2-simplifiee/index.html#accueil	traductions à installer	STR	home_v2_install_label
+v2-simplifiee/index.html#accueil	Frieren, One Piece	DEMO
+v2-simplifiee/index.html#accueil	Installer	STR	home_v2_install
+v2-simplifiee/index.html#accueil	3 séries suivies	PLU	home_v2_followed	3	[3]
+v2-simplifiee/index.html#accueil	Gérer	STR	home_v2_manage
+v2-simplifiee/index.html#accueil	Leurs nouveaux chapitres partent en traduction à chaque ouverture de TMM.	STR	home_v2_follow_description
+v2-simplifiee/index.html#accueil	Blue Lock	DEMO
+v2-simplifiee/index.html#accueil	Kagurabachi	DEMO
+v2-simplifiee/index.html#accueil	One Piece	DEMO
+v2-simplifiee/index.html#accueil	Sur le PC	STR	home_v2_pc_title
+v2-simplifiee/index.html#accueil	Activité (7)	FMT	home_v2_activity		[7]
+v2-simplifiee/index.html#accueil	Solo Leveling · ch. 201	DEMO
+v2-simplifiee/index.html#accueil	73 %	FMT	home_v2_percent		[73]
+v2-simplifiee/index.html#accueil	Traduction · page 16 sur 22	FMT	home_v2_job_page		[Traduction, 16, 22]
+v2-simplifiee/index.html#accueil	Traduction	STR	home_job_type_translation
+v2-simplifiee/index.html#accueil	Kagurabachi · ch. 52	DEMO
+v2-simplifiee/index.html#accueil	42 %	FMT	home_v2_percent		[42]
+v2-simplifiee/index.html#accueil	Traduction · page 9 sur 21	FMT	home_v2_job_page		[Traduction, 9, 21]
+v2-simplifiee/index.html#accueil	+ 5 en attente, 4 traduits en même temps sur PC-BUREAU	FMT	home_v2_queue_summary		[5, 4, PC-BUREAU]
+v2-simplifiee/index.html#accueil	Derniers traduits	STR	home_v2_recent_title
+v2-simplifiee/index.html#accueil	Tout voir	STR	home_see_all
+v2-simplifiee/index.html#accueil	Frieren	DEMO
+v2-simplifiee/index.html#accueil	ch. 140 · dans Mihon	FMT	home_v2_recent_status		[ch. 140, dans Mihon]
+v2-simplifiee/index.html#accueil	dans Mihon	STR	home_v2_in_mihon
+v2-simplifiee/index.html#accueil	ch. 212 · dans Mihon	FMT	home_v2_recent_status		[ch. 212, dans Mihon]
+v2-simplifiee/index.html#accueil	ch. 1120 · prêt	FMT	home_v2_recent_status		[ch. 1120, prêt]
+v2-simplifiee/index.html#accueil	prêt	STR	home_v2_ready
+v2-simplifiee/index.html#accueil	Blue Lock : ch. 23 manquant partout	PLU	home_v2_gap	1	[Blue Lock, 23]
+v2-simplifiee/index.html#reglages	Réglages	STR	settings_title
+v2-simplifiee/index.html#reglages	PC-BUREAU	DEMO
+v2-simplifiee/index.html#reglages	Allumé · vu il y a 17 s	DEMO
+v2-simplifiee/index.html#reglages	Direct	STR	settings_v2_direct
+v2-simplifiee/index.html#reglages	TMM-Win 2.4.1 · connexion directe Tailscale, Google Drive en secours	FMT	settings_v2_connection_fmt		[TMM-Win 2.4.1]
+v2-simplifiee/index.html#reglages	Traduction	STR	settings_group_translation
+v2-simplifiee/index.html#reglages	Langues	STR	settings_v2_languages
+v2-simplifiee/index.html#reglages	Détection automatique vers français	DEMO
+v2-simplifiee/index.html#reglages	Moteur	STR	settings_v2_engine
+v2-simplifiee/index.html#reglages	Google Gemini 2.5 Flash	DEMO
+v2-simplifiee/index.html#reglages	Tous les réglages du PC	STR	settings_v2_all_pc
+v2-simplifiee/index.html#reglages	Qualité, vitesse, carte graphique…	STR	settings_v2_all_pc_hint
+v2-simplifiee/index.html#reglages	Séries suivies	STR	settings_v2_followed
+v2-simplifiee/index.html#reglages	3 séries	PLU	settings_v2_series_count	3	[3]
+v2-simplifiee/index.html#reglages	Blue Lock, Kagurabachi, One Piece	DEMO
+v2-simplifiee/index.html#reglages	Envois	STR	settings_v2_sends
+v2-simplifiee/index.html#reglages	Wi-Fi uniquement	STR	settings_row_wifi_only
+v2-simplifiee/index.html#reglages	Envois aussi en données mobiles	STR	settings_wifi_only_off_desc
+v2-simplifiee/index.html#reglages	Mihon	STR	settings_group_mihon
+v2-simplifiee/index.html#reglages	Dossier Mihon	STR	settings_row_mihon_folder
+v2-simplifiee/index.html#reglages	/Documents/Mihon	DEMO
+v2-simplifiee/index.html#reglages	Changer	STR	settings_action_change
+v2-simplifiee/index.html#reglages	Sauvegarde Mihon	STR	settings_v2_backup
+v2-simplifiee/index.html#reglages	Lue aujourd'hui 03:00 · 142 séries, 7 catégories	DEMO
+v2-simplifiee/index.html#reglages	Relire	STR	settings_v2_reread
+v2-simplifiee/index.html#reglages	Compte	STR	settings_v2_account
+v2-simplifiee/index.html#reglages	Google Drive	STR	settings_group_drive
+v2-simplifiee/index.html#reglages	vous@gmail.com	DEMO
+v2-simplifiee/index.html#reglages	Avancé	STR	settings_v2_advanced
+v2-simplifiee/index.html#reglages	Connexion directe, Drive, réinstallation, journaux	STR	settings_v2_advanced_hint
+v2-simplifiee/index.html#reglages	Connexion directe (Tailscale)	STR	settings_v2_direct_row
+v2-simplifiee/index.html#reglages	Associée · 100.64.0.12:8765	FMT	settings_v2_direct_paired_fmt		[100.64.0.12:8765]
+v2-simplifiee/index.html#reglages	Conservation sur Drive	STR	settings_row_drive_retention
+v2-simplifiee/index.html#reglages	Jamais supprimer	STR	settings_retention_never
+v2-simplifiee/index.html#reglages	Dossier Drive	STR	settings_v2_drive_folder
+v2-simplifiee/index.html#reglages	App/TranslateMyManga/	DEMO
+v2-simplifiee/index.html#reglages	Refaire l'installation	STR	settings_row_reinstall
+v2-simplifiee/index.html#reglages	3 étapes, rien n'est effacé	STR	settings_row_reinstall_desc
+v2-simplifiee/index.html#reglages	Journaux	STR	settings_row_logs
+v2-simplifiee/index.html#reglages	7 derniers jours · 240 Ko	DEMO
+v2-simplifiee/index.html#reglages	Exporter	STR	settings_action_export
+v2-simplifiee/index.html#reglages	TMM Mobile 1.3.1 · protocole v1	FMT	settings_footer_app_version		[1.3.1]
+v2-simplifiee/index.html#reglages-traduction	Réglages	STR	settings_title
+v2-simplifiee/index.html#reglages-traduction	Traduction	STR	settings_v2_translation
+v2-simplifiee/index.html#reglages-traduction	Appliqué sur PC-BUREAU, sans redémarrage	FMT	settings_v2_applied		[PC-BUREAU]
+v2-simplifiee/index.html#reglages-traduction	L'essentiel	STR	settings_v2_essential
+v2-simplifiee/index.html#reglages-traduction	Langue d'origine	STR	settings_v2_source
+v2-simplifiee/index.html#reglages-traduction	Détection automatique	DEMO
+v2-simplifiee/index.html#reglages-traduction	Traduire en	STR	settings_v2_target
+v2-simplifiee/index.html#reglages-traduction	Français	DEMO
+v2-simplifiee/index.html#reglages-traduction	Moteur	STR	settings_v2_engine
+v2-simplifiee/index.html#reglages-traduction	Google Gemini 2.5 Flash · recommandé	DEMO
+v2-simplifiee/index.html#reglages-traduction	Corriger les oublis après chaque chapitre	STR	settings_v2_verify
+v2-simplifiee/index.html#reglages-traduction	Repasse sur les bulles restées en VO	STR	settings_v2_verify_hint
+v2-simplifiee/index.html#reglages-traduction	Si le moteur échoue	STR	settings_v2_failover
+v2-simplifiee/index.html#reglages-traduction	Basculer sur le LLM local (Ollama)	STR	settings_v2_failover_hint
+v2-simplifiee/index.html#reglages-traduction	Vitesse	STR	settings_v2_speed
+v2-simplifiee/index.html#reglages-traduction	4 chapitres à la fois · carte graphique	PLU	settings_v2_speed_hint	4	[4]
+v2-simplifiee/index.html#reglages-traduction	Chapitres à la fois	STR	settings_v2_chapters_at_once
+v2-simplifiee/index.html#reglages-traduction	4	DEMO
+v2-simplifiee/index.html#reglages-traduction	Pages à la fois	STR	settings_v2_pages_at_once
+v2-simplifiee/index.html#reglages-traduction	2 par chapitre · recommandé	FMT	settings_v2_pages_hint_recommended_fmt		[2]
+v2-simplifiee/index.html#reglages-traduction	Pages par envoi au moteur	STR	trans_settings_pile_size
+v2-simplifiee/index.html#reglages-traduction	3 · plus de contexte si élevé	FMT	settings_v2_pile_hint_fmt		[3]
+v2-simplifiee/index.html#reglages-traduction	Carte graphique	STR	settings_v2_gpu
+v2-simplifiee/index.html#reglages-traduction	DirectML / CUDA	STR	trans_settings_gpu_on_desc
+v2-simplifiee/index.html#reglages-traduction	Rendu des pages	STR	settings_v2_rendering
+v2-simplifiee/index.html#reglages-traduction	Police Anime Ace · effacement LaMa Large	FMT	settings_v2_rendering_hint_fmt		[Anime Ace, LaMa Large]
+v2-simplifiee/index.html#reglages-traduction	Police	STR	settings_v2_font
+v2-simplifiee/index.html#reglages-traduction	Anime Ace	DEMO
+v2-simplifiee/index.html#reglages-traduction	Effacement du texte	STR	trans_settings_inpainter
+v2-simplifiee/index.html#reglages-traduction	LaMa Large	DEMO
+v2-simplifiee/index.html#reglages-traduction	Taille d'effacement	STR	trans_settings_inpainting_size
+v2-simplifiee/index.html#reglages-traduction	1280 px · recommandé	DEMO
+v2-simplifiee/index.html#reglages-traduction	Lecture des bulles	STR	settings_v2_reading
+v2-simplifiee/index.html#reglages-traduction	Détecteur et OCR automatiques	STR	settings_v2_reading_hint_auto
+v2-simplifiee/index.html#reglages-traduction	Détecteur de bulles	STR	trans_settings_detector
+v2-simplifiee/index.html#reglages-traduction	Comic-Text-Detector · automatique	DEMO
+v2-simplifiee/index.html#reglages-traduction	Reconnaissance du texte (OCR)	STR	settings_v2_ocr
+v2-simplifiee/index.html#reglages-traduction	Automatique · Manga-OCR + PaddleOCR	DEMO
+v2-simplifiee/index.html#reglages-traduction	Les clés API restent sur le PC. Un changement s'applique aux pages suivantes, sans interrompre les chapitres en cours.	STR	settings_v2_footer_note

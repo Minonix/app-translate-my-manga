@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TMM Mobile simplifiée</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F1EA; --card:#FBF9F4; --white:#FFFFFF; --ink:#16161A; --ink2:#2E2D29; --ink3:#3A3934;
+  --muted:#5E5A52; --muted2:#9C9486; --line:#DDD6C8; --line2:#ECE7DC; --chip:#E9E4D8; --sand:#D5CDBC;
+  --red:#C8391F; --redDark:#9E2A14; --redDeep:#7A2210; --redSoft:#FBE3DC;
+  --blue:#2B4C7E; --blueSoft:#E3E9F2; --green:#2F7D4F; --greenSoft:#E8F1EB; --greenLight:#9BD3AE;
+  --amber:#8A5A00; --amberSoft:#FBF1D6;
+  --c-lav:#D8D2E4; --c-sage:#CFD8C6; --c-sky:#C9D3DE; --c-rose:#E2C6BB; --c-sand:#E6DCC0; --c-taupe:#DCCFC4;
+  --f-title:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#E9E4D8;color:var(--ink);font-family:var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- Page de présentation ---------- */
+.doc{max-width:1500px;margin:0 auto;padding:56px 32px 120px}
+.doc h1{font-family:var(--f-title);font-weight:800;font-size:56px;letter-spacing:-1.5px;line-height:1}
+.doc .lede{font-size:19px;line-height:1.55;color:var(--ink3);max-width:900px;margin-top:18px}
+.doc h2{font-family:var(--f-title);font-weight:800;font-size:34px;letter-spacing:-.6px;margin:72px 0 8px}
+.doc h2 small{display:block;font-family:var(--f-body);font-weight:500;font-size:15px;color:var(--muted);letter-spacing:0;margin-top:6px}
+.kicker{font-family:var(--f-mono);font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);margin-bottom:14px}
+.principles{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:32px}
+.pr{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 22px}
+.pr b{display:block;font-family:var(--f-title);font-size:20px;font-weight:800;margin-bottom:6px}
+.pr span{font-size:15px;line-height:1.5;color:var(--muted)}
+.pr .n{font-family:var(--f-mono);font-size:12px;color:var(--red);margin-bottom:10px;display:block}
+
+.flow{display:flex;align-items:stretch;gap:0;margin-top:26px;background:var(--ink);border-radius:26px;padding:28px;color:#fff;flex-wrap:wrap}
+.flow .st{flex:1;min-width:190px;padding:6px 16px;position:relative}
+.flow .st + .st{border-left:1px dashed #4a4943}
+.flow .st .ic{width:44px;height:44px;border-radius:14px;background:#2E2D29;display:grid;place-items:center;margin-bottom:12px}
+.flow .st b{font-family:var(--f-title);font-size:19px;display:block;margin-bottom:4px}
+.flow .st span{font-size:14px;line-height:1.45;color:#CFC8B8}
+.flow .st .who{font-family:var(--f-mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--greenLight);margin-bottom:6px;display:block}
+.flow .st.auto .who{color:#F4B3A3}
+
+.alert-doc{margin-top:26px;background:var(--amberSoft);border:1px solid #E8D29A;border-radius:22px;padding:22px 24px;display:flex;gap:16px}
+.alert-doc .ic{color:var(--amber);margin-top:2px}
+.alert-doc b{font-family:var(--f-title);font-size:20px;display:block;margin-bottom:6px}
+.alert-doc p{font-size:15px;line-height:1.55;color:var(--ink3);margin-top:6px}
+.alert-doc code{font-family:var(--f-mono);font-size:13px;background:#F3E3B5;padding:1px 6px;border-radius:6px}
+
+.navcompare{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;margin-top:26px}
+.navbox{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px}
+.navbox h4{font-family:var(--f-mono);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.navrow{display:flex;gap:8px;flex-wrap:wrap}
+.navpill{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:var(--white);border:1px solid var(--line);font-weight:600;font-size:15px}
+.navpill.gone{opacity:.45;text-decoration:line-through}
+.navpill.new{background:var(--ink);color:#fff;border-color:var(--ink)}
+.navnote{font-size:14px;color:var(--muted);margin-top:12px;line-height:1.5}
+.arrow-big{font-family:var(--f-title);font-size:40px;color:var(--red)}
+
+/* ---------- Planches ---------- */
+.board{display:flex;gap:36px;align-items:flex-start;margin-top:40px;flex-wrap:wrap}
+.board .notes{flex:1;min-width:300px;max-width:520px;padding-top:24px}
+.notes .tag{display:inline-block;font-family:var(--f-mono);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:var(--ink);color:#fff;margin-bottom:12px}
+.notes h3{font-family:var(--f-title);font-weight:800;font-size:30px;letter-spacing:-.5px;line-height:1.1}
+.notes .sub{color:var(--muted);font-size:15px;margin-top:6px;line-height:1.5}
+.notes ul{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.notes li{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px 12px 44px;position:relative;font-size:14.5px;line-height:1.5;color:var(--ink3)}
+.notes li::before{content:"";position:absolute;left:14px;top:14px;width:18px;height:18px;border-radius:6px}
+.notes li.cut::before{background:var(--redSoft);box-shadow:inset 0 0 0 1.5px var(--red)}
+.notes li.move::before{background:var(--blueSoft);box-shadow:inset 0 0 0 1.5px var(--blue)}
+.notes li.keep::before{background:var(--greenSoft);box-shadow:inset 0 0 0 1.5px var(--green)}
+.notes li.warn::before{background:var(--amberSoft);box-shadow:inset 0 0 0 1.5px var(--amber)}
+.notes li b{color:var(--ink)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;font-size:13px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:5px;display:inline-block}
+
+/* ---------- Téléphone ---------- */
+.phone{width:410px;height:864px;border-radius:52px;background:var(--ink);padding:10px;flex:none;box-shadow:0 30px 60px -30px rgba(22,22,26,.45)}
+.screen{width:390px;height:844px;border-radius:42px;background:var(--bg);position:relative;overflow:hidden}
+.scroll{position:absolute;inset:0;overflow-y:auto;padding:52px 20px 110px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.sbar{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-family:var(--f-body);font-weight:600;font-size:14px;z-index:30;background:linear-gradient(var(--bg) 70%,rgba(244,241,234,0))}
+.sbar .r{display:flex;gap:6px;align-items:center}
+.sbar .bat{width:22px;height:11px;border:1.5px solid var(--ink);border-radius:3px;position:relative}
+.sbar .bat::after{content:"";position:absolute;inset:1.5px 5px 1.5px 1.5px;background:var(--ink);border-radius:1px}
+
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:10px 8px 0;z-index:20}
+.tab{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12.5px;font-weight:500;color:var(--muted);width:86px;position:relative}
+.tab .pill{width:58px;height:32px;border-radius:16px;display:grid;place-items:center}
+.tab.on{color:var(--ink);font-weight:600}
+.tab.on .pill{background:var(--ink);color:#fff}
+.tab .badge{position:absolute;top:-4px;left:50px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;padding:0 5px;border:2px solid var(--card)}
+
+/* Typo écran */
+.h1{font-family:var(--f-title);font-weight:800;font-size:40px;letter-spacing:-1px;line-height:1.02}
+.h2{font-family:var(--f-title);font-weight:800;font-size:22px;letter-spacing:-.3px}
+.subt{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.4}
+.mono{font-family:var(--f-mono)}
+.sect{display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 12px}
+.link{color:var(--red);font-weight:600;font-size:14px}
+.lbl{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);margin:24px 4px 10px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px}
+.dark{background:var(--ink);color:#fff;border-radius:24px}
+.row{display:flex;align-items:center;gap:12px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.btn{height:44px;padding:0 18px;border-radius:14px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn.red{background:var(--red);color:#fff}
+.btn.ink{background:var(--ink);color:#fff}
+.btn.ghost{border:1.5px solid var(--line);background:var(--white)}
+.btn.ghostd{border:1.5px solid #fff;color:#fff}
+.btn[hidden]{display:none}
+.btn.block{width:100%;height:54px;font-size:16px;border-radius:16px}
+.btn.sm{height:36px;padding:0 12px;font-size:14px;border-radius:11px}
+.iconbtn{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;border:1.5px solid var(--line);background:var(--white)}
+
+.pc-pill{display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:19px;border:1.5px solid var(--line);background:var(--white);font-weight:600;font-size:14px}
+.dot{width:10px;height:10px;border-radius:5px;background:var(--green);box-shadow:0 0 0 4px var(--greenSoft)}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--red);color:#fff;display:grid;place-items:center;font-weight:700;font-size:20px}
+
+.cover{border-radius:10px;background-color:var(--c-lav);background-image:radial-gradient(rgba(22,22,26,.22) 1.1px,transparent 1.3px);background-size:7px 7px;flex:none}
+.cv-lav{background-color:var(--c-lav)} .cv-sage{background-color:var(--c-sage)} .cv-sky{background-color:var(--c-sky)} .cv-rose{background-color:var(--c-rose)} .cv-sand{background-color:var(--c-sand)} .cv-taupe{background-color:var(--c-taupe)}
+.cv-none{background-color:var(--card);border:1.5px dashed var(--sand)}
+
+.bar{height:6px;border-radius:3px;background:var(--line2);overflow:hidden}
+.bar > i{display:block;height:100%;border-radius:3px;background:var(--ink)}
+.bar.red > i{background:var(--red)} .bar.blue > i{background:var(--blue)} .bar.green > i{background:var(--green)}
+.dark .bar{background:#34332E} .dark .bar > i{background:#fff}
+
+.st-pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap}
+.st-pill::before{content:"";width:7px;height:7px;border-radius:4px;background:currentColor}
+.st-pill.plain::before{display:none}
+.s-todo{background:var(--redSoft);color:var(--redDark)}
+.s-busy{background:var(--ink);color:#fff}
+.s-get{background:var(--blueSoft);color:var(--blue)}
+.s-ok{background:var(--greenSoft);color:var(--green)}
+.s-fail{background:var(--red);color:#fff}
+.s-wait{background:var(--chip);color:var(--ink3)}
+.s-absent{background:var(--white);color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
+.s-gap{background:var(--amberSoft);color:var(--amber)}
+.cover .st-pill{font-size:12px;height:24px;padding:0 8px;max-width:calc(100% - 16px)}
+.auto-tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:8px;background:var(--ink);color:#fff;font-size:12px;font-weight:600}
+.auto-tag svg.i{width:13px;height:13px;stroke-width:2.2}
+
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px}
+.chips::-webkit-scrollbar{display:none}
+.chip{height:40px;padding:0 15px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:7px;white-space:nowrap;flex:none}
+.chip em{font-style:normal;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.on em{color:#CFC8B8}
+
+.switch{width:52px;height:32px;border-radius:16px;background:var(--sand);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:12px;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.switch.on{background:var(--ink)}
+.switch.on::after{left:24px}
+.dark .switch{background:#4a4943} .dark .switch.on{background:var(--green)}
+
+.list{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.li{padding:14px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line2)}
+.li:first-child{border-top:0}
+.li .t{font-weight:600;font-size:15.5px}
+.li .d{font-size:13.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.li .grow{flex:1;min-width:0}
+.chev{color:var(--muted2)}
+
+.search{height:50px;border-radius:16px;border:1.5px solid var(--line);background:var(--white);display:flex;align-items:center;gap:10px;padding:0 16px;color:var(--muted2);font-size:15.5px;flex:1}
+
+.check{width:24px;height:24px;border-radius:7px;border:1.8px solid var(--sand);background:var(--white);display:grid;place-items:center;flex:none}
+.check.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.check svg.i{width:15px;height:15px;stroke-width:2.6}
+
+/* Feuilles */
+.scrim{position:absolute;inset:0;background:rgba(22,22,26,.42);z-index:40}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:28px 28px 0 0;z-index:41;padding:12px 20px 26px;max-height:92%;overflow-y:auto;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--sand);margin:0 auto 16px}
+.sheet .kick{font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}
+.sheet .ttl{font-family:var(--f-title);font-weight:800;font-size:26px;letter-spacing:-.4px;margin-top:4px;line-height:1.1}
+.act{display:flex;gap:14px;align-items:center;padding:14px;border-radius:18px;background:var(--white);border:1px solid var(--line);margin-top:10px}
+.act .ic{width:42px;height:42px;border-radius:13px;background:var(--chip);display:grid;place-items:center;flex:none}
+.act .t{font-weight:600;font-size:16px}
+.act .d{font-size:13.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.act .n{margin-left:auto;font-family:var(--f-mono);font-size:14px;color:var(--muted)}
+.act.danger .ic{background:var(--redSoft);color:var(--red)} .act.danger .t{color:var(--redDark)}
+
+.toast{position:absolute;left:16px;right:16px;bottom:100px;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;font-size:14px;z-index:25;box-shadow:0 12px 30px -10px rgba(0,0,0,.4)}
+.toast .link{color:#F4B3A3;margin-left:auto}
+
+/* Tableau de correspondance */
+.map-wrap{margin-top:22px;max-width:100%;overflow-x:auto;border-radius:20px}
+table.map{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;font-size:14.5px}
+table.map th{text-align:left;font-family:var(--f-mono);font-weight:500;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:14px 16px;background:var(--chip)}
+table.map td{padding:12px 16px;border-top:1px solid var(--line2);vertical-align:top;line-height:1.45}
+table.map td:first-child{font-weight:600;width:20%}
+table.map td.grp{background:var(--ink);color:#fff;font-family:var(--f-title);font-size:17px;font-weight:800;padding:10px 16px}
+.t-same{color:var(--green);font-weight:600}
+.t-mv{color:var(--blue);font-weight:600}
+.t-ren{color:var(--amber);font-weight:600}
+.t-new{color:var(--red);font-weight:600}
+.statusmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin-top:20px}
+.sm{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.sm code{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);width:118px;flex:none}
+.sm .arr{color:var(--muted2)}
+.sm > span:last-child{flex:1 0 100%}
+.sm small{display:block;color:var(--muted);font-size:13px;margin-top:0}
+.foot{margin-top:60px;color:var(--muted);font-size:14px;line-height:1.6}
+
+@media (max-width:860px){
+  .doc{padding:32px 12px 80px}
+  .doc h1{font-size:38px}
+  .navcompare{grid-template-columns:1fr}
+  .arrow-big{transform:rotate(90deg);justify-self:center}
+  .phone{transform:scale(.86);transform-origin:top left;margin-bottom:-120px;margin-right:-56px}
+  table.map{font-size:13px;min-width:620px;table-layout:fixed}
+  table.map td:first-child{width:30%;overflow-wrap:anywhere}
+  table.map th:first-child{width:30%}
+  table.map td.grp{width:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- Icônes maison (traits), pas de Material Icons -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 5 12L17 12h4"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="chevd" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="pc" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+  <symbol id="cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/></symbol>
+  <symbol id="translate" viewBox="0 0 24 24"><path d="M4 5h8M8 3v2M10.5 5c-.6 3.5-3 6.5-6.5 8M6 8.5c1 2 2.6 3.6 4.5 4.5"/><path d="m13 21 4-10 4 10M14.4 17.5h5.2"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="M12 20V8M6 13l6-6 6 6M5 4h14"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 8 7 9.5 4-1.5 7-5.2 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="redo" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 0 13.7 5.6"/><path d="M20 12A8 8 0 0 0 6.3 6.4"/><path d="M4 4v4h4M20 20v-4h-4"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="warn" viewBox="0 0 24 24"><path d="M12 4 2.8 20h18.4z"/><path d="M12 10v4.5M12 17.5v.3"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.3"/></symbol>
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="wifi" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.6 16a5 5 0 0 1 6.8 0"/><circle cx="12" cy="19" r=".8" fill="currentColor"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 2h14v-4"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+</svg>
+
+<main class="doc">
+
+  <div class="kicker">TMM Mobile · maquette v2 · simplification</div>
+  <h1>Même application,<br>moins de questions.</h1>
+  <p class="lede">Aucune fonctionnalité ajoutée ni retirée : tout ce que fait la v1.3.0 reste accessible. Ce qui change, c'est le rangement (3 onglets au lieu de 5, plus Réglages), le vocabulaire (un seul verbe « Traduire » pour le cas courant) et le suivi automatique des séries, qui existe dans le moteur mais n'avait aucun bouton pour l'activer.</p>
+
+  <div class="principles">
+    <div class="pr"><span class="n">01</span><b>Un verbe principal</b><span>« Traduire » remplace « Envoyer » + « Traduire à l'arrivée ». Le téléphone envoie, le PC traduit, le retour dans Mihon est automatique.</span></div>
+    <div class="pr"><span class="n">02</span><b>Un statut en clair</b><span>Chaque chapitre a une seule étiquette lisible (« À traduire », « Traduction 45 % », « Dans Mihon »). Fini les trois carrés Téléphone / PC / Français à décoder.</span></div>
+    <div class="pr"><span class="n">03</span><b>Le suivi visible</b><span>« Suivre cette série » sur la fiche série : chaque nouveau chapitre téléchargé part en traduction sans rien toucher.</span></div>
+    <div class="pr"><span class="n">04</span><b>Une seule vue « Activité »</b><span>Transferts et File fusionnent : un chapitre traverse Envoi, Traduction puis Retour, au même endroit.</span></div>
+    <div class="pr"><span class="n">05</span><b>Réglages à deux niveaux</b><span>L'essentiel d'abord. Tailscale, conservation Drive, journaux, OCR, effacement et GPU passent dans « Avancé ».</span></div>
+  </div>
+
+  <h2>Le parcours, en une phrase par étape<small>C'est ce schéma que l'interface doit rendre évident, sans jamais parler de Drive, de CBZ ou de jobs.</small></h2>
+  <div class="flow">
+    <div class="st"><div class="ic"><svg class="i"><use href="#down"/></svg></div><span class="who">Dans Mihon</span><b>Vous téléchargez</b><span>Comme d'habitude, un chapitre en anglais, japonais ou coréen.</span></div>
+    <div class="st"><div class="ic"><svg class="i"><use href="#translate"/></svg></div><span class="who">Dans TMM, 1 bouton</span><b>Vous touchez « Traduire »</b><span>Ou rien du tout si la série est suivie : il part tout seul.</span></div>
+    <div class="st auto"><div class="ic"><svg class="i"><use href="#pc"/></svg></div><span class="who">Automatique</span><b>Le PC traduit</b><span>Même s'il est éteint au moment de l'envoi : le chapitre l'attend sur Google Drive.</span></div>
+    <div class="st auto"><div class="ic"><svg class="i"><use href="#book"/></svg></div><span class="who">Automatique</span><b>Vous lisez dans Mihon</b><span>La version française arrive dans la bibliothèque locale de Mihon.</span></div>
+  </div>
+
+  <div class="alert-doc">
+    <svg class="i ic" style="width:26px;height:26px"><use href="#warn"/></svg>
+    <div>
+      <b>Pourquoi vous n'avez jamais vu le suivi automatique fonctionner</b>
+      <p>Le moteur existe (<code>data/AutoTranslate.kt</code>, table <code>series_settings</code>, colonne <code>autoTranslate</code>), mais <strong>aucun écran n'écrit jamais cette valeur</strong> : seuls les tests et les données factices la mettent à vrai. <code>SeriesViewModel</code> le dit en commentaire : la maquette d'origine n'affichait pas d'interrupteur. En plus, la remise à plat de la v1.3.0 (<code>resetPendingJobsOnce</code>) remet tout à faux.</p>
+      <p>Deux limites réelles à connaître, que la maquette affiche honnêtement : le suivi ne se déclenche <strong>qu'à l'ouverture de TMM ou à une actualisation</strong> (pas de tâche périodique en arrière-plan), et l'activer envoie aussi les chapitres déjà téléchargés et pas encore traduits de la série. Seule pièce à câbler : un interrupteur sur la fiche série qui appelle <code>seriesSettingsDao().upsert(...)</code>.</p>
+    </div>
+  </div>
+
+  <h2>Navigation<small>5 onglets plus un écran Réglages caché derrière une icône, ramenés à 4 onglets dont Réglages.</small></h2>
+  <div class="navcompare">
+    <div class="navbox">
+      <h4>Aujourd'hui (v1.3.1)</h4>
+      <div class="navrow">
+        <span class="navpill"><svg class="i"><use href="#home"/></svg>Accueil</span>
+        <span class="navpill"><svg class="i"><use href="#grid"/></svg>Bibliothèque</span>
+        <span class="navpill gone">Transferts</span>
+        <span class="navpill gone">File</span>
+        <span class="navpill gone">Catalogue</span>
+      </div>
+      <p class="navnote">Les mêmes chiffres « à envoyer / à récupérer » apparaissent sur Accueil, Transferts et les vignettes de la Bibliothèque. Les traductions en cours apparaissent sur Accueil et File. Catalogue ne fait que lister des catégories que la Bibliothèque sait déjà filtrer.</p>
+    </div>
+    <div class="arrow-big">→</div>
+    <div class="navbox">
+      <h4>Proposé (v2)</h4>
+      <div class="navrow">
+        <span class="navpill new"><svg class="i"><use href="#home"/></svg>Accueil</span>
+        <span class="navpill new"><svg class="i"><use href="#grid"/></svg>Bibliothèque</span>
+        <span class="navpill new"><svg class="i"><use href="#pulse"/></svg>Activité</span>
+        <span class="navpill new"><svg class="i"><use href="#gear"/></svg>Réglages</span>
+      </div>
+      <p class="navnote"><b>Activité</b> = File + Transferts. <b>Catalogue</b> devient le menu « Catégorie » et la feuille Filtres de la Bibliothèque ; la sauvegarde Mihon passe dans Réglages. <b>Réglages</b> devient un onglet, plus besoin de chercher l'icône.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--redSoft);box-shadow:inset 0 0 0 1.5px var(--red)"></i>Supprimé de l'écran (doublon ou jargon)</span>
+    <span><i style="background:var(--blueSoft);box-shadow:inset 0 0 0 1.5px var(--blue)"></i>Déplacé ailleurs</span>
+    <span><i style="background:var(--greenSoft);box-shadow:inset 0 0 0 1.5px var(--green)"></i>Gardé, mieux nommé</span>
+    <span><i style="background:var(--amberSoft);box-shadow:inset 0 0 0 1.5px var(--amber)"></i>Changement de comportement à valider</span>
+  </div>
+
+  <!-- ================= 1. ACCUEIL ================= -->
+  <h2>1 · Accueil<small>Répond à une seule question : « y a-t-il quelque chose à faire ? »</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="between">
+          <div class="row"><div class="logo">訳</div><b style="font-family:var(--f-title);font-size:20px">TMM</b></div>
+          <div class="pc-pill"><span class="dot"></span>PC allumé</div>
+        </div>
+        <div class="between" style="margin-top:22px;align-items:flex-end">
+          <div><div class="h1">Accueil</div><div class="subt">Mihon vérifié il y a 4 min</div></div>
+          <button class="iconbtn" aria-label="Actualiser"><svg class="i"><use href="#refresh"/></svg></button>
+        </div>
+
+        <div class="dark" style="margin-top:20px;padding:20px">
+          <div style="font-size:12px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:#CFC8B8">À faire</div>
+          <div class="between" style="margin-top:14px">
+            <div class="row" style="gap:14px;align-items:flex-start">
+              <div style="font-family:var(--f-title);font-weight:800;font-size:46px;line-height:.9">11</div>
+              <div><div style="font-weight:600;font-size:16px;line-height:1.25">chapitres<br>à traduire</div><div style="font-size:13px;color:#CFC8B8;margin-top:4px">dans 4 séries</div></div>
+            </div>
+            <button class="btn red">Traduire</button>
+          </div>
+          <div style="height:1px;background:#34332E;margin:16px 0"></div>
+          <div class="between">
+            <div class="row" style="gap:14px;align-items:flex-start">
+              <div style="font-family:var(--f-title);font-weight:800;font-size:46px;line-height:.9">2</div>
+              <div><div style="font-weight:600;font-size:16px;line-height:1.25">traductions<br>à installer</div><div style="font-size:13px;color:#CFC8B8;margin-top:4px">Frieren, One Piece</div></div>
+            </div>
+            <button class="btn ghostd">Installer</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;padding:16px">
+          <div class="row" style="align-items:flex-start">
+            <div style="width:40px;height:40px;border-radius:12px;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none"><svg class="i"><use href="#bolt"/></svg></div>
+            <div style="flex:1">
+              <div class="between"><b style="font-size:16px">3 séries suivies</b><span class="link">Gérer</span></div>
+              <div style="font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.4">Leurs nouveaux chapitres partent en traduction à chaque ouverture de TMM.</div>
+              <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">
+                <span class="st-pill plain s-wait">Blue Lock</span><span class="st-pill plain s-wait">Kagurabachi</span><span class="st-pill plain s-wait">One Piece</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sect"><span class="h2">Sur le PC</span><span class="link">Activité (7)</span></div>
+        <div class="card" style="padding:6px 16px">
+          <div style="padding:12px 0;border-bottom:1px solid var(--line2)">
+            <div class="between"><b style="font-size:15px">Solo Leveling · ch. 201</b><span class="mono" style="font-size:13px;color:var(--muted)">73 %</span></div>
+            <div class="bar red" style="margin-top:8px"><i style="width:73%"></i></div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:6px">Traduction · page 16 sur 22</div>
+          </div>
+          <div style="padding:12px 0">
+            <div class="between"><b style="font-size:15px">Kagurabachi · ch. 52</b><span class="mono" style="font-size:13px;color:var(--muted)">42 %</span></div>
+            <div class="bar red" style="margin-top:8px"><i style="width:42%"></i></div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:6px">Traduction · page 9 sur 21</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin:8px 4px 0">+ 5 en attente, 4 traduits en même temps sur PC-BUREAU</div>
+
+        <div class="sect"><span class="h2">Derniers traduits</span><span class="link">Tout voir</span></div>
+        <div class="row" style="gap:12px;overflow:hidden">
+          <div><div class="cover cv-rose" style="width:96px;height:132px"></div><div style="font-weight:600;font-size:13.5px;margin-top:6px">Frieren</div><div style="font-size:12px;color:var(--muted)">ch. 140 · dans Mihon</div></div>
+          <div><div class="cover cv-lav" style="width:96px;height:132px"></div><div style="font-weight:600;font-size:13.5px;margin-top:6px">Blue Lock</div><div style="font-size:12px;color:var(--muted)">ch. 212 · dans Mihon</div></div>
+          <div><div class="cover cv-sand" style="width:96px;height:132px"></div><div style="font-weight:600;font-size:13.5px;margin-top:6px">One Piece</div><div style="font-size:12px;color:var(--muted)">ch. 1120 · prêt</div></div>
+        </div>
+
+        <div class="card" style="margin-top:18px;padding:14px 16px;border-style:dashed;background:transparent">
+          <div class="row"><svg class="i" style="color:var(--amber)"><use href="#warn"/></svg><span style="flex:1;font-size:14.5px;font-weight:500">Blue Lock : ch. 23 manquant partout</span><svg class="i chev"><use href="#chev"/></svg></div>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">7</span></div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+    </div></div>
+
+    <div class="notes">
+      <span class="tag">Écran 1</span>
+      <h3>Accueil</h3>
+      <p class="sub">Deux lignes d'action au maximum, puis ce qui se passe, puis ce qui vient d'arriver.</p>
+      <ul>
+        <li class="keep"><b>« Envoyer » devient « Traduire ».</b> Le bouton ouvre la feuille Traduire (écran 6) avec les 11 chapitres déjà cochés : on voit ce qui part avant de valider.</li>
+        <li class="keep"><b>« Récupérer » devient « Installer »</b>, avec le nom des séries. Ce compteur ne garde que les traductions qui ne s'installent pas seules (traduites sur le PC hors du téléphone). Les traductions demandées depuis le téléphone s'installent déjà à chaque actualisation.</li>
+        <li class="keep"><b>« PC en ligne / vu il y a / hors ligne »</b> devient « PC allumé / vu il y a 12 min / éteint ». Si éteint, le bandeau existant « Vos envois attendent sur Google Drive » reste.</li>
+        <li class="move"><b>Carte « Séries suivies »</b> : nouvelle porte d'entrée du suivi automatique. Masquée tant qu'aucune série n'est suivie.</li>
+        <li class="cut"><b>Raccourcis « Nouvelle traduction » et « Scanner Mihon »</b> retirés : « Traduire » et le bouton Actualiser font la même chose.</li>
+        <li class="cut"><b>« Sur le PC en ce moment »</b> passe de 4 lignes à 2 avec une phrase en clair. Le détail complet est dans Activité.</li>
+        <li class="move"><b>« 2 chapitres manquants partout »</b> (ex-Transferts) devient une ligne discrète qui mène à la fiche série.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 2. BIBLIOTHÈQUE ================= -->
+  <h2>2 · Bibliothèque<small>Une seule rangée de filtres, une seule étiquette par série.</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="between" style="align-items:flex-end">
+          <div><div class="h1">Bibliothèque</div><div class="subt">142 séries · 38 non téléchargées</div></div>
+        </div>
+        <div class="row" style="margin-top:18px;gap:10px">
+          <div class="search"><svg class="i"><use href="#search"/></svg>Rechercher une série</div>
+          <button class="iconbtn" style="width:50px;height:50px;border-radius:16px" aria-label="Trier et filtrer"><svg class="i"><use href="#sliders"/></svg></button>
+        </div>
+        <div class="chips" style="margin-top:14px">
+          <span class="chip">Catégorie : toutes<svg class="i" style="width:16px;height:16px"><use href="#chevd"/></svg></span>
+          <span class="chip on">Toutes <em>142</em></span>
+          <span class="chip">À traduire <em>12</em></span>
+          <span class="chip"><svg class="i" style="width:15px;height:15px"><use href="#bolt"/></svg>Suivies <em>3</em></span>
+          <span class="chip">Non téléchargées <em>38</em></span>
+        </div>
+        <div class="between" style="margin:18px 2px 10px"><span style="font-size:13px;color:var(--muted)">Ajoutées récemment</span><span class="link">Sélectionner</span></div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px 12px">
+          <div><div class="cover cv-lav" style="height:150px;position:relative"><span class="auto-tag" style="position:absolute;top:8px;right:8px"><svg class="i"><use href="#bolt"/></svg></span><span class="st-pill s-todo" style="position:absolute;left:8px;bottom:8px">1 à traduire</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Blue Lock</div><div style="font-size:12px;color:var(--muted);margin-top:2px">205 sur 214 en VF</div></div>
+          <div><div class="cover cv-sky" style="height:150px;position:relative"><span class="st-pill s-busy" style="position:absolute;left:8px;bottom:8px">Traduction</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Solo Leveling</div><div style="font-size:12px;color:var(--muted);margin-top:2px">200 sur 201 en VF</div></div>
+          <div><div class="cover cv-rose" style="height:150px;position:relative"><span class="st-pill s-get" style="position:absolute;left:8px;bottom:8px">1 à installer</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Frieren</div><div style="font-size:12px;color:var(--muted);margin-top:2px">139 sur 140 en VF</div></div>
+          <div><div class="cover cv-sage" style="height:150px;position:relative"><span class="auto-tag" style="position:absolute;top:8px;right:8px"><svg class="i"><use href="#bolt"/></svg></span><span class="st-pill s-todo" style="position:absolute;left:8px;bottom:8px">3 à traduire</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Kagurabachi</div><div style="font-size:12px;color:var(--muted);margin-top:2px">50 sur 54 en VF</div></div>
+          <div><div class="cover cv-none" style="height:150px;position:relative;background-image:radial-gradient(rgba(22,22,26,.12) 1.1px,transparent 1.3px)"><span class="st-pill s-absent" style="position:absolute;left:8px;bottom:8px">Absente</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Dandadan</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Dans Mihon seulement</div></div>
+          <div><div class="cover cv-sand" style="height:150px;position:relative"><span class="auto-tag" style="position:absolute;top:8px;right:8px"><svg class="i"><use href="#bolt"/></svg></span><span class="st-pill s-ok" style="position:absolute;left:8px;bottom:8px">À jour</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">One Piece</div><div style="font-size:12px;color:var(--muted);margin-top:2px">1122 sur 1122 en VF</div></div>
+          <div><div class="cover cv-taupe" style="height:150px;position:relative"><span class="st-pill s-ok" style="position:absolute;left:8px;bottom:8px">À jour</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Vagabond</div><div style="font-size:12px;color:var(--muted);margin-top:2px">327 sur 327 en VF</div></div>
+          <div><div class="cover cv-sky" style="height:150px;position:relative"><span class="st-pill s-todo" style="position:absolute;left:8px;bottom:8px">5 à traduire</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Sakamoto Days</div><div style="font-size:12px;color:var(--muted);margin-top:2px">6 sur 11 en VF</div></div>
+          <div><div class="cover cv-rose" style="height:150px;position:relative"><span class="st-pill s-fail" style="position:absolute;left:8px;bottom:8px">1 échec</span></div><div style="font-weight:600;font-size:14.5px;margin-top:8px">Chainsaw Man</div><div style="font-size:12px;color:var(--muted);margin-top:2px">170 sur 171 en VF</div></div>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <div class="tab"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">7</span></div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+    </div></div>
+
+    <div class="notes">
+      <span class="tag">Écran 2</span>
+      <h3>Bibliothèque</h3>
+      <p class="sub">Les deux rangées (catégories Mihon + segment Toutes / À traduire / Non téléchargées) deviennent une seule rangée de puces.</p>
+      <ul>
+        <li class="move"><b>Catégories</b> : la première puce ouvre la liste des catégories Mihon avec leurs compteurs. C'est exactement l'ancien onglet Catalogue.</li>
+        <li class="keep"><b>Puce « Suivies »</b> : filtre sur les séries en suivi automatique, repérées sur la vignette par l'éclair noir.</li>
+        <li class="keep"><b>Une étiquette par série</b>, dans cet ordre de priorité : Échec, Traduction, N à installer, N à traduire, Pas téléchargée, À jour. Même logique que <code>SeriesBadge</code> aujourd'hui, avec l'échec rendu visible.</li>
+        <li class="keep"><b>« FR 205/214 »</b> devient « 205 sur 214 en VF ». Même donnée, lisible sans légende.</li>
+        <li class="move"><b>Filtres rares</b> (Téléchargées, Sur le PC) et le tri passent dans la feuille de l'icône Filtres (écran 2 bis).</li>
+        <li class="keep"><b>« Sélectionner »</b> reste, en lien texte. La barre d'actions de sélection est la même que sur la fiche série (écran 4).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2 bis Filtres -->
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll" style="filter:saturate(.9)">
+        <div class="h1">Bibliothèque</div><div class="subt">142 séries · 38 non téléchargées</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:80px">
+          <div class="cover cv-lav" style="height:150px"></div><div class="cover cv-sky" style="height:150px"></div><div class="cover cv-rose" style="height:150px"></div>
+        </div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="between"><div><div class="kick">Bibliothèque</div><div class="ttl">Trier et filtrer</div></div><button class="iconbtn" aria-label="Fermer"><svg class="i"><use href="#x"/></svg></button></div>
+        <div class="lbl">Catégorie Mihon</div>
+        <div class="list">
+          <div class="li"><span class="grow t">Toutes</span><span class="mono" style="color:var(--muted)">142</span><span class="check on"><svg class="i"><use href="#check"/></svg></span></div>
+          <div class="li"><span class="grow t">En cours</span><span class="mono" style="color:var(--muted)">24</span><span class="check"></span></div>
+          <div class="li"><span class="grow t">À lire</span><span class="mono" style="color:var(--muted)">31</span><span class="check"></span></div>
+          <div class="li"><span class="grow t">Terminé</span><span class="mono" style="color:var(--muted)">58</span><span class="check"></span></div>
+          <div class="li"><span class="grow t" style="color:var(--muted)">+ 4 autres</span><svg class="i chev"><use href="#chevd"/></svg></div>
+        </div>
+        <div class="lbl">Afficher</div>
+        <div class="chips" style="flex-wrap:wrap;margin:0;padding:0">
+          <span class="chip on">Toutes</span><span class="chip">À traduire</span><span class="chip">Suivies</span><span class="chip">Téléchargées</span><span class="chip">Sur le PC</span><span class="chip">Non téléchargées</span>
+        </div>
+        <div class="lbl">Trier</div>
+        <div class="chips" style="flex-wrap:wrap;margin:0;padding:0">
+          <span class="chip on">Ajoutées récemment</span><span class="chip">Titre A-Z</span><span class="chip">À traduire d'abord</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);margin:16px 4px 0;line-height:1.45">Catégories lues dans la sauvegarde Mihon du jour (03:00). La relire : Réglages, Mihon.</div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <span class="tag">Écran 2 bis</span>
+      <h3>Trier et filtrer</h3>
+      <p class="sub">La feuille existante de la v1.2.0, qui absorbe l'onglet Catalogue.</p>
+      <ul>
+        <li class="move"><b>Liste des catégories avec compteurs</b> = l'ancien Catalogue. Toucher une catégorie filtre la grille, comme <code>LibraryFilteredRoute</code> aujourd'hui.</li>
+        <li class="move"><b>Les 3 tuiles 142 séries / 38 non téléchargées / 7 catégories</b> du Catalogue sont réduites au sous-titre de la Bibliothèque.</li>
+        <li class="move"><b>Nom du fichier .tachibk et « Relire la dernière sauvegarde »</b> partent dans Réglages, section Mihon (écran 8).</li>
+        <li class="cut"><b>« Lecture seule en V1 »</b> supprimé : c'est une note de développement, pas une information pour l'utilisateur.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 3. FICHE SÉRIE ================= -->
+  <h2>3 · Fiche série<small>L'écran le plus chargé aujourd'hui : 3 tuiles, une légende à 4 couleurs, 6 actions de sélection et 4 actions « Toute la série ».</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll" id="series-scroll">
+        <div class="between">
+          <div class="row" style="gap:4px;color:var(--muted)"><svg class="i"><use href="#back"/></svg><span style="font-size:15px">Bibliothèque</span></div>
+          <button class="iconbtn" aria-label="Actions sur toute la série"><svg class="i"><use href="#more"/></svg></button>
+        </div>
+        <div class="row" style="margin-top:16px;gap:16px;align-items:flex-end">
+          <div class="cover cv-lav" style="width:96px;height:136px"></div>
+          <div>
+            <span class="st-pill plain s-wait">En cours</span>
+            <div style="font-family:var(--f-title);font-weight:800;font-size:32px;letter-spacing:-.6px;line-height:1.05;margin-top:8px">Blue Lock</div>
+            <div class="subt" style="margin-top:4px">Manga · anglais vers français</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;padding:16px">
+          <div class="between"><b style="font-size:15.5px">205 chapitres en VF sur 214</b><span class="mono" style="font-size:13px;color:var(--muted)">96 %</span></div>
+          <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:10px;gap:2px">
+            <i style="flex:205;background:var(--green)"></i><i style="flex:2;background:var(--blue)"></i><i style="flex:1;background:var(--ink)"></i><i style="flex:1;background:var(--red)"></i><i style="flex:5;background:var(--line2)"></i>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--muted)">
+            <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:4px;background:var(--green)"></i>205 dans Mihon</span>
+            <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:4px;background:var(--blue)"></i>2 à installer</span>
+            <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:4px;background:var(--ink)"></i>1 en cours</span>
+            <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:4px;background:var(--red)"></i>1 à traduire</span>
+            <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:4px;background:var(--line)"></i>5 pas téléchargés</span>
+          </div>
+        </div>
+
+        <div class="card follow" style="margin-top:12px;padding:16px">
+          <div class="row" style="align-items:flex-start">
+            <div class="follow-ic"><svg class="i"><use href="#bolt"/></svg></div>
+            <div style="flex:1">
+              <b style="font-size:16px">Suivre cette série</b>
+              <div class="follow-desc">Chaque nouveau chapitre téléchargé dans Mihon partira en traduction tout seul.</div>
+            </div>
+            <button class="switch follow-switch" aria-label="Suivre cette série" data-sheet="follow-sheet"></button>
+          </div>
+        </div>
+
+        <button class="btn red block follow-cta" style="margin-top:14px"><svg class="i"><use href="#translate"/></svg>Traduire le ch. 214</button>
+
+        <div class="card" style="margin-top:12px;padding:12px 14px;background:var(--amberSoft);border-color:#E8D29A">
+          <div class="row"><svg class="i" style="color:var(--amber)"><use href="#warn"/></svg><span style="flex:1;font-size:13.5px;line-height:1.4"><b>Ch. 23 manquant partout.</b> Téléchargez-le dans Mihon.</span><button class="btn sm ghost">Ignorer</button></div>
+        </div>
+
+        <div class="sect"><span class="h2">Chapitres</span><span class="link">Sélectionner</span></div>
+        <div class="list">
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 214</span><span class="st-pill s-todo">À traduire</span></div>
+          <div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><div class="row"><span class="mono grow" style="font-size:15px">Ch. 213</span><span class="st-pill s-busy">Traduction 45 %</span></div><div class="bar"><i style="width:45%"></i></div></div>
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 212</span><span class="st-pill s-get">Prête à installer</span></div>
+          <div class="li" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="row"><span class="mono grow" style="font-size:15px">Ch. 211</span><span class="st-pill s-ok">Dans Mihon</span><svg class="i chev" style="transform:rotate(90deg)"><use href="#chev"/></svg></div>
+            <div class="row" style="gap:6px;flex-wrap:wrap">
+              <span class="st-pill plain s-wait">22/22 pages</span><span class="st-pill plain s-wait">184 bulles</span><span class="st-pill plain s-todo">2 restées en VO</span><span class="st-pill plain s-wait">5 SFX gardés</span><span class="st-pill plain s-ok">Vérifié le 3 oct.</span>
+            </div>
+          </div>
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 210</span><span class="st-pill s-ok">Dans Mihon</span></div>
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 209</span><span class="st-pill s-wait">Sur le PC, pas traduit</span></div>
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 208</span><span class="st-pill s-fail">Échec page 12</span></div>
+          <div class="li"><span class="mono grow" style="font-size:15px;color:var(--muted)">Ch. 23</span><span class="st-pill s-gap">Manquant</span></div>
+          <div class="li"><span class="mono grow" style="font-size:15px;color:var(--muted)">Ch. 1 à 4</span><span class="st-pill s-absent">Pas téléchargés</span></div>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <div class="tab"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">7</span></div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+      <!-- Feuille Suivre (interactive) -->
+      <div class="scrim" id="follow-scrim" hidden></div>
+      <div class="sheet" id="follow-sheet" hidden></div>
+    </div></div>
+
+    <div class="notes">
+      <span class="tag">Écran 3</span>
+      <h3>Fiche série</h3>
+      <p class="sub">Interactif : touchez l'interrupteur « Suivre cette série » pour voir la feuille de confirmation (écran 5).</p>
+      <ul>
+        <li class="cut"><b>Tuiles Téléphone 212 / PC original 213 / Traduits 205</b> remplacées par une barre unique « 205 en VF sur 214 » décomposée en mots. Personne n'a besoin de savoir combien d'originaux dorment sur le PC.</li>
+        <li class="cut"><b>Légende à 4 couleurs et trois carrés par chapitre</b> remplacés par une étiquette de statut en clair (voir la correspondance des 9 statuts plus bas).</li>
+        <li class="keep"><b>« Tout ce qui reste à faire »</b> devient un gros bouton qui dit ce qu'il fait : « Traduire le ch. 214 » ou « Traduire 3 chapitres ». Masqué s'il n'y a rien.</li>
+        <li class="keep"><b>« Suivre cette série »</b> : le suivi automatique enfin visible. Une fois activé, la carte devient noire et indique « Prochain chapitre attendu : 215 ».</li>
+        <li class="keep"><b>Toucher un chapitre traduit</b> déplie ses statistiques (pages, bulles, VO restée, SFX, vérification), comme aujourd'hui.</li>
+        <li class="move"><b>« Toute la série »</b> devient le bouton ⋯ en haut à droite : il ouvre la même feuille que la sélection (écran 4), appliquée à toute la série.</li>
+        <li class="keep"><b>Trou dans la suite</b> : même bandeau, une ligne au lieu de trois.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 4. SÉLECTION + PLUS ================= -->
+  <h2>4 · Sélection et « Plus d'actions »<small>Six boutons de même poids deviennent un bouton principal et une feuille où chaque action dit ce qu'elle fait.</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="between"><div class="row" style="gap:4px;color:var(--muted)"><svg class="i"><use href="#back"/></svg><span style="font-size:15px">Bibliothèque</span></div></div>
+        <div class="h2" style="margin-top:18px;font-size:28px">Blue Lock</div>
+        <div class="sect"><span class="h2">Chapitres</span><span class="link">Terminer</span></div>
+        <div class="list">
+          <div class="li"><span class="check on"><svg class="i"><use href="#check"/></svg></span><span class="mono grow" style="font-size:15px">Ch. 214</span><span class="st-pill s-todo">À traduire</span></div>
+          <div class="li" style="opacity:.5"><span class="check"></span><span class="mono grow" style="font-size:15px">Ch. 213</span><span class="st-pill s-busy">Traduction 45 %</span></div>
+          <div class="li"><span class="check on"><svg class="i"><use href="#check"/></svg></span><span class="mono grow" style="font-size:15px">Ch. 212</span><span class="st-pill s-get">Prête à installer</span></div>
+          <div class="li"><span class="check on"><svg class="i"><use href="#check"/></svg></span><span class="mono grow" style="font-size:15px">Ch. 211</span><span class="st-pill s-ok">Dans Mihon</span></div>
+          <div class="li"><span class="check"></span><span class="mono grow" style="font-size:15px">Ch. 210</span><span class="st-pill s-ok">Dans Mihon</span></div>
+        </div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="kick">3 chapitres sélectionnés · 214, 212, 211</div>
+        <div class="ttl">Que faire ?</div>
+        <button class="btn red block" style="margin-top:16px"><svg class="i"><use href="#translate"/></svg>Traduire le ch. 214</button>
+        <div class="act"><div class="ic" style="background:var(--blueSoft);color:var(--blue)"><svg class="i"><use href="#down"/></svg></div><div><div class="t">Installer dans Mihon</div><div class="d">Traduction prête, pas encore dans Mihon</div></div><span class="n">1</span></div>
+        <div class="act"><div class="ic"><svg class="i"><use href="#shield"/></svg></div><div><div class="t">Corriger les oublis</div><div class="d">Ne retraduit que les bulles restées en VO. Rapide.</div></div><span class="n">1</span></div>
+        <div class="act"><div class="ic"><svg class="i"><use href="#redo"/></svg></div><div><div class="t">Retraduire de zéro</div><div class="d">La VF actuelle reste lisible jusqu'à la nouvelle</div></div><span class="n">1</span></div>
+        <div class="act"><div class="ic"><svg class="i"><use href="#copy"/></svg></div><div><div class="t">Copier sur le PC sans traduire</div><div class="d">Pour traduire plus tard depuis TMM-Win</div></div><span class="n">1</span></div>
+        <div class="act danger"><div class="ic"><svg class="i"><use href="#trash"/></svg></div><div><div class="t">Supprimer…</div><div class="d">Choisir : VF du téléphone, téléchargement Mihon, PC</div></div><span class="n">3</span></div>
+        <div style="font-size:12.5px;color:var(--muted);margin:14px 4px 0">Le ch. 213 est en cours de traduction : il n'est pas sélectionnable.</div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <span class="tag">Écran 4</span>
+      <h3>Sélection</h3>
+      <p class="sub">Même feuille pour : la sélection de la fiche série, le bouton ⋯ « toute la série » et la sélection multi-séries de la Bibliothèque.</p>
+      <ul>
+        <li class="keep"><b>Un seul bouton rouge</b> : l'action la plus probable (Traduire, sinon Installer). Les nombres entre parenthèses disparaissent du titre et passent à droite.</li>
+        <li class="keep"><b>« Vérifier » devient « Corriger les oublis »</b>. C'est la vraie différence avec Retraduire, que l'ancienne fenêtre de confirmation expliquait après coup.</li>
+        <li class="keep"><b>« Retraduire » devient « Retraduire de zéro »</b>. La confirmation actuelle (« La VF actuelle reste lisible… ») est gardée, son texte passe dans la ligne.</li>
+        <li class="keep"><b>« Traduire depuis l'original »</b> (chapitres déjà copiés sur le PC mais jamais traduits) fusionne avec Traduire : c'est la même intention pour l'utilisateur.</li>
+        <li class="move"><b>« Copier sur le PC sans traduire »</b> = l'ancien interrupteur « Traduire à l'arrivée » désactivé. Il devient une action explicite au lieu d'un réglage global caché dans Transferts.</li>
+        <li class="keep"><b>Supprimer</b> garde sa feuille à 3 cases (VF locale cochée, Mihon et PC décochés).</li>
+        <li class="cut"><b>Lignes « 0 »</b> masquées : une action sans chapitre concerné n'apparaît pas.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 5. SUIVRE ================= -->
+  <h2>5 · Suivre une série<small>La fonctionnalité qui existait sans bouton. La feuille dit exactement ce qui va se passer, y compris ses limites.</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="between"><div class="row" style="gap:4px;color:var(--muted)"><svg class="i"><use href="#back"/></svg><span style="font-size:15px">Bibliothèque</span></div></div>
+        <div class="row" style="margin-top:16px;gap:16px;align-items:flex-end"><div class="cover cv-lav" style="width:96px;height:136px"></div><div class="h2" style="font-size:30px">Blue Lock</div></div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet" id="follow-sheet-static"></div>
+    </div></div>
+
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="between"><div class="row" style="gap:4px;color:var(--muted)"><svg class="i"><use href="#back"/></svg><span style="font-size:15px">Bibliothèque</span></div><button class="iconbtn"><svg class="i"><use href="#more"/></svg></button></div>
+        <div class="row" style="margin-top:16px;gap:16px;align-items:flex-end">
+          <div class="cover cv-lav" style="width:96px;height:136px"></div>
+          <div><span class="auto-tag"><svg class="i"><use href="#bolt"/></svg>Suivie</span><div style="font-family:var(--f-title);font-weight:800;font-size:32px;letter-spacing:-.6px;line-height:1.05;margin-top:8px">Blue Lock</div><div class="subt" style="margin-top:4px">Manga · anglais vers français</div></div>
+        </div>
+        <div class="dark" style="margin-top:18px;padding:16px">
+          <div class="row" style="align-items:flex-start">
+            <div style="width:40px;height:40px;border-radius:12px;background:#2E2D29;display:grid;place-items:center;flex:none;color:var(--greenLight)"><svg class="i"><use href="#bolt"/></svg></div>
+            <div style="flex:1"><b style="font-size:16px">Série suivie</b><div style="font-size:13.5px;color:#CFC8B8;margin-top:3px;line-height:1.4">Prochain chapitre attendu : 215. Il partira à la prochaine ouverture de TMM après son téléchargement.</div></div>
+            <span class="switch on"></span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px;padding:14px 16px">
+          <div class="row"><svg class="i" style="color:var(--green)"><use href="#check"/></svg><span style="font-size:14px;flex:1">Ch. 214 envoyé au PC à l'activation</span><span class="link">Voir</span></div>
+        </div>
+        <div class="sect"><span class="h2">Chapitres</span><span class="link">Sélectionner</span></div>
+        <div class="list">
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 214</span><span class="st-pill s-wait">En attente du PC</span></div>
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 213</span><span class="st-pill s-busy">Traduction 45 %</span></div>
+          <div class="li"><span class="mono grow" style="font-size:15px">Ch. 212</span><span class="st-pill s-get">Prête à installer</span></div>
+        </div>
+      </div>
+      <div class="toast"><svg class="i"><use href="#bolt"/></svg><span>Blue Lock est suivie. 1 chapitre part au PC.</span><span class="link">Annuler</span></div>
+      <nav class="tabbar">
+        <div class="tab"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">8</span></div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+    </div></div>
+
+    <div class="notes">
+      <span class="tag">Écran 5</span>
+      <h3>Suivi automatique</h3>
+      <p class="sub">Gauche : la confirmation à l'activation. Droite : la fiche une fois la série suivie.</p>
+      <ul>
+        <li class="warn"><b>Ce qui part tout de suite</b> : <code>runAutoTranslate</code> envoie tous les chapitres téléchargés au statut « à traduire » de la série, pas seulement les futurs. La feuille l'annonce avec le nombre exact. Un choix « Seulement les prochains » serait possible mais demande du code en plus (point B plus bas).</li>
+        <li class="warn"><b>Quand ça se déclenche</b> : à l'ouverture de TMM et à chaque actualisation, pas en arrière-plan. Le texte le dit plutôt que de promettre « dès que ».</li>
+        <li class="keep"><b>Désactiver</b> : même interrupteur, sans confirmation. Les chapitres déjà partis continuent.</li>
+        <li class="keep"><b>Plusieurs séries d'un coup</b> : dans la Bibliothèque, sélectionner puis « Suivre ces séries » dans la feuille Plus d'actions.</li>
+        <li class="warn"><b>Remise à plat v1.3.0</b> : elle remet le suivi à zéro une seule fois (<code>JOB_RESET_VERSION</code>). Rien à changer, mais à garder en tête si ce numéro est relevé un jour.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 6. FEUILLE TRADUIRE ================= -->
+  <h2>6 · Feuille « Traduire »<small>Remplace « Nouvelle traduction » (2 étapes) et l'envoi sans confirmation de l'Accueil.</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll"><div class="h1">Accueil</div></div>
+      <div class="scrim"></div>
+      <div class="sheet" style="max-height:94%;padding-bottom:0">
+        <div class="grab"></div>
+        <div class="between"><div><div class="kick">11 chapitres téléchargés, jamais traduits</div><div class="ttl">Que traduire ?</div></div><button class="iconbtn" aria-label="Fermer"><svg class="i"><use href="#x"/></svg></button></div>
+        <div class="search" style="margin-top:14px;flex:none;height:46px"><svg class="i"><use href="#search"/></svg>Chercher une série</div>
+        <div class="list" style="margin-top:12px">
+          <div class="li"><span class="check on"><svg class="i"><use href="#check"/></svg></span><div class="cover cv-sky" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Sakamoto Days</div><div class="d">Ch. 7 à 11 · 5 ch.</div></div><svg class="i chev"><use href="#chevd"/></svg></div>
+          <div class="li" style="flex-direction:column;align-items:stretch;gap:0;padding-bottom:6px">
+            <div class="row"><span class="check on" style="background:var(--white);border-color:var(--ink);color:var(--ink)"><svg class="i"><use href="#plus" style="display:none"/></svg><i style="width:10px;height:2.4px;background:var(--ink);border-radius:2px"></i></span><div class="cover cv-sage" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Kagurabachi</div><div class="d">2 sur 3 cochés</div></div><svg class="i chev" style="transform:rotate(180deg)"><use href="#chevd"/></svg></div>
+            <div style="padding:8px 0 0 36px">
+              <div class="row" style="padding:7px 0"><span class="check on"><svg class="i"><use href="#check"/></svg></span><span class="mono" style="flex:1">Ch. 52</span><span style="font-size:13px;color:var(--muted)">21 p.</span></div>
+              <div class="row" style="padding:7px 0"><span class="check on"><svg class="i"><use href="#check"/></svg></span><span class="mono" style="flex:1">Ch. 53</span><span style="font-size:13px;color:var(--muted)">22 p.</span></div>
+              <div class="row" style="padding:7px 0"><span class="check"></span><span class="mono" style="flex:1">Ch. 54</span><span style="font-size:13px;color:var(--muted)">23 p.</span></div>
+            </div>
+          </div>
+          <div class="li"><span class="check on"><svg class="i"><use href="#check"/></svg></span><div class="cover cv-lav" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Blue Lock</div><div class="d">Ch. 214</div></div><svg class="i chev"><use href="#chevd"/></svg></div>
+          <div class="li"><span class="check"></span><div class="cover cv-sand" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Kaiju No. 8</div><div class="d">Ch. 118, 119</div></div><svg class="i chev"><use href="#chevd"/></svg></div>
+        </div>
+        <div style="position:sticky;bottom:0;background:var(--bg);padding:14px 0 22px;margin-top:8px;border-top:1px solid var(--line)">
+          <button class="btn red block"><svg class="i"><use href="#translate"/></svg>Traduire 8 chapitres</button>
+          <div style="text-align:center;margin-top:12px;font-size:14px;color:var(--muted)">ou <span class="link" style="text-decoration:underline">copier sur le PC sans traduire</span></div>
+          <div style="text-align:center;margin-top:8px;font-size:12.5px;color:var(--muted)">Le PC peut être éteint : ils l'attendront sur Google Drive.</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <span class="tag">Écran 6</span>
+      <h3>Traduire</h3>
+      <p class="sub">Une seule feuille, une seule étape. Ouverte depuis : Accueil « Traduire », le + d'Activité, et la sélection multi-séries.</p>
+      <ul>
+        <li class="cut"><b>« Étape 1 sur 2 · série » puis « Étape 2 sur 2 · chapitres »</b> fusionnées : les séries se déplient sur place.</li>
+        <li class="keep"><b>Depuis l'Accueil</b>, tout est coché par défaut : c'est l'ancien bouton « Envoyer », avec un aperçu avant de partir. Ici l'utilisateur a décoché Kaiju No. 8 et un chapitre de Kagurabachi : 8 sur 11.</li>
+        <li class="warn"><b>L'interrupteur « Traduire à l'arrivée » disparaît.</b> Aujourd'hui il existe à deux endroits (Transferts et cette feuille), son défaut diffère (préférence à faux depuis v1.3.0, état de l'écran à vrai), et le bouton Envoyer de l'Accueil l'applique sans le montrer : il copie donc sans traduire par défaut. En v2 chaque bouton dit ce qu'il fait. La règle v1.3.0 « rien ne part en traduction sans demande » est respectée : toucher « Traduire » est la demande.</li>
+        <li class="move"><b>Copie sans traduction</b> : lien secondaire sous le bouton, pour qui veut traduire depuis TMM-Win plus tard.</li>
+        <li class="keep"><b>Recherche, Tout cocher, nombre de pages</b> : gardés.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 7. ACTIVITÉ ================= -->
+  <h2>7 · Activité<small>Fusion de File et Transferts. Interactif : les onglets En cours, Terminées et Échecs fonctionnent.</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll" id="activity">
+        <div class="between" style="align-items:flex-end">
+          <div><div class="h1">Activité</div><div class="subt">Ce qui part, ce que traduit le PC, ce qui revient</div></div>
+          <button class="iconbtn" style="background:var(--red);color:#fff;border-color:var(--red);width:52px;height:52px;border-radius:16px" aria-label="Traduire des chapitres"><svg class="i"><use href="#plus"/></svg></button>
+        </div>
+        <div class="seg" style="display:flex;background:var(--chip);border-radius:16px;padding:4px;margin-top:18px">
+          <button class="segb on" data-tab="run">En cours <em>8</em></button>
+          <button class="segb" data-tab="done">Terminées <em>9</em></button>
+          <button class="segb" data-tab="fail">Échecs <em class="r">1</em></button>
+        </div>
+        <div class="between" style="margin:14px 4px 0;font-size:13px;color:var(--muted)"><span>PC-BUREAU · 4 chapitres à la fois</span><span class="link">Régler</span></div>
+
+        <div class="panel" data-panel="run">
+          <div class="dark" style="margin-top:12px;padding:18px">
+            <div class="row" style="align-items:flex-start">
+              <div class="cover cv-sky" style="width:44px;height:60px;border-radius:8px"></div>
+              <div style="flex:1"><div style="font-weight:600;font-size:16px">Solo Leveling · ch. 201</div><div class="mono" style="font-size:12.5px;color:#CFC8B8;margin-top:4px">Page 16 sur 22 · Gemini</div></div>
+              <div style="font-family:var(--f-title);font-weight:800;font-size:30px">73 %</div>
+            </div>
+            <div class="bar" style="margin-top:14px;height:8px"><i style="width:73%;background:var(--red)"></i></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px;font-size:12.5px;text-align:center">
+              <div style="padding:8px 4px;border-radius:10px;background:#2E2D29;color:var(--greenLight)">Envoi ✓</div>
+              <div style="padding:8px 4px;border-radius:10px;background:var(--red);font-weight:600">Traduction</div>
+              <div style="padding:8px 4px;border-radius:10px;border:1px dashed #4a4943;color:#9C9486">Retour dans Mihon</div>
+            </div>
+            <div style="font-size:12px;color:#9C9486;margin-top:10px;text-align:center">Lecture ✓ · Traduction ✓ · Lettrage en cours · Vérification</div>
+          </div>
+          <div class="list" style="margin-top:12px">
+            <div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><div class="row"><span class="grow t">Kagurabachi · ch. 52</span><span class="st-pill s-busy">Traduction 42 %</span></div><div class="bar red"><i style="width:42%"></i></div></div>
+            <div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><div class="row"><span class="grow t">One Piece · ch. 1119</span><span class="st-pill s-busy">Correction 76 %</span></div><div class="bar"><i style="width:76%"></i></div></div>
+            <div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><div class="row"><span class="grow t">Blue Lock · ch. 214</span><span class="st-pill s-wait"><svg class="i" style="width:14px;height:14px"><use href="#up"/></svg>Envoi 98 %</span></div><div class="bar"><i style="width:98%;background:var(--muted)"></i></div></div>
+            <div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><div class="row"><span class="grow t">Frieren · ch. 140</span><span class="st-pill s-get"><svg class="i" style="width:14px;height:14px"><use href="#down"/></svg>Retour 3/4 Mo</span></div><div class="bar blue"><i style="width:75%"></i></div></div>
+          </div>
+          <div class="sect"><span class="h2">Ensuite (3)</span></div>
+          <div class="list">
+            <div class="li"><div class="cover cv-sage" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Kagurabachi · ch. 53</div><div class="d">Traduction · <span class="row" style="display:inline-flex;gap:3px"><svg class="i" style="width:13px;height:13px"><use href="#bolt"/></svg>suivi auto</span></div></div><button aria-label="Retirer"><svg class="i chev"><use href="#x"/></svg></button></div>
+            <div class="li"><div class="cover cv-lav" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Blue Lock · ch. 209</div><div class="d">Traduction</div></div><button aria-label="Retirer"><svg class="i chev"><use href="#x"/></svg></button></div>
+            <div class="li"><div class="cover cv-sand" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">One Piece · ch. 1121</div><div class="d">Correction des oublis</div></div><button aria-label="Retirer"><svg class="i chev"><use href="#x"/></svg></button></div>
+          </div>
+        </div>
+
+        <div class="panel" data-panel="done" hidden>
+          <div class="list" style="margin-top:12px">
+            <div class="li" style="flex-direction:column;align-items:stretch;gap:10px">
+              <div class="row"><div class="cover cv-rose" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Frieren · ch. 139</div><div class="d">Il y a 12 min · dans Mihon</div></div><span class="st-pill s-todo">2 alertes</span></div>
+              <div class="row" style="gap:6px;flex-wrap:wrap"><span class="st-pill plain s-wait">21/21 pages</span><span class="st-pill plain s-wait">176 bulles</span><span class="st-pill plain s-wait">4 SFX gardés</span></div>
+              <div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:4px 12px">
+                <div class="between" style="padding:9px 0;border-bottom:1px solid var(--line2)"><span style="font-size:14px"><b class="mono">p. 4</b> · texte resté en VO</span><button class="btn sm ghost">Corriger la page</button></div>
+                <div class="between" style="padding:9px 0"><span style="font-size:14px"><b class="mono">p. 17</b> · texte qui déborde</span><button class="btn sm ghost">Corriger la page</button></div>
+              </div>
+            </div>
+            <div class="li"><div class="cover cv-lav" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Blue Lock · ch. 212</div><div class="d">Il y a 40 min · prête à installer</div></div><span class="st-pill s-ok">Aucune alerte</span></div>
+            <div class="li"><div class="cover cv-sand" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">One Piece · ch. 1120</div><div class="d">Hier · dans Mihon</div></div><span class="st-pill s-ok">Aucune alerte</span></div>
+            <div class="li"><div class="cover cv-taupe" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div class="t">Vagabond · ch. 327</div><div class="d">Hier · dans Mihon</div></div><span class="st-pill s-ok">Aucune alerte</span></div>
+          </div>
+        </div>
+
+        <div class="panel" data-panel="fail" hidden>
+          <div class="card" style="margin-top:12px;padding:16px;border-color:#F4B3A3">
+            <div class="row"><div class="cover cv-rose" style="width:34px;height:46px;border-radius:6px"></div><div class="grow"><div style="font-weight:600;font-size:15.5px">Chainsaw Man · ch. 171</div><div style="font-size:13.5px;color:var(--redDark);margin-top:2px">Échec page 12 : quota du moteur atteint</div></div></div>
+            <div style="font-size:13px;color:var(--muted);margin-top:10px">Gemini · les pages 1 à 11 sont conservées</div>
+            <button class="btn ink block" style="margin-top:12px;height:48px">Reprendre à la page 12</button>
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin:14px 4px;line-height:1.45">Astuce : activez « Secours LLM local » dans Réglages, Traduction, pour basculer sur Ollama quand le quota est atteint.</div>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <div class="tab"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">8</span></div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+    </div></div>
+    <div class="notes">
+      <span class="tag">Écran 7</span>
+      <h3>Activité</h3>
+      <p class="sub">Un chapitre suit un seul chemin : Envoi, Traduction, Retour dans Mihon. Les transferts ne sont plus un écran à part.</p>
+      <ul>
+        <li class="move"><b>Transferts en cours</b> (envoi vers Drive, retour vers Mihon) deviennent des lignes de la liste « En cours » avec une étiquette Envoi ou Retour.</li>
+        <li class="cut"><b>Schéma Téléphone, Google Drive, PC</b> et son texte explicatif : retirés de l'écran, déjà expliqués à l'installation (Onboarding).</li>
+        <li class="cut"><b>Cartes « À envoyer 12 » / « À récupérer 8 »</b> : doublons de l'Accueil.</li>
+        <li class="move"><b>« Rescanner »</b> : bouton Actualiser de l'Accueil (même effet, refresh complet).</li>
+        <li class="keep"><b>Cinq étapes Récup., OCR, Trad., Lettrage, Vérif.</b> gardées en ligne de détail sous les 3 phases.</li>
+        <li class="keep"><b>Vérification / Retraduction</b> renommées « Correction » / « Retraduction » comme dans la feuille d'actions.</li>
+        <li class="keep"><b>Terminées</b> : alertes par page avec « Corriger la page » (ex-« Vérifier la page »). <b>Échecs</b> : « Reprendre à la page 12 ».</li>
+        <li class="keep"><b>« Retour auto »</b> et « Touchez un chapitre pour le détail » retirés : le retour est toujours automatique, inutile de l'annoncer.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 8. RÉGLAGES ================= -->
+  <h2>8 · Réglages<small>Ce qu'on change souvent en haut, ce qu'on ne touche qu'une fois dans « Avancé ».</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="h1">Réglages</div>
+        <div class="dark" style="margin-top:18px;padding:18px">
+          <div class="row">
+            <div style="width:48px;height:48px;border-radius:14px;background:#2E2D29;display:grid;place-items:center"><svg class="i"><use href="#pc"/></svg></div>
+            <div style="flex:1"><div style="font-weight:600;font-size:17px">PC-BUREAU</div><div style="font-size:13px;color:#CFC8B8;margin-top:2px">Allumé · vu il y a 17 s</div></div>
+            <span class="row" style="gap:6px;font-size:13px;color:var(--greenLight)"><span class="dot"></span>Direct</span>
+          </div>
+          <div style="height:1px;background:#34332E;margin:14px 0 10px"></div>
+          <div style="font-size:12.5px;color:#9C9486">TMM-Win 2.4.1 · connexion directe Tailscale, Google Drive en secours</div>
+        </div>
+
+        <div class="lbl">Traduction</div>
+        <div class="list">
+          <div class="li"><div class="grow"><div class="t">Langues</div><div class="d">Détection automatique vers français</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          <div class="li"><div class="grow"><div class="t">Moteur</div><div class="d">Google Gemini 2.5 Flash</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          <div class="li"><div class="grow"><div class="t">Tous les réglages du PC</div><div class="d">Qualité, vitesse, carte graphique…</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+        </div>
+
+        <div class="lbl">Séries suivies</div>
+        <div class="list">
+          <div class="li"><div class="grow"><div class="t">3 séries</div><div class="d">Blue Lock, Kagurabachi, One Piece</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+        </div>
+
+        <div class="lbl">Envois</div>
+        <div class="list">
+          <div class="li"><div class="grow"><div class="t">Wi-Fi uniquement</div><div class="d">Envois aussi en données mobiles</div></div><span class="switch"></span></div>
+        </div>
+
+        <div class="lbl">Mihon</div>
+        <div class="list">
+          <div class="li"><div class="grow"><div class="t">Dossier Mihon</div><div class="d mono" style="font-size:12.5px">/Documents/Mihon</div></div><button class="btn sm ghost">Changer</button></div>
+          <div class="li"><div class="grow"><div class="t">Sauvegarde Mihon</div><div class="d">Lue aujourd'hui 03:00 · 142 séries, 7 catégories</div></div><button class="btn sm ghost">Relire</button></div>
+        </div>
+
+        <div class="lbl">Compte</div>
+        <div class="list">
+          <div class="li"><div class="grow"><div class="t">Google Drive</div><div class="d">vous@gmail.com</div></div><button class="btn sm ghost">Changer</button></div>
+        </div>
+
+        <details class="adv" style="margin-top:22px">
+          <summary class="between card" style="padding:14px 16px;list-style:none;cursor:pointer"><span><b style="font-size:15.5px">Avancé</b><span style="display:block;font-size:13px;color:var(--muted);margin-top:2px">Connexion directe, Drive, réinstallation, journaux</span></span><svg class="i chev"><use href="#chevd"/></svg></summary>
+          <div class="list" style="margin-top:10px">
+            <div class="li"><div class="grow"><div class="t">Connexion directe (Tailscale)</div><div class="d">Associée · 100.64.0.12:8765</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Conservation sur Drive</div><div class="d">Jamais supprimer</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Dossier Drive</div><div class="d mono" style="font-size:12.5px">App/TranslateMyManga/</div></div></div>
+            <div class="li"><div class="grow"><div class="t">Refaire l'installation</div><div class="d">3 étapes, rien n'est effacé</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Journaux</div><div class="d">7 derniers jours · 240 Ko</div></div><button class="btn sm ghost">Exporter</button></div>
+          </div>
+        </details>
+        <div style="text-align:center;font-size:12.5px;color:var(--muted);margin-top:18px">TMM Mobile 1.3.1 · protocole v1</div>
+      </div>
+      <nav class="tabbar">
+        <div class="tab"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">8</span></div>
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+    </div></div>
+    <div class="notes">
+      <span class="tag">Écran 8</span>
+      <h3>Réglages</h3>
+      <p class="sub">Interactif : « Avancé » se déplie. Devient un onglet au lieu d'une icône discrète sur l'Accueil.</p>
+      <ul>
+        <li class="keep"><b>Carte PC</b> : « En ligne » devient « Allumé · vu il y a 17 s ». La pastille « Direct » / « Via Drive » résume l'état Tailscale sans ouvrir la section.</li>
+        <li class="keep"><b>Traduction en tête</b> : langues et moteur sont les deux réglages qu'on change vraiment. Le reste est derrière « Tous les réglages du PC » (écran 9).</li>
+        <li class="move"><b>Séries suivies</b> : liste des séries en suivi, pour en retirer une sans passer par chaque fiche.</li>
+        <li class="move"><b>Sauvegarde Mihon + « Relire »</b> : arrivés du Catalogue.</li>
+        <li class="move"><b>Avancé</b> : connexion directe Tailscale (adresse, code d'appairage, Oublier ce PC), conservation Drive, dossier Drive, réinstallation, journaux.</li>
+        <li class="cut"><b>« Le PC écrit sur Drive toutes les minutes »</b> et « protocole v1 » en carte : détails techniques, gardés seulement dans le pied de page.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= 9. RÉGLAGES DE TRADUCTION ================= -->
+  <h2>9 · Réglages de traduction du PC<small>14 réglages techniques : 5 visibles, 9 rangés par thème.</small></h2>
+  <div class="board">
+    <div class="phone"><div class="screen">
+      <div class="sbar"><span>9:41</span><span class="r"><svg class="i" style="width:16px;height:16px"><use href="#wifi"/></svg><span class="bat"></span></span></div>
+      <div class="scroll">
+        <div class="row" style="gap:4px;color:var(--muted)"><svg class="i"><use href="#back"/></svg><span style="font-size:15px">Réglages</span></div>
+        <div class="h1" style="font-size:34px;margin-top:14px">Traduction</div>
+        <div class="row" style="margin-top:10px;gap:8px;font-size:13.5px;color:var(--green);font-weight:600"><svg class="i" style="width:18px;height:18px"><use href="#check"/></svg>Appliqué sur PC-BUREAU, sans redémarrage</div>
+
+        <div class="lbl">L'essentiel</div>
+        <div class="list">
+          <div class="li"><div class="grow"><div class="t">Langue d'origine</div><div class="d">Détection automatique</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          <div class="li"><div class="grow"><div class="t">Traduire en</div><div class="d">Français</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          <div class="li"><div class="grow"><div class="t">Moteur</div><div class="d">Google Gemini 2.5 Flash · recommandé</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          <div class="li"><div class="grow"><div class="t">Corriger les oublis après chaque chapitre</div><div class="d">Repasse sur les bulles restées en VO</div></div><span class="switch on"></span></div>
+          <div class="li"><div class="grow"><div class="t">Si le moteur échoue</div><div class="d">Basculer sur le LLM local (Ollama)</div></div><span class="switch on"></span></div>
+        </div>
+
+        <details class="adv" style="margin-top:14px">
+          <summary class="between card" style="padding:14px 16px;list-style:none;cursor:pointer"><span><b style="font-size:15.5px">Vitesse</b><span style="display:block;font-size:13px;color:var(--muted);margin-top:2px">4 chapitres à la fois · carte graphique</span></span><svg class="i chev"><use href="#chevd"/></svg></summary>
+          <div class="list" style="margin-top:10px">
+            <div class="li" style="flex-direction:column;align-items:stretch;gap:10px"><div class="between"><span class="t">Chapitres à la fois</span><span class="d">4</span></div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);background:var(--chip);border-radius:12px;padding:4px;gap:4px;text-align:center;font-weight:600"><span style="padding:8px">1</span><span style="padding:8px">2</span><span style="padding:8px">3</span><span style="padding:8px;background:var(--ink);color:#fff;border-radius:9px">4</span></div></div>
+            <div class="li"><div class="grow"><div class="t">Pages à la fois</div><div class="d">2 par chapitre · recommandé</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Pages par envoi au moteur</div><div class="d">3 · plus de contexte si élevé</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Carte graphique</div><div class="d">DirectML / CUDA</div></div><span class="switch on"></span></div>
+          </div>
+        </details>
+        <details class="adv" style="margin-top:10px">
+          <summary class="between card" style="padding:14px 16px;list-style:none;cursor:pointer"><span><b style="font-size:15.5px">Rendu des pages</b><span style="display:block;font-size:13px;color:var(--muted);margin-top:2px">Police Anime Ace · effacement LaMa Large</span></span><svg class="i chev"><use href="#chevd"/></svg></summary>
+          <div class="list" style="margin-top:10px">
+            <div class="li"><div class="grow"><div class="t">Police</div><div class="d">Anime Ace</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Effacement du texte</div><div class="d">LaMa Large</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Taille d'effacement</div><div class="d">1280 px · recommandé</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          </div>
+        </details>
+        <details class="adv" style="margin-top:10px">
+          <summary class="between card" style="padding:14px 16px;list-style:none;cursor:pointer"><span><b style="font-size:15.5px">Lecture des bulles</b><span style="display:block;font-size:13px;color:var(--muted);margin-top:2px">Détecteur et OCR automatiques</span></span><svg class="i chev"><use href="#chevd"/></svg></summary>
+          <div class="list" style="margin-top:10px">
+            <div class="li"><div class="grow"><div class="t">Détecteur de bulles</div><div class="d">Comic-Text-Detector · automatique</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+            <div class="li"><div class="grow"><div class="t">Reconnaissance du texte (OCR)</div><div class="d">Automatique · Manga-OCR + PaddleOCR</div></div><svg class="i chev"><use href="#chev"/></svg></div>
+          </div>
+        </details>
+        <div style="font-size:12.5px;color:var(--muted);margin:16px 4px 0;line-height:1.5">Les clés API restent sur le PC. Un changement s'applique aux pages suivantes, sans interrompre les chapitres en cours.</div>
+      </div>
+      <nav class="tabbar">
+        <div class="tab"><span class="pill"><svg class="i"><use href="#home"/></svg></span>Accueil</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#grid"/></svg></span>Bibliothèque</div>
+        <div class="tab"><span class="pill"><svg class="i"><use href="#pulse"/></svg></span>Activité<span class="badge">8</span></div>
+        <div class="tab on"><span class="pill"><svg class="i"><use href="#gear"/></svg></span>Réglages</div>
+      </nav>
+    </div></div>
+    <div class="notes">
+      <span class="tag">Écran 9</span>
+      <h3>Traduction sur le PC</h3>
+      <p class="sub">Interactif : les trois groupes se déplient. Mêmes valeurs, mêmes commandes envoyées au PC.</p>
+      <ul>
+        <li class="keep"><b>L'essentiel (5)</b> : langues, moteur, vérification automatique, secours LLM local. Ce sont les seuls qui changent le résultat visible.</li>
+        <li class="keep"><b>Libellés en action</b> : « Vérifier automatiquement » devient « Corriger les oublis après chaque chapitre », « Secours LLM local » devient « Si le moteur échoue ».</li>
+        <li class="move"><b>Vitesse</b> : chapitres et pages simultanés, pages par envoi, carte graphique.</li>
+        <li class="move"><b>Rendu</b> et <b>Lecture des bulles</b> : l'ancien bloc unique « Vision avancée (5 réglages) » coupé en deux thèmes compréhensibles.</li>
+        <li class="keep"><b>État de synchro</b> : le gros bandeau noir devient une ligne verte. « En attente du PC » et « lecture seule » gardent un bandeau ambre, car là il faut agir.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= STATUTS ================= -->
+  <h2>Statuts : un mot pour chaque cas<small>Correspondance complète avec <code style="font-family:var(--f-mono)">ChapterStatus</code> et le trou dans la suite. Aucun état n'est fusionné ni caché.</small></h2>
+  <div class="statusmap">
+    <div class="sm"><code>TO_SEND</code><span class="arr">→</span><span class="st-pill s-todo">À traduire</span><span><small>Téléchargé dans Mihon, jamais envoyé</small></span></div>
+    <div class="sm"><code>NOT_TRANSLATED</code><span class="arr">→</span><span class="st-pill s-wait">Sur le PC, pas traduit</span><span><small>Copié sans traduction</small></span></div>
+    <div class="sm"><code>QUEUED</code><span class="arr">→</span><span class="st-pill s-wait">En attente du PC</span><span><small>Envoi en cours ou dans la file</small></span></div>
+    <div class="sm"><code>TRANSLATING</code><span class="arr">→</span><span class="st-pill s-busy">Traduction 45 %</span><span><small>Pourcentage des pages</small></span></div>
+    <div class="sm"><code>FAILED</code><span class="arr">→</span><span class="st-pill s-fail">Échec page 12</span><span><small>Mène à « Reprendre »</small></span></div>
+    <div class="sm"><code>TO_FETCH</code><span class="arr">→</span><span class="st-pill s-get">Prête à installer</span><span><small>S'installe seule ou via « Installer »</small></span></div>
+    <div class="sm"><code>UP_TO_DATE</code><span class="arr">→</span><span class="st-pill s-ok">Dans Mihon</span><span><small>VF dans la bibliothèque locale</small></span></div>
+    <div class="sm"><code>CATALOG_ONLY</code><span class="arr">→</span><span class="st-pill s-absent">Pas téléchargé</span><span><small>Connu de Mihon, absent du téléphone</small></span></div>
+    <div class="sm"><code>gap</code><span class="arr">→</span><span class="st-pill s-gap">Manquant</span><span><small>Absent partout, trou dans la suite</small></span></div>
+  </div>
+
+  <!-- ================= CORRESPONDANCE ================= -->
+  <h2>Où est passée chaque action ?<small>Tous les événements (<code style="font-family:var(--f-mono)">*Event</code>) de la v1.3.0. <span class="t-same">Inchangé</span> · <span class="t-mv">Déplacé</span> · <span class="t-ren">Renommé ou regroupé</span> · <span class="t-new">À câbler</span></small></h2>
+  <div class="map-wrap"><table class="map">
+    <thead><tr><th>Aujourd'hui</th><th>Action</th><th>En v2</th></tr></thead>
+    <tbody>
+      <tr><td class="grp" colspan="3">Accueil</td></tr>
+      <tr><td>Refresh</td><td>Bouton rafraîchir</td><td><span class="t-same">Inchangé</span>, absorbe aussi « Rescanner » de Transferts</td></tr>
+      <tr><td>SendPending</td><td>« Envoyer » (11 chapitres)</td><td><span class="t-ren">« Traduire »</span>, ouvre la feuille Traduire précochée, envoie avec traduction</td></tr>
+      <tr><td>FetchTranslated</td><td>« Récupérer »</td><td><span class="t-ren">« Installer »</span>, même appel</td></tr>
+      <tr><td>Raccourcis</td><td>Nouvelle traduction, Scanner Mihon</td><td><span class="t-ren">Retirés</span>, doublons de « Traduire » et Actualiser</td></tr>
+      <tr><td class="grp" colspan="3">Bibliothèque</td></tr>
+      <tr><td>QueryChanged</td><td>Recherche</td><td><span class="t-same">Inchangé</span></td></tr>
+      <tr><td>SelectCategory</td><td>Puces catégories</td><td><span class="t-mv">Puce « Catégorie » + feuille Filtres</span></td></tr>
+      <tr><td>SelectView</td><td>Toutes / À traduire / Téléchargées / Sur le PC / Non téléchargées</td><td><span class="t-mv">3 en puces, 2 dans la feuille Filtres</span>, + « Suivies »</td></tr>
+      <tr><td>SelectSort, Open/CloseFilters</td><td>Feuille Trier et filtrer</td><td><span class="t-same">Inchangé</span>, enrichie des catégories</td></tr>
+      <tr><td>TogglePicking, ToggleSelected, ToggleSelectAll</td><td>Mode sélection</td><td><span class="t-same">Inchangé</span></td></tr>
+      <tr><td>SendToPc, FetchToMihon, VerifyPending, RequestRetranslate, ConfirmRetranslate</td><td>4 boutons de sélection</td><td><span class="t-ren">Feuille « Plus d'actions »</span> (écran 4)</td></tr>
+      <tr><td class="grp" colspan="3">Fiche série</td></tr>
+      <tr><td>ToggleChapter, ClearSelection</td><td>Cases à cocher</td><td><span class="t-same">Inchangé</span>, après « Sélectionner »</td></tr>
+      <tr><td>SelectTodo</td><td>« Tout ce qui reste à faire »</td><td><span class="t-ren">Gros bouton « Traduire N chapitres »</span></td></tr>
+      <tr><td>ToggleStats</td><td>Détail d'un chapitre</td><td><span class="t-same">Inchangé</span> (toucher la ligne)</td></tr>
+      <tr><td>DismissGap</td><td>Ignorer le trou</td><td><span class="t-same">Inchangé</span></td></tr>
+      <tr><td>SendToPc, FetchToMihon, VerifyPending, RequestRetranslateSelection</td><td>Barre de sélection à 4 à 6 boutons</td><td><span class="t-ren">Bouton principal + feuille « Plus d'actions »</span></td></tr>
+      <tr><td>OpenSeriesSheet, SeriesSend/Fetch/Verify/RetranslateAll</td><td>« Toute la série »</td><td><span class="t-mv">Bouton « ··· »</span>, même feuille appliquée à toute la série</td></tr>
+      <tr><td>RequestDelete, ToggleDeleteTarget, ConfirmDelete</td><td>Supprimer</td><td><span class="t-same">Inchangé</span>, dans « Plus d'actions »</td></tr>
+      <tr><td>(aucun)</td><td>Suivi automatique par série</td><td><span class="t-new">Interrupteur « Suivre cette série »</span>, écrit <code>SeriesSettingsEntity.autoTranslate</code></td></tr>
+      <tr><td class="grp" colspan="3">Transferts (écran supprimé)</td></tr>
+      <tr><td>SendUp</td><td>« Envoyer 12 chapitres »</td><td><span class="t-mv">Accueil « Traduire »</span></td></tr>
+      <tr><td>GetDown</td><td>« Télécharger 8 chapitres ici »</td><td><span class="t-mv">Accueil « Installer »</span></td></tr>
+      <tr><td>Rescan</td><td>« Rescanner »</td><td><span class="t-mv">Accueil, bouton Actualiser</span></td></tr>
+      <tr><td>ToggleAutoTranslate</td><td>« Traduire dès l'arrivée sur le PC »</td><td><span class="t-ren">Remplacé</span> par deux actions explicites : « Traduire » et « Copier sur le PC sans traduire »</td></tr>
+      <tr><td>Transferts en cours</td><td>Envoi 98 %, téléchargement</td><td><span class="t-mv">Activité, onglet En cours</span></td></tr>
+      <tr><td>Chapitres manquants</td><td>Carte « 2 chapitres manquants »</td><td><span class="t-mv">Ligne sur l'Accueil</span></td></tr>
+      <tr><td class="grp" colspan="3">File (devient Activité)</td></tr>
+      <tr><td>SelectTab</td><td>En cours / Terminées / Échecs</td><td><span class="t-same">Inchangé</span></td></tr>
+      <tr><td>FocusJob</td><td>Toucher un chapitre en cours</td><td><span class="t-same">Inchangé</span>, la carte noire suit le chapitre touché</td></tr>
+      <tr><td>RemoveWaitingJob</td><td>× sur « Ensuite »</td><td><span class="t-same">Inchangé</span></td></tr>
+      <tr><td>ToggleDoneJobDetails, VerifyPage</td><td>« Vérifier la page »</td><td><span class="t-ren">« Corriger la page »</span></td></tr>
+      <tr><td>RetryFailedJob</td><td>« Réessayer à partir de la page 12 »</td><td><span class="t-ren">« Reprendre à la page 12 »</span></td></tr>
+      <tr><td>Bouton +</td><td>Ouvre la Bibliothèque en sélection</td><td><span class="t-ren">Ouvre la feuille Traduire</span></td></tr>
+      <tr><td class="grp" colspan="3">Catalogue (écran supprimé)</td></tr>
+      <tr><td>Reimport, SetImportStep</td><td>« Relire la dernière sauvegarde »</td><td><span class="t-mv">Réglages, Mihon, « Relire »</span> (mêmes étapes de progression)</td></tr>
+      <tr><td>Toucher une catégorie</td><td>Bibliothèque filtrée</td><td><span class="t-mv">Feuille Filtres de la Bibliothèque</span></td></tr>
+      <tr><td class="grp" colspan="3">Nouvelle traduction</td></tr>
+      <tr><td>UpdateQuery, SelectSeries, BackToSeries</td><td>Étape 1 : choix de la série</td><td><span class="t-ren">Séries dépliables</span> dans une seule étape</td></tr>
+      <tr><td>ToggleChapter, ToggleAllChapters</td><td>Étape 2 : chapitres</td><td><span class="t-same">Inchangé</span>, case de série = tout cocher</td></tr>
+      <tr><td>ToggleTranslateOnArrival</td><td>« Traduire à l'arrivée »</td><td><span class="t-ren">Lien « copier sur le PC sans traduire »</span></td></tr>
+      <tr><td>Send</td><td>« Envoyer N chapitres »</td><td><span class="t-ren">« Traduire N chapitres »</span></td></tr>
+      <tr><td class="grp" colspan="3">Réglages</td></tr>
+      <tr><td>ChangeGoogleAccount</td><td>Compte</td><td><span class="t-same">Inchangé</span>, section Compte</td></tr>
+      <tr><td>ChangeMihonFolder</td><td>Dossier Mihon</td><td><span class="t-same">Inchangé</span></td></tr>
+      <tr><td>Set/ToggleWifiOnly</td><td>Wi-Fi uniquement</td><td><span class="t-same">Inchangé</span>, section Envois</td></tr>
+      <tr><td>CycleDriveRetention</td><td>Conservation sur Drive</td><td><span class="t-mv">Avancé</span></td></tr>
+      <tr><td>DirectUrlChanged, PairingCodeChanged, Pair, ForgetPc</td><td>Connexion directe</td><td><span class="t-mv">Avancé, sous-écran Connexion directe</span></td></tr>
+      <tr><td>ExportLogs</td><td>Journaux</td><td><span class="t-mv">Avancé</span></td></tr>
+      <tr><td>Refaire l'installation</td><td>Onboarding</td><td><span class="t-mv">Avancé</span></td></tr>
+      <tr><td class="grp" colspan="3">Traduction sur le PC</td></tr>
+      <tr><td>SelectSource/TargetLanguage, SelectTranslationProvider</td><td>Langues, moteur</td><td><span class="t-same">Inchangé</span>, groupe L'essentiel</td></tr>
+      <tr><td>SetAutoVerify, SetAutoFailover</td><td>Vérifier auto, Secours LLM</td><td><span class="t-ren">Renommés</span>, groupe L'essentiel</td></tr>
+      <tr><td>SetChapterConcurrency, SetConcurrency, SetPileSize, SetUseGpu</td><td>Performance</td><td><span class="t-mv">Groupe Vitesse</span></td></tr>
+      <tr><td>SelectFont, SelectInpainter, SelectInpaintingSize</td><td>Vision avancée</td><td><span class="t-mv">Groupe Rendu des pages</span></td></tr>
+      <tr><td>SelectDetector, SelectPreferredOcr</td><td>Vision avancée</td><td><span class="t-mv">Groupe Lecture des bulles</span></td></tr>
+      <tr><td class="grp" colspan="3">Écrans inchangés</td></tr>
+      <tr><td>Onboarding</td><td>3 étapes Google, Mihon, sauvegarde</td><td><span class="t-same">Inchangé</span>. Il porte le schéma Téléphone, Drive, PC retiré d'Activité</td></tr>
+      <tr><td>Permission, Vide, Hors ligne</td><td>États système et bandeaux</td><td><span class="t-same">Inchangés</span>, vocabulaire aligné (« PC éteint » au lieu de « PC hors ligne »)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>À décider avant de coder<small>Les seuls points où la maquette touche au comportement, pas seulement à l'affichage.</small></h2>
+  <div class="principles">
+    <div class="pr"><span class="n">A</span><b>« Traduire » traduit vraiment</b><span>Le bouton de l'Accueil envoie aujourd'hui avec la préférence « Traduire à l'arrivée », fausse par défaut depuis la v1.3.0 : il copie sans traduire. En v2 il traduit, et la copie seule devient un lien. La préférence globale n'a plus d'interface.</span></div>
+    <div class="pr"><span class="n">B</span><b>Suivre : rattrapage ou non</b><span>Le moteur actuel envoie aussi les chapitres déjà téléchargés de la série. Option 1 : l'annoncer (maquette). Option 2 : ne prendre que les chapitres téléchargés après l'activation, ce qui demande de mémoriser une date de départ.</span></div>
+    <div class="pr"><span class="n">C</span><b>Suivre : quand ça part</b><span>Sans tâche périodique, le suivi n'agit qu'à l'ouverture de TMM ou à l'actualisation. Le texte le dit. Une tâche WorkManager périodique serait une vraie nouveauté, hors périmètre.</span></div>
+    <div class="pr"><span class="n">D</span><b>Écrans de référence</b><span>Ces maquettes ne remplacent pas encore les <code>.dc.html</code> : Roborazzi compare toujours aux captures de <code>maquettes/captures/</code>. À mettre à jour écran par écran si la v2 est retenue.</span></div>
+  </div>
+
+  <p class="foot">Maquette autonome, sans dépendance à <code>support.js</code>. Palette <code>TmmColors</code>, polices Bricolage Grotesque, IBM Plex Sans et IBM Plex Mono, icônes dessinées à la main comme <code>TmmIcons</code>. Téléphone 390 × 844, mêmes mesures que les maquettes d'origine.</p>
+</main>
+
+<template id="follow-tpl">
+  <div class="grab"></div>
+  <div class="kick">Blue Lock</div>
+  <div class="ttl">Suivre cette série ?</div>
+  <div style="margin-top:18px;display:flex;flex-direction:column;gap:0">
+    <div class="row" style="align-items:flex-start;gap:14px"><div style="width:36px;height:36px;border-radius:18px;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none;font-weight:600">1</div><div style="padding-top:6px"><b style="font-size:15px">Mihon télécharge un nouveau chapitre</b><div style="font-size:13.5px;color:var(--muted);margin-top:2px">Comme d'habitude, rien à changer.</div></div></div>
+    <div style="width:2px;height:16px;background:var(--line);margin-left:17px"></div>
+    <div class="row" style="align-items:flex-start;gap:14px"><div style="width:36px;height:36px;border-radius:18px;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none;font-weight:600">2</div><div style="padding-top:6px"><b style="font-size:15px">TMM l'envoie au PC</b><div style="font-size:13.5px;color:var(--muted);margin-top:2px">À la prochaine ouverture de TMM ou actualisation.</div></div></div>
+    <div style="width:2px;height:16px;background:var(--line);margin-left:17px"></div>
+    <div class="row" style="align-items:flex-start;gap:14px"><div style="width:36px;height:36px;border-radius:18px;background:var(--green);color:#fff;display:grid;place-items:center;flex:none"><svg class="i" style="width:18px;height:18px"><use href="#check"/></svg></div><div style="padding-top:6px"><b style="font-size:15px">La VF arrive dans Mihon</b><div style="font-size:13.5px;color:var(--muted);margin-top:2px">Bibliothèque locale, sans rien toucher.</div></div></div>
+  </div>
+  <div class="card" style="margin-top:18px;padding:14px;background:var(--amberSoft);border-color:#E8D29A">
+    <div class="row" style="align-items:flex-start"><svg class="i" style="color:var(--amber);margin-top:1px"><use href="#info"/></svg><div style="font-size:13.5px;line-height:1.45"><b>1 chapitre déjà téléchargé partira aussi</b> (ch. 214), car il n'est pas encore traduit.</div></div>
+  </div>
+  <button class="btn red block follow-ok" style="margin-top:16px"><svg class="i"><use href="#bolt"/></svg>Suivre Blue Lock</button>
+  <button class="btn block follow-cancel" style="margin-top:6px;color:var(--muted)">Annuler</button>
+</template>
+
+<style>
+.segb{flex:1;height:44px;border-radius:12px;font-weight:600;font-size:14.5px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:7px}
+.segb em{font-style:normal;min-width:22px;height:22px;border-radius:11px;background:var(--sand);color:var(--ink);font-size:12px;display:grid;place-items:center;padding:0 6px}
+.segb em.r{background:var(--red);color:#fff}
+.segb.on{background:var(--white);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.segb.on em{background:var(--ink);color:#fff}
+details.adv[open] summary .chev{transform:rotate(180deg)}
+details.adv summary::-webkit-details-marker{display:none}
+.follow-ic{width:40px;height:40px;border-radius:12px;background:var(--chip);display:grid;place-items:center;flex:none}
+.follow-desc{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+.follow.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.follow.on .follow-ic{background:#2E2D29;color:var(--greenLight)}
+.follow.on .follow-desc{color:#CFC8B8}
+.follow.on .switch{background:var(--green)}
+</style>
+<script>
+// Feuille "Suivre" : modèle unique, copie statique (écran 5) et version interactive (écran 3).
+const tpl = document.getElementById('follow-tpl');
+document.getElementById('follow-sheet-static').appendChild(tpl.content.cloneNode(true));
+
+const sheet = document.getElementById('follow-sheet');
+const scrim = document.getElementById('follow-scrim');
+sheet.appendChild(tpl.content.cloneNode(true));
+const followCard = document.querySelector('.follow');
+const followSwitch = document.querySelector('.follow-switch');
+const desc = followCard.querySelector('.follow-desc');
+const descOff = desc.textContent;
+const cta = document.querySelector('.follow-cta');
+function closeSheet(){ sheet.hidden = true; scrim.hidden = true; }
+followSwitch.addEventListener('click', () => {
+  if (followSwitch.classList.contains('on')) {
+    followSwitch.classList.remove('on'); followCard.classList.remove('on'); desc.textContent = descOff; cta.hidden = false;
+  } else { sheet.hidden = false; scrim.hidden = false; }
+});
+sheet.querySelector('.follow-ok').addEventListener('click', () => {
+  followSwitch.classList.add('on'); followCard.classList.add('on'); cta.hidden = true;
+  desc.textContent = 'Prochain chapitre attendu : 215. Il partira à la prochaine ouverture de TMM après son téléchargement.';
+  closeSheet();
+});
+sheet.querySelector('.follow-cancel').addEventListener('click', closeSheet);
+scrim.addEventListener('click', closeSheet);
+
+// Onglets Activité
+const act = document.getElementById('activity');
+act.querySelectorAll('.segb').forEach(b => b.addEventListener('click', () => {
+  act.querySelectorAll('.segb').forEach(x => x.classList.toggle('on', x === b));
+  act.querySelectorAll('.panel').forEach(p => p.hidden = p.dataset.panel !== b.dataset.tab);
+}));
+</script>
+</body>
+</html>

@@ -6,10 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable object OnboardingRoute
 @Serializable object HomeRoute
 @Serializable data class LibraryRoute(val picking: Boolean = false)
-@Serializable data class LibraryFilteredRoute(val categoryOrder: Long)
-@Serializable object TransfersRoute
 @Serializable object QueueRoute
-@Serializable object CatalogRoute
 @Serializable data class SeriesRoute(val seriesKey: String)
 @Serializable object SettingsRoute
 @Serializable object TranslationSettingsRoute

@@ -42,7 +42,6 @@ import com.tmm.mobile.ui.components.OfflineBannerState
 import com.tmm.mobile.ui.components.TmmBottomBar
 import com.tmm.mobile.ui.components.TmmBottomBarItem
 import com.tmm.mobile.ui.icons.TmmIconId
-import com.tmm.mobile.ui.screens.catalog.CatalogRoute as CatalogScreenRoute
 import com.tmm.mobile.ui.screens.library.LibraryRoute as LibraryScreenRoute
 import com.tmm.mobile.ui.screens.main.MainRoute as HomeScreenRoute
 import com.tmm.mobile.ui.screens.onboarding.OnboardingRoute as OnboardingScreenRoute
@@ -50,7 +49,7 @@ import com.tmm.mobile.ui.screens.permission.PermissionRoute as PermissionScreenR
 import com.tmm.mobile.ui.screens.queue.QueueRoute as QueueScreenRoute
 import com.tmm.mobile.ui.screens.series.SeriesRoute as SeriesScreenRoute
 import com.tmm.mobile.ui.screens.settings.SettingsRoute as SettingsScreenRoute
-import com.tmm.mobile.ui.screens.transfers.SyncRoute as TransfersScreenRoute
+import com.tmm.mobile.ui.screens.translate.TranslateSheetHost
 import com.tmm.mobile.ui.screens.translationsettings.TranslationSettingsRoute as TranslationSettingsScreenRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
@@ -59,13 +58,13 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
-private val tabRouteOf = listOf(HomeRoute::class, LibraryRoute::class, TransfersRoute::class, QueueRoute::class, CatalogRoute::class)
+// Maquette v2 : 4 onglets. Activite = File + Transferts ; Reglages devient un onglet.
+private val tabRouteOf = listOf(HomeRoute::class, LibraryRoute::class, QueueRoute::class, SettingsRoute::class)
 private val tabItems = listOf(
-    TmmIconId.Home to "Accueil",
-    TmmIconId.Grid to "Bibliothèque",
-    TmmIconId.Sync to "Transferts",
-    TmmIconId.List to "File",
-    TmmIconId.Inbox to "Catalogue",
+    TmmIconId.V2Home to "Accueil",
+    TmmIconId.V2Grid to "Bibliothèque",
+    TmmIconId.V2Pulse to "Activité",
+    TmmIconId.V2Gear to "Réglages",
 )
 
 // PLAN_GEMINI.md 5.19 : NavHost + barre + bandeaux ; Startup relance a chaque ON_START.
@@ -87,6 +86,16 @@ fun TmmRoot() {
                 StartupResult.ONBOARDING -> navController.navigateSingleTop(OnboardingRoute)
                 StartupResult.PERMISSION_NEEDED -> navController.navigateSingleTop(PermissionRoute)
                 StartupResult.DONE -> navController.navigateSingleTop(HomeRoute)
+            }
+        }
+    }
+
+    // Actualiser relance Startup hors ON_START : une permission Mihon perdue doit aussi y mener a l'ecran
+    // Permission (navigateSingleTop evite le doublon avec le rappel ON_START ci-dessus).
+    androidx.compose.runtime.LaunchedEffect(container.startup) {
+        container.startup.results.collect { result ->
+            if (result == StartupResult.PERMISSION_NEEDED && hasNavigatedOnce.value) {
+                navController.navigateSingleTop(PermissionRoute)
             }
         }
     }
@@ -139,11 +148,16 @@ fun TmmRoot() {
     // hasRoute compare via le serializer : KClass.qualifiedName est renomme par R8 en release
     // alors que la route garde le serialName d'origine (barre basse invisible en v1.0.2).
     val currentDestination = backStackEntry?.destination
-    val selectedTab = tabRouteOf.indexOfFirst { currentDestination?.hasRoute(it) == true }
-    val transfersBadge by remember { GlobalCounts.transfersBadgeCount(container.db) }.collectAsState(initial = 0)
+    val selectedTab = when {
+        currentDestination?.hasRoute<SeriesRoute>() == true -> 1
+        currentDestination?.hasRoute<TranslationSettingsRoute>() == true -> 3
+        else -> tabRouteOf.indexOfFirst { currentDestination?.hasRoute(it) == true }
+    }
+    val activityBadge by remember { GlobalCounts.activityBadgeCount(container.db) }.collectAsState(initial = 0)
 
     if (startupResult == null) return
 
+    TranslateSheetHost(container) {
     Column(modifier = Modifier.fillMaxSize()) {
         bannerState?.let { OfflineBanner(it) }
         Box(modifier = Modifier.weight(1f)) {
@@ -155,13 +169,7 @@ fun TmmRoot() {
                     val route: LibraryRoute = entry.toRoute()
                     LibraryScreenRoute(navController, categoryOrder = null, picking = route.picking)
                 }
-                composable<LibraryFilteredRoute> { entry ->
-                    val route: LibraryFilteredRoute = entry.toRoute()
-                    LibraryScreenRoute(navController, categoryOrder = route.categoryOrder)
-                }
-                composable<TransfersRoute> { TransfersScreenRoute(navController) }
                 composable<QueueRoute> { QueueScreenRoute(navController) }
-                composable<CatalogRoute> { CatalogScreenRoute(navController) }
                 composable<SeriesRoute> { entry ->
                     val route: SeriesRoute = entry.toRoute()
                     SeriesScreenRoute(navController, seriesKey = route.seriesKey)
@@ -173,16 +181,15 @@ fun TmmRoot() {
         if (selectedTab >= 0) {
             TmmBottomBar(
                 items = tabItems.mapIndexed { index, (icon, label) ->
-                    TmmBottomBarItem(icon, label, badgeCount = if (index == 2) transfersBadge.takeIf { it > 0 } else null)
+                    TmmBottomBarItem(icon, label, badgeCount = if (index == 2) activityBadge.takeIf { it > 0 } else null)
                 },
                 selectedIndex = selectedTab,
                 onSelect = { index ->
                     val target = when (index) {
                         0 -> HomeRoute
                         1 -> LibraryRoute()
-                        2 -> TransfersRoute
-                        3 -> QueueRoute
-                        else -> CatalogRoute
+                        2 -> QueueRoute
+                        else -> SettingsRoute
                     }
                     navController.navigate(target) {
                         popUpTo(HomeRoute) { saveState = true }
@@ -192,6 +199,7 @@ fun TmmRoot() {
                 },
             )
         }
+    }
     }
 }
 

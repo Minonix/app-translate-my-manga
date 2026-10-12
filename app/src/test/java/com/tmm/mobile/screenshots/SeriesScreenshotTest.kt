@@ -16,11 +16,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Captures Roborazzi de l'écran Fiche série (E4.3, Series.dc.html).
+ * Captures Roborazzi de la fiche série (maquette v2, écrans 3 à 5).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp")
+@Config(qualifiers = "w390dp-h844dp-xhdpi")
 class SeriesScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -36,17 +36,25 @@ class SeriesScreenshotTest {
     }
 
     @Test
-    fun seriesScreen_seriesActionsSheet() = capture("SeriesScreen_seriesActionsSheet") {
+    fun seriesScreen_selectionSheet() = capture("SeriesScreen_selectionSheet") {
         SeriesScreen(
-            state = MockupData.seriesDetail.copy(sheet = SeriesSheet.SeriesActions),
+            state = MockupData.seriesDetail.copy(selecting = true, sheet = SeriesSheet.More(allSeries = false)),
             onEvent = {},
         )
     }
 
     @Test
-    fun seriesScreen_confirmSheet() = capture("SeriesScreen_confirmSheet") {
+    fun seriesScreen_followSheet() = capture("SeriesScreen_followSheet") {
         SeriesScreen(
-            state = MockupData.seriesDetail.copy(sheet = SeriesSheet.Confirm(2)),
+            state = MockupData.seriesDetail.copy(sheet = SeriesSheet.Follow(listOf(214))),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun seriesScreen_followed() = capture("SeriesScreen_followed") {
+        SeriesScreen(
+            state = MockupData.seriesDetail.copy(followed = true, sentOnFollow = listOf(214), toTranslateNumbers = emptyList()),
             onEvent = {},
         )
     }
@@ -62,7 +70,7 @@ class SeriesScreenshotTest {
     @Test
     fun seriesScreen_toast() = capture("SeriesScreen_toast") {
         SeriesScreen(
-            state = MockupData.seriesDetail.copy(toast = SeriesToast.Sent(1)),
+            state = MockupData.seriesDetail.copy(toast = SeriesToast.Followed(1)),
             onEvent = {},
         )
     }

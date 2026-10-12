@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.ListenableWorker.Result
 import androidx.work.WorkerParameters
+import com.tmm.mobile.R
 import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.db.ChapterQualityEntity
@@ -31,7 +32,7 @@ private const val NOTIFICATION_ID_INSTALL = 2
 class InstallJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
-        transferForegroundInfo(applicationContext, NOTIFICATION_ID_INSTALL, "Reception en cours")
+        transferForegroundInfo(applicationContext, NOTIFICATION_ID_INSTALL, R.string.notification_receiving)
 
     override suspend fun doWork(): Result {
         val jobId = inputData.getString(KEY_JOB_ID) ?: return Result.failure()
@@ -49,19 +50,36 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             val fileId = requireNotNull(job.resultFileId) { "job sans resultFileId" }
 
             // PLAN_GEMINI.md 5.4 : RESULT_READY -> DOWNLOADING avant le reseau, ecrit avant l'appel (CdC 11.2).
-            if (job.phoneState != "DOWNLOADING") {
-                db.jobDao().upsert(job.copy(phoneState = "DOWNLOADING", updatedAt = clock.nowMillis()))
-            }
+            db.jobDao().upsert(job.copy(phoneState = "DOWNLOADING", transferredBytes = 0,
+                transferTotal = fileRef.size, updatedAt = clock.nowMillis()))
 
             val cacheDir = File(applicationContext.cacheDir, "jobs/${job.jobId}").apply { mkdirs() }
             val dest = File(cacheDir, "result.cbz")
-            container.router.forJob(job).downloadResult(job, fileId, dest) { _, _ -> }
+            var lastProgressWrite = 0L
+            container.router.forJob(job).downloadResult(job, fileId, dest) { received, total ->
+                val now = android.os.SystemClock.elapsedRealtime()
+                // total = -1 si la taille n'est pas annoncee : sans le test > 0, chaque bloc serait ecrit.
+                if ((total > 0 && received >= total) || now - lastProgressWrite >= 1000) {
+                    lastProgressWrite = now
+                    db.jobDao().get(jobId)?.takeIf { it.phoneState == "DOWNLOADING" }?.let { current ->
+                        db.jobDao().upsert(current.copy(transferredBytes = received,
+                            transferTotal = total.takeIf { it > 0 } ?: fileRef.size, updatedAt = clock.nowMillis()))
+                    }
+                }
+            }
 
             val actualSize = dest.length()
             val actualSha = sha256(dest)
             if (actualSize != fileRef.size || actualSha != fileRef.sha256) {
                 dest.delete()
                 return failOrRetry(jobId, db, clock, "sha256/taille du resultat different de resultJson.file")
+            }
+
+            // Le job a pu etre oublie ou change d'etat pendant le telechargement (remise a plat, suppression) :
+            // on n'installe pas un resultat que plus rien n'attend.
+            if (db.jobDao().get(jobId)?.phoneState != "DOWNLOADING") {
+                dest.parentFile?.deleteRecursively()
+                return Result.success()
             }
 
             val treeUri = Uri.parse(requireNotNull(container.prefs.mihonTreeUri.first()) { "aucun arbre Mihon configure" })
@@ -110,9 +128,14 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
                     ),
                 )
             }
+            // Relu plutot que `job` (lu avant le telechargement) : sinon l'ecriture finale remettait a zero
+            // la progression et ecrasait tout changement fait entre-temps sur la ligne.
+            val current = db.jobDao().get(jobId) ?: return Result.success()
             db.jobDao().upsert(
-                job.copy(
+                current.copy(
                     phoneState = "INSTALLED",
+                    transferredBytes = fileRef.size,
+                    transferTotal = fileRef.size,
                     installedAt = clock.nowMillis(),
                     installedPath = localPath,
                     updatedAt = clock.nowMillis(),

@@ -208,10 +208,10 @@ class DirectTransport(
                         if (read < 0) break
                         out.write(buffer, 0, read)
                         done += read
+                        onProgress(done, total)
                     }
                 }
             }
-            onProgress(done, total)
         }
     }
 

@@ -5,11 +5,15 @@ import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
 import com.tmm.mobile.data.db.SeriesCategoryEntity
+import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.db.SeriesSettingsEntity
+import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.flatten
 import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.ui.components.StatusTone
+import com.tmm.mobile.ui.screens.series.SeriesSheet
 import com.tmm.mobile.workers.WorkerTestEnvironment
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -100,18 +104,116 @@ class LibraryViewModelTest {
         assertEquals(listOf("Tous" to 2, "En cours" to 1), state.categories)
     }
 
-    @Test fun sendToPc_createsJobsForSelectedToSendChapters() = runTest {
+    /** Passe le chapitre unique de la serie en VF installee ; `originalOnPc` : l'original est encore sur le PC. */
+    private suspend fun markUpToDate(seriesKey: String, title: String, originalOnPc: Boolean) {
+        val chapterKey = "$seriesKey-1"
+        val mihonPath = MihonPath(MihonNaming.getSourceDirName("MangaSource"), MihonNaming.getMangaDirName(title), MihonNaming.getChapterDirName("Chapitre 1", null, "https://x/$chapterKey")).flatten()
+        env.db.localFrChapterDao().upsert(
+            LocalFrChapterEntity(localPath = "content://fr/$seriesKey", folderName = title, fileName = "1.cbz", documentUri = "content://fr/$seriesKey", lastModified = 0L, jobId = null, mihonPath = mihonPath),
+        )
+        if (originalOnPc) env.db.pcIndexChapterDao().insertAll(listOf(PcIndexChapterEntity(mihonPath, original = true, fr = true)))
+    }
+
+    private suspend fun openMoreFor(vm: LibraryViewModel, vararg keys: String): LibraryActions {
+        vm.state.first { s -> keys.all { k -> s.allSeries.any { it.seriesKey == k } } }
+        keys.forEach { vm.onEvent(LibraryEvent.ToggleSelected(seriesKey = it)) }
+        vm.state.first { it.selected.size == keys.size }
+        vm.onEvent(LibraryEvent.OpenMore)
+        return vm.state.first { it.actions != null }.actions!!
+    }
+
+    // « Corriger les oublis » ne compte que les chapitres en VF dont l'original est sur le PC
+    // (canReprocess), pas tous les chapitres des series choisies (le « 1122 au lieu de 1 »).
+    @Test fun openMore_countsWithSeriesPredicates() = runTest {
+        seedSeriesWithOneChapterToSend("blue-lock", "Blue Lock")
+        seedSeriesWithOneChapterToSend("dandadan", "Dandadan")
+        markUpToDate("dandadan", "Dandadan", originalOnPc = true)
+        seedSeriesWithOneChapterToSend("frieren", "Frieren")
+        markUpToDate("frieren", "Frieren", originalOnPc = false)
+        env.db.seriesSettingsDao().upsert(SeriesSettingsEntity("frieren", autoTranslate = true))
+        val vm = LibraryViewModel(env.container, initialCategoryOrder = null)
+        vm.state.first { it.details["frieren"]?.followed == true }
+
+        val actions = openMoreFor(vm, "blue-lock", "dandadan", "frieren")
+
+        assertEquals(1, actions.counts.verify)
+        assertEquals(1, actions.counts.retranslate)
+        assertEquals(1, actions.counts.copy)
+        assertEquals(0, actions.counts.install)
+        assertEquals(2, actions.toFollow)
+        assertEquals(3, actions.deletable)
+    }
+
+    // A : « Copier sur le PC sans traduire » part avec translate = false.
+    @Test fun copyToPc_createsUntranslatedJobs() = runTest {
         seedSeriesWithOneChapterToSend("blue-lock", "Blue Lock")
         val vm = LibraryViewModel(env.container, initialCategoryOrder = null)
-        vm.state.first { it.allSeries.isNotEmpty() }
-        vm.onEvent(LibraryEvent.ToggleSelected("Blue Lock"))
-        vm.state.first { "Blue Lock" in it.selected }
+        openMoreFor(vm, "blue-lock")
 
-        vm.onEvent(LibraryEvent.SendToPc)
+        vm.onEvent(LibraryEvent.CopyToPc)
         val state = vm.state.first { it.toast != null }
 
-        assertEquals(LibraryToast.Sent(1), state.toast)
-        assertEquals(1, env.db.jobDao().observeAll().first().size)
+        assertEquals(LibraryToast.Copied(1), state.toast)
+        // L'action ferme la feuille « Que faire ? » et termine la selection.
+        assertEquals(false, state.moreOpen)
+        assertEquals(false, state.picking)
+        assertEquals(false, env.db.jobDao().observeAll().first().single().translate)
+    }
+
+    @Test fun verify_sendsOnlyReprocessableChapters() = runTest {
+        seedSeriesWithOneChapterToSend("blue-lock", "Blue Lock")
+        seedSeriesWithOneChapterToSend("dandadan", "Dandadan")
+        markUpToDate("dandadan", "Dandadan", originalOnPc = true)
+        val vm = LibraryViewModel(env.container, initialCategoryOrder = null)
+        openMoreFor(vm, "blue-lock", "dandadan")
+
+        vm.onEvent(LibraryEvent.Verify)
+        val state = vm.state.first { it.toast != null }
+
+        assertEquals(LibraryToast.Verified(1), state.toast)
+        val job = env.db.jobDao().observeAll().first().single()
+        assertEquals("dandadan", job.seriesKey)
+        assertEquals(JobMode.VERIFY, job.mode)
+    }
+
+    // B, option 1 : suivre plusieurs series envoie aussi leurs chapitres deja telecharges.
+    @Test fun follow_enablesAutoTranslateAndSendsDownloadedChapters() = runTest {
+        seedSeriesWithOneChapterToSend("blue-lock", "Blue Lock")
+        seedSeriesWithOneChapterToSend("kagurabachi", "Kagurabachi")
+        val vm = LibraryViewModel(env.container, initialCategoryOrder = null)
+        openMoreFor(vm, "blue-lock", "kagurabachi")
+
+        vm.onEvent(LibraryEvent.Follow)
+        val state = vm.state.first { it.toast != null }
+
+        assertEquals(LibraryToast.Followed(seriesCount = 2, chapterCount = 2), state.toast)
+        assertEquals(setOf("blue-lock", "kagurabachi"), env.db.seriesSettingsDao().observeAutoTranslateSeriesKeys().first().toSet())
+        assertEquals(2, env.db.jobDao().observeAll().first().count { it.translate })
+    }
+
+    @Test fun delete_removesLocalFrOfSelectedSeries() = runTest {
+        seedSeriesWithOneChapterToSend("dandadan", "Dandadan")
+        markUpToDate("dandadan", "Dandadan", originalOnPc = false)
+        val vm = LibraryViewModel(env.container, initialCategoryOrder = null)
+        openMoreFor(vm, "dandadan")
+
+        vm.onEvent(LibraryEvent.RequestDelete)
+        assertEquals(SeriesSheet.Delete(1, 0), vm.state.first { it.delete != null }.delete)
+        vm.onEvent(LibraryEvent.ConfirmDelete)
+        val state = vm.state.first { it.toast != null }
+
+        assertEquals(1, (state.toast as LibraryToast.Deleted).chapterCount)
+        assertEquals(null, state.delete)
+    }
+
+    @Test fun followedAndSecondaryCategory_areLoadedFromRoom() = runTest {
+        env.db.categoryDao().upsertAll(listOf(CategoryEntity(1L, "En cours"), CategoryEntity(2L, "Favoris")))
+        seedSeriesWithOneChapterToSend("blue-lock", "Blue Lock", 1L)
+        env.db.seriesCategoryDao().insertAll(listOf(SeriesCategoryEntity("blue-lock", 2L)))
+        env.db.seriesSettingsDao().upsert(com.tmm.mobile.data.db.SeriesSettingsEntity("blue-lock", true))
+        val vm = LibraryViewModel(env.container, initialCategoryOrder = 2L)
+        val state = vm.state.first { it.category == "Favoris" && it.details["blue-lock"]?.followed == true }
+        assertEquals(listOf("blue-lock"), state.copy(view = LibraryViewFilter.Followed).visibleSeries.map { it.seriesKey })
     }
 
     // Bouton "+" de la File : LibraryRoute(picking = true) ouvre l'ecran directement en mode selection.

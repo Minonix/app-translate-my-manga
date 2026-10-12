@@ -9,13 +9,13 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.tmm.mobile.TmmApp
-import com.tmm.mobile.ui.nav.HomeRoute
-import com.tmm.mobile.ui.nav.LibraryRoute
 import com.tmm.mobile.ui.nav.TranslationSettingsRoute
+import com.tmm.mobile.ui.screens.translate.LocalOpenTranslate
+import com.tmm.mobile.ui.screens.translate.TranslateRequest
 
 /**
- * Point d'entree navigation de l'ecran File (E10, PLAN_GEMINI.md 7.5). Construit le vrai
- * QueueViewModel via l'AppContainer de TmmApp (cf CatalogRoute.kt pour le meme patron).
+ * Point d'entrée navigation de l'écran Activité (maquette v2, écran 7). Construit le vrai
+ * QueueViewModel via l'AppContainer de TmmApp.
  */
 @Composable
 fun QueueRoute(nav: NavController) {
@@ -26,24 +26,13 @@ fun QueueRoute(nav: NavController) {
         },
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Maquette v2 : le + ouvre la feuille Traduire, rien de coche.
+    val openTranslate = LocalOpenTranslate.current
     QueueScreen(
         state = state,
         onEvent = viewModel::onEvent,
         onOpenTranslationSettings = { nav.navigate(TranslationSettingsRoute) },
-        onOpenNewTranslation = { nav.openLibraryPicking() },
-        // ponytail: DoneJob ne porte pas de seriesKey (seulement mihonPath) - onOpenSeries reste
-        // no-op ; upgrade quand ce champ existera.
+        onOpenNewTranslation = { openTranslate(TranslateRequest(preselectAll = false)) },
     )
 }
 
-/**
- * Bouton "+" : Bibliotheque en mode selection, comme un changement d'onglet (onglet Bibliotheque
- * allume) mais sans restoreState : une entree neuve, donc un ViewModel cree avec picking = true,
- * meme si la Bibliotheque etait deja dans la pile ou sauvegardee.
- */
-internal fun NavController.openLibraryPicking() {
-    navigate(LibraryRoute(picking = true)) {
-        popUpTo(HomeRoute) { saveState = true }
-        launchSingleTop = true
-    }
-}

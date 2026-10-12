@@ -23,14 +23,27 @@ sealed interface SettingsToast {
 // Connexion directe (Tailscale) : etat affiche dans les Reglages.
 enum class DirectStatus { Direct, Unreachable, NotPaired, Expired }
 
+data class FollowedSeries(val key: String, val title: String)
+
 data class SettingsState(
+    val advancedExpanded: Boolean = false,
+    // Sous-ecran « Connexion directe (Tailscale) » ouvert depuis Avance (maquette v2, ecran 8).
+    val directOpen: Boolean = false,
+    val followedExpanded: Boolean = false,
+    val followedSeries: List<FollowedSeries> = emptyList(),
+    val backupFileName: String = "",
+    val importStep: BackupImportStep = BackupImportStep.Idle,
+    val importError: Boolean = false,
+    val languageSummary: String = "Détection automatique vers français",
+    val engineSummary: String = "Google Gemini 2.5 Flash",
     val pcName: String = "PC-BUREAU",
     val pcVersionProtocol: String = "TMM-Win 2.4.1 · protocole v1",
     val isPcOnline: Boolean = true,
-    // PLAN_GEMINI.md 7.8 : ligne complete deja formatee (relativeFr ou "Aucun signal recu" sans heartbeat).
-    val pcLastSignalText: String = "Dernier signal il y a 12 s · le PC écrit sur Drive toutes les minutes",
+    // Maquette v2 (section 8) : ligne complete deja formatee ("Allumé · vu il y a 3 min", ou
+    // "Aucun signal reçu" sans heartbeat).
+    val pcLastSignalText: String = "Allumé · vu il y a 17 s",
     val googleAccount: String = "vous@gmail.com",
-    val sharedFolder: String = "TranslateMyManga/",
+    val sharedFolder: String = "App/TranslateMyManga/",
     val driveRetention: DriveRetention = DriveRetention.Never,
     val mihonFolder: String = "/Documents/Mihon",
     val lastBackupInfo: String = "Aujourd'hui 03:00 · 142 séries",
@@ -46,6 +59,12 @@ data class SettingsState(
 )
 
 sealed interface SettingsEvent {
+    data object ToggleAdvanced : SettingsEvent
+    data object OpenDirect : SettingsEvent
+    data object CloseDirect : SettingsEvent
+    data object ToggleFollowed : SettingsEvent
+    data class Unfollow(val seriesKey: String) : SettingsEvent
+    data object Reimport : SettingsEvent
     data object ChangeGoogleAccount : SettingsEvent
     data object CycleDriveRetention : SettingsEvent
     data object ChangeMihonFolder : SettingsEvent

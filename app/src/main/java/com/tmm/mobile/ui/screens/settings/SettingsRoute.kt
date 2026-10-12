@@ -16,7 +16,6 @@ import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.journalExportFileName
 import com.tmm.mobile.core.journalExportText
-import com.tmm.mobile.ui.nav.CatalogRoute
 import com.tmm.mobile.ui.nav.OnboardingRoute
 import com.tmm.mobile.ui.nav.TranslationSettingsRoute
 import java.time.Instant
@@ -78,7 +77,6 @@ fun SettingsRoute(nav: NavController) {
             }
         },
         onNavigateBack = { nav.popBackStack() },
-        onNavigateCatalog = { nav.navigate(CatalogRoute) },
         onNavigateOnboarding = { nav.navigate(OnboardingRoute) },
         onNavigateTranslationSettings = { nav.navigate(TranslationSettingsRoute) },
     )

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_v2_direct">Direct</string>
+    <string name="settings_v2_drive">Via Drive</string>
+    <string name="settings_v2_connection_fmt">%1$s · connexion directe Tailscale, Google Drive en secours</string>
+    <string name="settings_v2_connection_drive_fmt">%1$s · Google Drive, aucune connexion directe associée</string>
+    <string name="settings_v2_languages">Langues</string>
+    <string name="settings_v2_engine">Moteur</string>
+    <string name="settings_v2_all_pc">Tous les réglages du PC</string>
+    <string name="settings_v2_all_pc_hint">Qualité, vitesse, carte graphique…</string>
+    <string name="settings_v2_followed">Séries suivies</string>
+    <plurals name="settings_v2_series_count">
+        <item quantity="one">%1$d série</item>
+        <item quantity="other">%1$d séries</item>
+    </plurals>
+    <string name="settings_v2_no_followed">Aucune série suivie</string>
+    <string name="settings_v2_unfollow">Ne plus suivre</string>
+    <string name="settings_v2_unfollow_hint">Les chapitres déjà partis continuent</string>
+    <string name="settings_v2_sends">Envois</string>
+    <string name="settings_v2_backup">Sauvegarde Mihon</string>
+    <string name="settings_v2_reread">Relire</string>
+    <string name="settings_v2_import_error">Relecture impossible. Vérifiez le dossier Mihon et sa sauvegarde, puis réessayez.</string>
+    <string name="settings_v2_account">Compte</string>
+    <string name="settings_v2_advanced">Avancé</string>
+    <string name="settings_v2_advanced_hint">Connexion directe, Drive, réinstallation, journaux</string>
+    <string name="settings_v2_essential">L’essentiel</string>
+    <string name="settings_v2_speed">Vitesse</string>
+    <plurals name="settings_v2_speed_hint">
+        <item quantity="one">%1$d chapitre à la fois · carte graphique</item>
+        <item quantity="other">%1$d chapitres à la fois · carte graphique</item>
+    </plurals>
+    <plurals name="settings_v2_speed_hint_cpu">
+        <item quantity="one">%1$d chapitre à la fois · processeur</item>
+        <item quantity="other">%1$d chapitres à la fois · processeur</item>
+    </plurals>
+    <string name="settings_v2_rendering">Rendu des pages</string>
+    <string name="settings_v2_reading">Lecture des bulles</string>
+    <string name="settings_v2_translation">Traduction</string>
+    <string name="settings_v2_source">Langue d’origine</string>
+    <string name="settings_v2_target">Traduire en</string>
+    <string name="settings_v2_verify">Corriger les oublis après chaque chapitre</string>
+    <string name="settings_v2_verify_hint">Repasse sur les bulles restées en VO</string>
+    <string name="settings_v2_failover">Si le moteur échoue</string>
+    <string name="settings_v2_failover_hint">Basculer sur le LLM local (Ollama)</string>
+    <string name="settings_v2_applied">Appliqué sur %1$s, sans redémarrage</string>
+    <string name="settings_v2_step_reading">Lecture du fichier…</string>
+    <string name="settings_v2_step_decompressing">Décompression…</string>
+    <string name="settings_v2_step_series">Lecture des séries…</string>
+    <string name="settings_v2_step_categories">Lecture des catégories…</string>
+    <string name="settings_v2_step_comparing">Comparaison avec le téléphone…</string>
+    <string name="settings_v2_direct_row">Connexion directe (Tailscale)</string>
+    <string name="settings_v2_direct_paired_fmt">Associée · %1$s</string>
+    <string name="settings_v2_direct_explain">Si le téléphone et le PC sont sur le même réseau Tailscale, les chapitres passent en direct. Google Drive reste utilisé en secours. Le code d’appairage s’affiche dans l’app Windows.</string>
+    <string name="settings_v2_drive_folder">Dossier Drive</string>
+    <string name="settings_v2_chapters_at_once">Chapitres à la fois</string>
+    <string name="settings_v2_pages_at_once">Pages à la fois</string>
+    <string name="settings_v2_pages_hint_recommended_fmt">%1$d par chapitre · recommandé</string>
+    <string name="settings_v2_pages_hint_fmt">%1$d par chapitre</string>
+    <string name="settings_v2_recommended">Recommandé</string>
+    <string name="settings_v2_pile_hint_fmt">%1$d · plus de contexte si élevé</string>
+    <string name="settings_v2_gpu">Carte graphique</string>
+    <string name="settings_v2_font">Police</string>
+    <string name="settings_v2_ocr">Reconnaissance du texte (OCR)</string>
+    <string name="settings_v2_rendering_hint_fmt">Police %1$s · effacement %2$s</string>
+    <string name="settings_v2_reading_hint_auto">Détecteur et OCR automatiques</string>
+    <string name="settings_v2_footer_note">Les clés API restent sur le PC. Un changement s’applique aux pages suivantes, sans interrompre les chapitres en cours.</string>
+</resources>

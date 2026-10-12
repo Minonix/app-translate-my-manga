@@ -44,7 +44,7 @@ data class ChapterJoinInputs(
 fun joinInputsFlow(db: TmmDatabase): Flow<ChapterJoinInputs> = combine(
     db.chapterDao().observeAll(),
     db.downloadedChapterDao().observeAll(),
-    db.jobDao().observeAll(),
+    db.jobDao().observeAll().ignoringProgress(),
     db.localFrChapterDao().observeAll(),
     db.pcIndexChapterDao().observeAll(),
 ) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }
@@ -53,7 +53,7 @@ fun joinInputsFlow(db: TmmDatabase): Flow<ChapterJoinInputs> = combine(
 fun joinInputsFlow(db: TmmDatabase, seriesKey: String): Flow<ChapterJoinInputs> = combine(
     db.chapterDao().observeForSeries(seriesKey),
     db.downloadedChapterDao().observeForSeries(seriesKey),
-    db.jobDao().observeAll(),
+    db.jobDao().observeAll().ignoringProgress(),
     db.localFrChapterDao().observeAll(),
     db.pcIndexChapterDao().observeAll(),
 ) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }

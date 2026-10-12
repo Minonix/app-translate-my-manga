@@ -17,7 +17,10 @@ class PaletteCoverageTest {
     private fun mockupColors(): Set<Color> {
         val mockupDir = File("../maquettes")
         val colors = mutableSetOf<Color>()
-        mockupDir.listFiles { f -> f.name.endsWith(".dc.html") }?.forEach { file ->
+        // Maquettes v1 encore en vigueur + maquette v2 (maquettes/v2-simplifiee).
+        val mockups = mockupDir.listFiles { f -> f.name.endsWith(".dc.html") }!!.toList() +
+            File(mockupDir, "v2-simplifiee/index.html")
+        mockups.forEach { file ->
             val text = file.readText()
             hexPattern.findAll(text).forEach { match ->
                 val hex = match.value.removePrefix("#")

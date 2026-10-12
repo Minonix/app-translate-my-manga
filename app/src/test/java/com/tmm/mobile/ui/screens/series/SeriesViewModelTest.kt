@@ -10,21 +10,20 @@ import com.tmm.mobile.mihon.FakeMihonFs
 import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.QualityAlert
-import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.workers.WorkerTestEnvironment
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-// PLAN_GEMINI.md 7.3 (E10) : SeriesViewModel doit reproduire le meme SeriesState que la maquette
-// (Series.dc.html) a partir de Room - un chapitre a envoyer, un a jour avec des alertes de qualite
-// et un trou de numerotation suffisent a couvrir buildChapterJoinRows/deriveSeriesSummary.missing.
+// SeriesViewModel (maquette v2, ecran 3) : etat construit depuis Room, actions A (traduire / copier
+// sans traduire) et B option 1 (le suivi envoie aussi les chapitres deja telecharges a traduire).
 @RunWith(RobolectricTestRunner::class)
 class SeriesViewModelTest {
     private val env = WorkerTestEnvironment()
@@ -57,8 +56,8 @@ class SeriesViewModelTest {
         return mihonPathFor(number, url)
     }
 
-    // Chapitre 1 : catalogue + telecharge, aucun job/index -> TO_SEND (deriveStatus).
-    private suspend fun seedToSendChapter(number: Int = 1) {
+    // Catalogue + telecharge, aucun job/index -> TO_SEND, affiche « À traduire ».
+    private suspend fun seedToTranslateChapter(number: Int = 1) {
         val mihonPath = addCatalogChapter(number)
         val chapterKey = "$seriesKey-$number"
         env.db.downloadedChapterDao().upsert(
@@ -70,8 +69,8 @@ class SeriesViewModelTest {
         )
     }
 
-    // Chapitre a jour (localFr) avec une page encore en VO (alerte de qualite).
-    private suspend fun seedUpToDateChapterWithAlert(number: Int) {
+    // Chapitre installe (localFr) avec une page encore en VO (alerte de qualite).
+    private suspend fun seedInMihonChapter(number: Int) {
         val mihonPath = addCatalogChapter(number)
         env.db.localFrChapterDao().upsert(
             LocalFrChapterEntity(localPath = "content://fr/$number", folderName = title, fileName = "$number.cbz", documentUri = "content://fr/$number", lastModified = 0L, jobId = null, mihonPath = mihonPath.flatten()),
@@ -84,99 +83,138 @@ class SeriesViewModelTest {
         )
     }
 
-    @Test fun state_toSendChapter_hasSendTone() = runTest {
+    @Test fun state_toTranslateChapter_feedsBigButtonAndProgress() = runTest {
         seedSeries()
-        seedToSendChapter(number = 1)
+        seedToTranslateChapter(number = 1)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        val state = vm.state.first { it.chapters.isNotEmpty() }
+        val state = vm.state.first { it.rows.isNotEmpty() }
 
         assertEquals(title, state.title)
-        val chapter = state.chapters.single { it.number == 1 }
-        assertEquals(StatusTone.Send, chapter.kind)
-        assertEquals(1, state.onPhoneCount)
-        assertEquals(0, state.onPcCount)
+        assertEquals(ChapterKind.ToTranslate, state.rows.single { it.number == 1 }.kind)
+        assertEquals(listOf(1), state.toTranslateNumbers)
+        assertEquals(1, state.progress.toTranslate)
+        assertEquals(1, state.seriesCounts.translate)
+        assertFalse(state.followed)
     }
 
-    @Test fun state_upToDateChapter_showsRemainingVoPagesAndStats() = runTest {
+    @Test fun state_inMihonChapter_carriesStats() = runTest {
         seedSeries()
-        seedUpToDateChapterWithAlert(number = 2)
+        seedInMihonChapter(number = 2)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        val state = vm.state.first { it.chapters.isNotEmpty() }
+        val state = vm.state.first { it.rows.isNotEmpty() }
 
-        val chapter = state.chapters.single { it.number == 2 }
-        assertEquals(StatusTone.Ok, chapter.kind)
-        assertEquals("À jour · 1 page restée en VO", chapter.statusLabel)
-        assertEquals(19, chapter.stats?.pagesTranslated)
-        assertEquals(1, state.frCount)
+        val row = state.rows.single { it.number == 2 }
+        assertEquals(ChapterKind.InMihon, row.kind)
+        assertEquals(19, row.stats?.pagesTranslated)
+        assertEquals(1, state.progress.inMihon)
     }
 
-    @Test fun state_missingChapterNumber_becomesGapRow() = runTest {
+    @Test fun state_missingChapterNumber_becomesMissingRow() = runTest {
         seedSeries()
-        seedToSendChapter(number = 1)
-        seedUpToDateChapterWithAlert(number = 3)
+        seedToTranslateChapter(number = 1)
+        seedInMihonChapter(number = 3)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        val state = vm.state.first { it.chapters.size >= 3 }
+        val state = vm.state.first { it.rows.size >= 3 }
 
-        assertEquals(2, state.gapChapter?.number)
-        assertEquals(StatusTone.Gap, state.gapChapter?.kind)
+        assertEquals(listOf(2), state.missing)
+        assertEquals(ChapterKind.Missing, state.rows.single { it.number == 2 }.kind)
     }
 
-    @Test fun dismissGap_persistsIgnoredGap_andRemovesItFromMissing() = runTest {
+    @Test fun dismissGap_persistsIgnoredGap() = runTest {
         seedSeries()
-        seedToSendChapter(number = 1)
-        seedUpToDateChapterWithAlert(number = 3)
+        seedToTranslateChapter(number = 1)
+        seedInMihonChapter(number = 3)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        vm.state.first { it.gapChapter != null }
+        vm.state.first { it.missing.isNotEmpty() }
 
         vm.onEvent(SeriesEvent.DismissGap)
-        val state = vm.state.first { it.gapChapter == null }
+        vm.state.first { it.missing.isEmpty() }
 
-        assertNull(state.gapChapter)
         assertEquals(listOf(2), env.db.ignoredGapDao().observeForSeries(seriesKey).first().map { it.number })
     }
 
-    @Test fun sendToPc_createsJobForSelectedToSendChapter() = runTest {
+    @Test fun translateAll_createsTranslatingJob() = runTest {
         seedSeries()
-        seedToSendChapter(number = 1)
+        seedToTranslateChapter(number = 1)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        vm.state.first { it.chapters.isNotEmpty() }
-        vm.onEvent(SeriesEvent.ToggleChapter(1))
-        vm.state.first { 1 in it.selected }
-
-        vm.onEvent(SeriesEvent.SendToPc)
+        vm.state.first { it.toTranslateNumbers.isNotEmpty() }
+        vm.onEvent(SeriesEvent.TranslateAll)
         val state = vm.state.first { it.toast != null }
 
-        assertEquals(SeriesToast.Sent(1), state.toast)
+        assertEquals(SeriesToast.Translated(1), state.toast)
+        assertTrue(env.db.jobDao().observeAll().first().single().translate)
+    }
+
+    // A : « Copier sur le PC sans traduire » envoie translate = false.
+    @Test fun copyToPc_createsJobWithoutTranslation() = runTest {
+        seedSeries()
+        seedToTranslateChapter(number = 1)
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        vm.state.first { it.rows.isNotEmpty() }
+        vm.onEvent(SeriesEvent.OpenSeriesMore)
+        vm.state.first { it.sheet == SeriesSheet.More(allSeries = true) }
+        vm.onEvent(SeriesEvent.CopyToPc)
+        val state = vm.state.first { it.toast != null }
+
+        assertEquals(SeriesToast.Copied(1), state.toast)
+        assertFalse(env.db.jobDao().observeAll().first().single().translate)
+    }
+
+    // B, option 1 : la feuille annonce le rattrapage, la confirmation l'envoie et active le suivi.
+    @Test fun follow_sendsAlreadyDownloadedChapters_undoRevertsIt() = runTest {
+        seedSeries()
+        seedToTranslateChapter(number = 1)
+        seedInMihonChapter(number = 2)
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        vm.state.first { it.rows.size >= 2 }
+        vm.onEvent(SeriesEvent.SetFollow(true))
+        assertEquals(SeriesSheet.Follow(listOf(1)), vm.state.first { it.sheet is SeriesSheet.Follow }.sheet)
+
+        vm.onEvent(SeriesEvent.ConfirmFollow)
+        val followed = vm.state.first { it.followed && it.toast != null }
+        assertEquals(SeriesToast.Followed(1), followed.toast)
+        assertEquals(listOf(1), followed.sentOnFollow)
         assertEquals(1, env.db.jobDao().observeAll().first().size)
+
+        vm.onEvent(SeriesEvent.UndoFollow)
+        val undone = vm.state.first { !it.followed }
+        assertEquals(emptyList<Int>(), undone.sentOnFollow)
+        assertEquals(false, env.db.seriesSettingsDao().observe(seriesKey).first()?.autoTranslate)
     }
 
     @Test fun confirmDelete_removesLocalFr_andLeavesSelectionMode() = runTest {
         seedSeries()
-        seedUpToDateChapterWithAlert(number = 2)
+        seedInMihonChapter(number = 2)
         val root = kotlin.io.path.createTempDirectory("mihon").toFile()
         val frFile = java.io.File(root, "2.cbz").apply { writeBytes(byteArrayOf(1)) }
         env.db.localFrChapterDao().upsert(env.db.localFrChapterDao().observeAll().first().single().copy(documentUri = frFile.absolutePath))
         env.container.mihonFs = FakeMihonFs(root)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        vm.state.first { it.chapters.isNotEmpty() }
+        vm.state.first { it.rows.isNotEmpty() }
+        vm.onEvent(SeriesEvent.StartSelection)
         vm.onEvent(SeriesEvent.ToggleChapter(2))
         vm.state.first { it.selectionToDelete == 1 }
+        vm.onEvent(SeriesEvent.OpenSelectionMore)
+        vm.state.first { it.sheet is SeriesSheet.More }
         vm.onEvent(SeriesEvent.RequestDelete)
         assertEquals(SeriesSheet.Delete(chapterCount = 1, skippedCount = 0), vm.state.first { it.sheet is SeriesSheet.Delete }.sheet)
 
         vm.onEvent(SeriesEvent.ConfirmDelete)
-        val state = vm.state.first { it.toast != null && it.frCount == 0 }
+        val state = vm.state.first { it.toast != null && it.progress.inMihon == 0 }
 
         assertEquals(SeriesToast.Deleted(1), state.toast)
         assertEquals(SeriesSheet.None, state.sheet)
         assertEquals(emptySet<Int>(), state.selected)
-        assertEquals(false, frFile.exists())
+        assertFalse(state.selecting)
+        assertFalse(frFile.exists())
         root.deleteRecursively()
     }
 }

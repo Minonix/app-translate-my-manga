@@ -92,6 +92,9 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
                 change("inpaintingSize", event.value.sizePx.toString()) { it.copy(inpaintingSize = event.value) }
             is TranslationSettingsEvent.SelectFont ->
                 change("font", event.value.fontName) { it.copy(font = event.value) }
+            TranslationSettingsEvent.ToggleSpeed -> _state.update { it.copy(speedExpanded = !it.speedExpanded) }
+            TranslationSettingsEvent.ToggleRendering -> _state.update { it.copy(renderingExpanded = !it.renderingExpanded) }
+            TranslationSettingsEvent.ToggleReading -> _state.update { it.copy(readingExpanded = !it.readingExpanded) }
             TranslationSettingsEvent.ToggleAdvanced -> _state.update { it.copy(isAdvancedExpanded = !it.isAdvancedExpanded) }
             is TranslationSettingsEvent.OpenSheet -> _state.update { it.copy(activeSheet = event.sheet) }
             TranslationSettingsEvent.CloseSheet -> _state.update { it.copy(activeSheet = null) }

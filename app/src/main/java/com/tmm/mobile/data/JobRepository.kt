@@ -197,7 +197,6 @@ class JobRepository(
      */
     suspend fun resetPendingJobsOnce() {
         if (prefs.jobResetVersion.first() >= JOB_RESET_VERSION) return
-        prefs.setTranslateOnArrival(false)
         db.seriesSettingsDao().clearAutoTranslate()
         // Une seule requete DELETE : supprimer job par job relancait la lecture de toute la table a
         // chaque ligne, et faisait planter les lectures concurrentes sur une grosse file.

@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -14,6 +15,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import com.tmm.mobile.R
 import java.util.concurrent.TimeUnit
 
 // PLAN_GEMINI.md 5.12 : constantes et helpers partages par les 3 workers (noms de travail
@@ -66,17 +68,21 @@ fun WorkManager.enqueueOutbox(wifiOnly: Boolean) {
 
 fun ensureTransferChannel(context: Context) {
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    if (manager.getNotificationChannel(NOTIFICATION_CHANNEL_TRANSFERS) == null) {
-        manager.createNotificationChannel(
-            NotificationChannel(NOTIFICATION_CHANNEL_TRANSFERS, "Transferts", NotificationManager.IMPORTANCE_LOW),
-        )
-    }
+    // Appel sans test d'existence : createNotificationChannel met a jour le nom d'un canal deja cree
+    // (l'ancien « Transferts ») sans toucher aux reglages que l'utilisateur y a faits.
+    manager.createNotificationChannel(
+        NotificationChannel(
+            NOTIFICATION_CHANNEL_TRANSFERS,
+            context.getString(R.string.notification_channel_transfers),
+            NotificationManager.IMPORTANCE_LOW,
+        ),
+    )
 }
 
-fun transferForegroundInfo(context: Context, notificationId: Int, title: String): ForegroundInfo {
+fun transferForegroundInfo(context: Context, notificationId: Int, @StringRes title: Int): ForegroundInfo {
     ensureTransferChannel(context)
     val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_TRANSFERS)
-        .setContentTitle(title)
+        .setContentTitle(context.getString(title))
         .setSmallIcon(android.R.drawable.stat_sys_upload)
         .setOngoing(true)
         .build()

@@ -14,10 +14,23 @@ import kotlinx.coroutines.flow.first
 suspend fun runAutoTranslate(db: TmmDatabase, jobRepository: JobRepository) {
     val autoSeries = db.seriesSettingsDao().autoTranslateSeriesKeys().toSet()
     if (autoSeries.isEmpty()) return
+    for (target in autoTranslateTargets(db, autoSeries)) {
+        jobRepository.createJobs(JobMode.TRANSLATE, listOf(target))
+    }
+}
+
+/**
+ * Chapitres telecharges au statut A traduire des series donnees : ce que le suivi automatique enverra.
+ * Partage par runAutoTranslate et par l'activation du suivi sur la fiche serie, pour que la feuille de
+ * confirmation annonce exactement les chapitres qui partiront.
+ */
+suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List<JobTarget> {
+    if (seriesKeys.isEmpty()) return emptyList()
     val localFrPaths = db.localFrChapterDao().observeAll().first().mapNotNull { it.mihonPath }.toSet()
+    val targets = mutableListOf<JobTarget>()
     for (downloaded in db.downloadedChapterDao().observeAll().first()) {
         val seriesKey = downloaded.seriesKey ?: continue
-        if (seriesKey !in autoSeries) continue
+        if (seriesKey !in seriesKeys) continue
 
         val index = db.pcIndexChapterDao().get(downloaded.mihonPath)
         val latestJob = db.jobDao().getAllForMihonPath(downloaded.mihonPath).firstOrNull()
@@ -30,12 +43,12 @@ suspend fun runAutoTranslate(db: TmmDatabase, jobRepository: JobRepository) {
         )
         if (deriveStatus(facts) != ChapterStatus.TO_SEND) continue
 
-        val target = JobTarget(
+        targets += JobTarget(
             mihonPath = MihonPath(downloaded.sourceDir, downloaded.seriesDir, downloaded.chapterDir),
             downloaded = downloaded,
             series = db.seriesDao().get(seriesKey),
             chapter = downloaded.chapterKey?.let { db.chapterDao().get(it) },
         )
-        jobRepository.createJobs(JobMode.TRANSLATE, listOf(target))
     }
+    return targets
 }

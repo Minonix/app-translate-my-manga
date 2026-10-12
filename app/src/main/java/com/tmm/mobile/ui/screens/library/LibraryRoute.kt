@@ -14,8 +14,9 @@ import com.tmm.mobile.ui.nav.SeriesRoute
 
 /**
  * Point d'entree navigation de l'ecran Bibliotheque (E10, plan 7.2). Construit le vrai
- * LibraryViewModel via l'AppContainer de TmmApp ; `categoryOrder` vient de LibraryFilteredRoute
- * (depuis le Catalogue) ou est null (onglet Bibliotheque de la barre basse). `picking` vient de
+ * LibraryViewModel via l'AppContainer de TmmApp ; `categoryOrder` est toujours null depuis la
+ * suppression du Catalogue en v2 (ponytail: parametre garde pour un futur filtre par categorie,
+ * a retirer s'il ne sert pas). `picking` vient de
  * LibraryRoute(picking = true) (bouton "+" de la File) : l'ecran s'ouvre en mode selection.
  */
 @Composable

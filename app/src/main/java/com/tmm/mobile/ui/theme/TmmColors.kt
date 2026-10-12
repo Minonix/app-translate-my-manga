@@ -44,6 +44,13 @@ object TmmColors {
     val C8A5A00 = Color(0xFF8A5A00)
     val C3A3934 = Color(0xFF3A3934)
 
+    // Teintes ajoutees par la maquette v2 (maquettes/v2-simplifiee/index.html)
+    val C4A4943 = Color(0xFF4A4943)
+    val C34332E = Color(0xFF34332E)
+    val CE8D29A = Color(0xFFE8D29A)
+    val CF3E3B5 = Color(0xFFF3E3B5)
+    val C000000 = Color(0xFF000000)
+
     // Variantes rgba (nommees par teinte de base + opacite en %)
     val Green0 = C2F7D4F.copy(alpha = 0f)
     val Green55 = C2F7D4F.copy(alpha = .55f)
@@ -58,6 +65,12 @@ object TmmColors {
     val Ink25 = C16161A.copy(alpha = .25f)
     val Ink28 = C16161A.copy(alpha = .28f)
     val Ink45 = C16161A.copy(alpha = .45f)
+    val Ink22 = C16161A.copy(alpha = .22f)
+    val Ink42 = C16161A.copy(alpha = .42f)
+    val Paper0 = CF4F1EA.copy(alpha = 0f)
+    val Black08 = C000000.copy(alpha = .08f)
+    val Black15 = C000000.copy(alpha = .15f)
+    val Black40 = C000000.copy(alpha = .40f)
 
     // Alias semantiques (CdC 10.1)
     val ink = C16161A
@@ -79,6 +92,42 @@ object TmmColors {
     val success = C2F7D4F
     val absent = CE6DCC0
     val absentText = C8A5A00
+
+    /**
+     * Noms de la maquette v2 (maquettes/v2-simplifiee, variables CSS :root). Attention : `V2.line`
+     * vaut --line (#DDD6C8, = lineStrong v1) et `V2.line2` vaut --line2 (#ECE7DC, = line v1).
+     */
+    object V2 {
+        val bg = CF4F1EA
+        val card = CFBF9F4
+        val white = CFFFFFF
+        val ink = C16161A
+        val ink2 = C2E2D29
+        val ink3 = C3A3934
+        val muted = C5E5A52
+        val muted2 = C9C9486
+        val line = CDDD6C8
+        val line2 = CECE7DC
+        val chip = CE9E4D8
+        val sand = CD5CDBC
+        val red = CC8391F
+        val redDark = C9E2A14
+        val redDeep = C7A2210
+        val redSoft = CFBE3DC
+        val blue = C2B4C7E
+        val blueSoft = CE3E9F2
+        val green = C2F7D4F
+        val greenSoft = CE8F1EB
+        val greenLight = C9BD3AE
+        val amber = C8A5A00
+        val amberSoft = CFBF1D6
+        val amberLine = CE8D29A
+        val onInkMuted = CCFC8B8
+        val toastLink = CF4B3A3
+        val darkSwitch = C4A4943
+        val darkTrack = C34332E
+        val scrim = Ink42
+    }
 
     /** Palette de vignettes placeholder pour les couvertures de series sans image. */
     val placeholderPalette = listOf(CC9D3DE, CE2C6BB, CCFD8C6, CD8D2E4, CE6DCC0, CDCCFC4)

@@ -212,6 +212,9 @@ interface SeriesSettingsDao {
     @Query("SELECT seriesKey FROM series_settings WHERE autoTranslate = 1")
     suspend fun autoTranslateSeriesKeys(): List<String>
 
+    @Query("SELECT seriesKey FROM series_settings WHERE autoTranslate = 1")
+    fun observeAutoTranslateSeriesKeys(): Flow<List<String>>
+
     @Query("UPDATE series_settings SET autoTranslate = 0")
     suspend fun clearAutoTranslate()
 

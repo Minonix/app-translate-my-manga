@@ -16,6 +16,9 @@ import com.tmm.mobile.mihon.DownloadScanner
 import com.tmm.mobile.mihon.MihonFs
 import com.tmm.mobile.mihon.MihonTree
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -32,8 +35,15 @@ class Startup(
     private val refreshCoordinator: RefreshCoordinator,
 ) {
     private val mutex = Mutex()
+    private val _results = MutableSharedFlow<StartupResult>(extraBufferCapacity = 1)
 
-    suspend fun run(): StartupResult = mutex.withLock {
+    // Chaque resultat, quel que soit l'appelant : Actualiser (Accueil) relance run() sans lire le retour,
+    // et TmmRoot doit quand meme renvoyer vers l'ecran Permission si l'acces Mihon a ete retire.
+    val results: SharedFlow<StartupResult> = _results.asSharedFlow()
+
+    suspend fun run(): StartupResult = runLocked().also { _results.tryEmit(it) }
+
+    private suspend fun runLocked(): StartupResult = mutex.withLock {
         if (!prefs.onboardingDone.first()) return@withLock StartupResult.ONBOARDING
 
         val treeUriString = prefs.mihonTreeUri.first() ?: return@withLock StartupResult.PERMISSION_NEEDED

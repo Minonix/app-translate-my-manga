@@ -251,7 +251,7 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
                 )
             }
         }
-        val toSend = GlobalCounts.transfersBadgeCount(container.db).first()
+        val toSend = GlobalCounts.pendingTransfersCount(container.db).first()
         _state.update { it.copy(toSendCount = toSend) }
     }
 

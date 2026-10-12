@@ -1,5 +1,7 @@
 package com.tmm.mobile.ui.screens.translationsettings
 
+// Les badges suivent la maquette v2 (« Gemini · recommandé ») : minuscule apres le point median,
+// la feuille de choix remet la majuscule quand le badge est affiche seul.
 enum class SourceLanguage(val code: String, val label: String, val badge: String = "") {
     Auto("auto", "Détection automatique"),
     Japanese("JPN", "Japonais", "Manga"),
@@ -19,7 +21,7 @@ enum class TargetLanguage(val code: String, val label: String) {
 }
 
 enum class TranslationProvider(val id: String, val label: String, val badge: String = "") {
-    Gemini("gemini", "Google Gemini 2.5 Flash", "Recommandé"),
+    Gemini("gemini", "Google Gemini 2.5 Flash", "recommandé"),
     OpenAi("openai", "OpenAI GPT-4.1 mini"),
     Claude("claude", "Anthropic Claude Sonnet 5"),
     DeepL("deepl", "DeepL API"),
@@ -33,7 +35,7 @@ enum class TranslationProvider(val id: String, val label: String, val badge: Str
 }
 
 enum class BubbleDetector(val id: String, val label: String, val badge: String = "") {
-    Default("default", "Comic-Text-Detector", "Automatique"),
+    Default("default", "Comic-Text-Detector", "automatique"),
     Ctd("ctd", "CTD explicite"),
     Paddle("paddle", "PaddleOCR Detector");
 
@@ -59,10 +61,10 @@ enum class Inpainter(val id: String, val label: String, val badge: String = "") 
 }
 
 enum class InpaintingSize(val sizePx: Int, val label: String, val badge: String = "") {
-    Size1024(1024, "1024 px", "Plus rapide"),
-    Size1280(1280, "1280 px", "Recommandé"),
+    Size1024(1024, "1024 px", "plus rapide"),
+    Size1280(1280, "1280 px", "recommandé"),
     Size1800(1800, "1800 px", "HD"),
-    Size2048(2048, "2048 px", "Maximum");
+    Size2048(2048, "2048 px", "maximum");
 
     val displaySummary: String get() = if (badge.isNotEmpty()) "$label · $badge" else label
 }
@@ -83,6 +85,8 @@ enum class ActiveSheet {
     Inpainter,
     InpaintingSize,
     Font,
+    PagesAtOnce,
+    PagesPerBatch,
 }
 
 enum class TranslationSyncStatus {
@@ -110,6 +114,9 @@ data class TranslationSettingsState(
     val inpaintingSize: InpaintingSize = InpaintingSize.Size1280,
     val font: TranslationFont = TranslationFont.AnimeAce,
     val isAdvancedExpanded: Boolean = false,
+    val speedExpanded: Boolean = false,
+    val renderingExpanded: Boolean = false,
+    val readingExpanded: Boolean = false,
     val activeSheet: ActiveSheet? = null,
     val syncStatus: TranslationSyncStatus = TranslationSyncStatus.Synced,
     // PLAN_GEMINI.md 7.9 : aucun settings_json recu -> controles desactives, alpha 0.45.
@@ -132,6 +139,9 @@ sealed interface TranslationSettingsEvent {
     data class SelectInpaintingSize(val value: InpaintingSize) : TranslationSettingsEvent
     data class SelectFont(val value: TranslationFont) : TranslationSettingsEvent
     data object ToggleAdvanced : TranslationSettingsEvent
+    data object ToggleSpeed : TranslationSettingsEvent
+    data object ToggleRendering : TranslationSettingsEvent
+    data object ToggleReading : TranslationSettingsEvent
     data class OpenSheet(val sheet: ActiveSheet) : TranslationSettingsEvent
     data object CloseSheet : TranslationSettingsEvent
 }

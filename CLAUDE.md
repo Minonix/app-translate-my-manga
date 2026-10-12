@@ -16,8 +16,7 @@ All commands run through the Gradle wrapper from the repo root (`gradlew.bat` on
 ./gradlew testDebugUnitTest          # full unit/Robolectric test suite
 ./gradlew test --tests "*.ClassName" # single test class
 ./gradlew test --tests "*.ClassName.methodName"  # single test method
-./gradlew verifyRoborazziDebug       # visual regression: compare against maquettes/captures
-./gradlew recordRoborazziDebug       # re-record Roborazzi golden screenshots after an intentional UI change
+./gradlew testDebugUnitTest --tests "*ScreenshotTest" "-Proborazzi.test.record=true"  # write Roborazzi screenshots to app/build/outputs/roborazzi/
 ./gradlew lintDebug                  # must be 0 errors, 0 warnings
 ./gradlew assembleDebug              # app-debug.apk
 ./gradlew assembleRelease            # signed if keystore.properties present (see keystore.properties.example)
@@ -37,7 +36,7 @@ Package layout under `com.tmm.mobile`:
 - `ui.icons` — hand-transcribed vector icons (`TmmIcons`); `androidx.compose.material.icons` is banned.
 - `ui.components` — reusable maison Compose components (bottom bar, switches, sheets, badges, etc.) matching the HTML mockups.
 - `ui.nav` — navigation graph / route wiring.
-- `ui.screens.<screen>` — one package per screen (main, library, series/transfers/queue/catalog/newtranslation/settings/translationsettings/onboarding/empty/offline/permission), each following `<Screen>Route` + `<Screen>Screen` + `<Screen>State` + `<Screen>ViewModel`.
+- `ui.screens.<screen>` — one package per screen (main, library, series, translate, queue (Activity tab), settings, translationsettings, onboarding, empty, offline, permission), each following `<Screen>Route` + `<Screen>Screen` + `<Screen>State` + `<Screen>ViewModel`.
 - `ui.mock` — fake/demo data feeding screens before real repositories are wired.
 - `data`, `data.db`, `data.status` — Room database (`TmmDatabase`), DAOs, `AppPrefs` (DataStore), `JobRepository`, `RefreshCoordinator`, `SettingsSync`, and pure chapter/series status derivation functions.
 - `mihon` — SAF access to the Mihon folder tree, `.tachibk` protobuf backup parsing, filename sanitization, CBZ packing, atomic local installer.
@@ -48,9 +47,9 @@ Package layout under `com.tmm.mobile`:
 Test code mirrors this under `app/src/test/java/com/tmm/mobile/`, plus:
 - `fake` — `FakeDrive` (MockWebServer-backed Google Drive double) and `FakePc` (desktop daemon simulator), used for hermetic end-to-end job-flow tests without any network access.
 - `ui/theme/NoRawColorTest.kt`, `ui/icons/NoMaterialIconsTest.kt` — architectural guard tests enforcing the closed palette and the Material-Icons ban; keep these passing when touching theming/icons.
-- `screenshots` — Roborazzi visual tests, compared against `maquettes/captures/` reference PNGs.
+- `*ScreenshotTest` — Roborazzi captures. There is no Roborazzi Gradle plugin, so no `verify`/`record` tasks and no automatic comparison: captures are only written with `-Proborazzi.test.record=true`, into `app/build/outputs/roborazzi/` (unversioned), then compared by eye with the mockup. Copy the v2 ones into `maquettes/v2-simplifiee/captures/`.
 
-`maquettes/*.dc.html` are the pixel-authoritative HTML/CSS mockups every screen must match; when a screen's visuals are in question, check the corresponding mockup before guessing.
+`maquettes/v2-simplifiee/index.html` is the authoritative mockup for the main screens (Home, Library, Series, Translate sheet, Activity, Settings, Translation settings); `maquettes/*.dc.html` at the root still apply to Onboarding, Permission, Empty and Offline; `maquettes/v1/` is archived (see `maquettes/README.md`). Every screen must match its mockup; when a screen's visuals are in question, check the corresponding mockup before guessing.
 
 ## Conventions
 

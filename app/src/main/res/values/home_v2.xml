@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_v2_brand">TMM</string>
+    <string name="home_v2_last_check">Mihon vérifié %1$s</string>
+    <string name="home_v2_pc_online">PC allumé</string>
+    <string name="home_v2_pc_offline">PC éteint</string>
+    <string name="home_v2_offline_bold">PC éteint %1$s.</string>
+    <string name="home_v2_todo">À faire</string>
+    <string name="home_v2_translate">Traduire</string>
+    <string name="home_v2_translate_label">chapitres\nà traduire</string>
+    <string name="home_v2_install">Installer</string>
+    <string name="home_v2_install_label">traductions\nà installer</string>
+    <string name="home_v2_manage">Gérer</string>
+    <string name="home_v2_follow_description">Leurs nouveaux chapitres partent en traduction à chaque ouverture de TMM.</string>
+    <string name="home_v2_pc_title">Sur le PC</string>
+    <string name="home_v2_activity">Activité (%1$d)</string>
+    <string name="home_v2_queue_summary">+ %1$d en attente, %2$d traduits en même temps sur %3$s</string>
+    <string name="home_v2_percent">%1$d %%</string>
+    <string name="home_v2_job_page">%1$s · page %2$d sur %3$d</string>
+    <string name="home_v2_recent_title">Derniers traduits</string>
+    <string name="home_v2_in_mihon">dans Mihon</string>
+    <string name="home_v2_ready">prêt</string>
+    <string name="home_v2_recent_status">%1$s · %2$s</string>
+    <plurals name="home_v2_to_send_series">
+        <item quantity="one">dans %1$d série</item>
+        <item quantity="other">dans %1$d séries</item>
+    </plurals>
+    <plurals name="home_v2_followed">
+        <item quantity="one">%1$d série suivie</item>
+        <item quantity="other">%1$d séries suivies</item>
+    </plurals>
+    <plurals name="home_v2_gap">
+        <item quantity="one">%1$s : ch. %2$s manquant partout</item>
+        <item quantity="other">%1$s : ch. %2$s manquants partout</item>
+    </plurals>
+</resources>

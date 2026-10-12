@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.tmm.mobile.data.AppPrefs
 import com.tmm.mobile.fake.FakeDrive
+import com.tmm.mobile.fake.FakeFile
 import com.tmm.mobile.fake.FakePc
 import com.tmm.mobile.protocol.ChapterRef
 import com.tmm.mobile.protocol.FileRef
@@ -213,6 +214,25 @@ class DriveTransportTest {
         cancelWrittenAt = null,
         driveDeletedAt = null,
     )
+
+    // La progression doit remonter bloc par bloc : un seul appel en fin de flux faisait passer la barre
+    // de reception de 0 a 100 % d'un coup.
+    @Test
+    fun download_reportsProgressPerChunk() = runTest {
+        val bytes = ByteArray(200 * 1024) { (it % 251).toByte() }
+        val file = FakeFile(name = "result.cbz", parents = mutableListOf("root"), mimeType = "application/vnd.comicbook+zip", modifiedTime = clockIso.toString(), bytes = bytes)
+        drive.files[file.id] = file
+        val api = DriveApi(client = OkHttpClient(), token = { "test-token" }, baseUrl = drive.baseUrl())
+        val calls = mutableListOf<Long>()
+        val out = java.io.ByteArrayOutputStream()
+
+        api.download(file.id, out) { received, _ -> calls += received }
+
+        assertTrue("au moins deux remontees, recu $calls", calls.size >= 2)
+        assertEquals(calls.sorted(), calls)
+        assertEquals(bytes.size.toLong(), calls.last())
+        assertTrue(bytes.contentEquals(out.toByteArray()))
+    }
 }
 
 private fun testCreateFolder(drive: FakeDrive, jobsId: String, jobId: String): String {

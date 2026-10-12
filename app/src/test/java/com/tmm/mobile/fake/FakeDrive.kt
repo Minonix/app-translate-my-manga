@@ -42,6 +42,8 @@ class FakeDrive(private val nowIso: () -> String) {
     var cutoffUploadAfterBytes: Long? = null
     // Simule un "name =" Drive insensible a la casse (App et APP renvoyes ensemble).
     var caseInsensitiveNames: Boolean = false
+    // Appele avant de servir le contenu d'un fichier : simule un changement d'etat pendant un telechargement.
+    var beforeMediaGet: ((String) -> Unit)? = null
 
     init {
         files["root"] = FakeFile(id = "root", name = "root", parents = mutableListOf(), mimeType = FOLDER, modifiedTime = nowIso())
@@ -198,6 +200,7 @@ class FakeDrive(private val nowIso: () -> String) {
 
     private fun handleGet(fileId: String): MockResponse {
         val file = files[fileId] ?: return MockResponse(code = 404)
+        beforeMediaGet?.invoke(fileId)
         return MockResponse.Builder().code(200).body(Buffer().write(file.bytes)).build()
     }
 

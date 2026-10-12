@@ -3,8 +3,11 @@ package com.tmm.mobile.ui.screens.translationsettings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -20,7 +23,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Tests comportementaux pour l'écran Réglages de traduction (TranslationSettings.dc.html, E4.9).
+ * Tests comportementaux de l'ecran Reglages de traduction du PC (maquette v2-simplifiee/index.html,
+ * section 9) : L'essentiel visible, Vitesse, Rendu et Lecture replies par defaut.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -64,6 +68,9 @@ class TranslationSettingsScreenBehaviorTest {
             is TranslationSettingsEvent.SelectInpaintingSize -> sent(state.copy(inpaintingSize = event.value))
             is TranslationSettingsEvent.SelectFont -> sent(state.copy(font = event.value))
             TranslationSettingsEvent.ToggleAdvanced -> state.copy(isAdvancedExpanded = !state.isAdvancedExpanded)
+            TranslationSettingsEvent.ToggleSpeed -> state.copy(speedExpanded = !state.speedExpanded)
+            TranslationSettingsEvent.ToggleRendering -> state.copy(renderingExpanded = !state.renderingExpanded)
+            TranslationSettingsEvent.ToggleReading -> state.copy(readingExpanded = !state.readingExpanded)
             is TranslationSettingsEvent.OpenSheet -> state.copy(activeSheet = event.sheet)
             TranslationSettingsEvent.CloseSheet -> state.copy(activeSheet = null)
         }
@@ -72,14 +79,23 @@ class TranslationSettingsScreenBehaviorTest {
     @Test
     fun initialState_showsHeaderCardAndGroups() {
         setState()
-        composeRule.onNodeWithText("Traduction sur le PC").assertExists()
-        composeRule.onNodeWithText("Les mêmes réglages que dans TMM-Win").assertExists()
-        composeRule.onNodeWithText("Synchronisé avec PC-BUREAU").assertExists()
-        composeRule.onNodeWithText("Pris en compte tout de suite, sans redémarrage").assertExists()
-        composeRule.onNodeWithText("LANGUES").assertExists()
-        composeRule.onNodeWithText("MOTEUR").assertExists()
-        composeRule.onNodeWithText("APRÈS TRADUCTION").assertExists()
-        composeRule.onNodeWithText("PERFORMANCE").assertExists()
+        composeRule.onNodeWithText("Réglages").assertExists()
+        composeRule.onNodeWithText("Traduction").assertExists()
+        composeRule.onNodeWithText("Appliqué sur PC-BUREAU, sans redémarrage").assertExists()
+        composeRule.onNodeWithText("L’ESSENTIEL").assertExists()
+        composeRule.onNodeWithText("Langue d’origine").assertExists()
+        composeRule.onNodeWithText("Détection automatique").assertExists()
+        composeRule.onNodeWithText("Traduire en").assertExists()
+        composeRule.onNodeWithText("Moteur").assertExists()
+        composeRule.onNodeWithText("Corriger les oublis après chaque chapitre").assertExists()
+        composeRule.onNodeWithText("Si le moteur échoue").assertExists()
+        // Les trois groupes techniques sont replies, seul leur resume est visible.
+        composeRule.onNodeWithText("4 chapitres à la fois · carte graphique").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Police Anime Ace · effacement LaMa Large").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Détecteur et OCR automatiques").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Chapitres à la fois").assertDoesNotExist()
+        // Plus de groupe « Après traduction » vide.
+        composeRule.onNodeWithText("APRÈS TRADUCTION").assertDoesNotExist()
     }
 
     @Test
@@ -92,7 +108,7 @@ class TranslationSettingsScreenBehaviorTest {
     @Test
     fun openSheet_selectSourceLanguage_updatesState() {
         val getState = setState()
-        composeRule.onNodeWithText("Langue source").performClick()
+        composeRule.onNodeWithText("Langue d’origine").performClick()
         assertEquals(ActiveSheet.SourceLanguage, getState().activeSheet)
 
         composeRule.onNodeWithText("Japonais").performClick()
@@ -102,48 +118,80 @@ class TranslationSettingsScreenBehaviorTest {
     }
 
     @Test
-    fun toggleAutoFailover_updatesState() {
-        val getState = setState()
-        assertTrue(getState().autoFailoverToLocalLlm)
-
-        composeRule.onAllNodes(androidx.compose.ui.test.isToggleable())[0].performClick()
-        assertFalse(getState().autoFailoverToLocalLlm)
-        assertEquals(TranslationSyncStatus.Sending, getState().syncStatus)
-    }
-
-    @Test
     fun toggleAutoVerify_updatesState() {
         val getState = setState()
         assertTrue(getState().autoVerifyAfterTranslate)
 
-        composeRule.onAllNodes(androidx.compose.ui.test.isToggleable())[1].performClick()
+        // Groupes replies : [0] « Corriger les oublis », [1] « Si le moteur échoue ».
+        composeRule.onAllNodes(isToggleable())[0].performClick()
         assertFalse(getState().autoVerifyAfterTranslate)
+        assertEquals(TranslationSyncStatus.Sending, getState().syncStatus)
+    }
+
+    @Test
+    fun toggleAutoFailover_updatesState() {
+        val getState = setState()
+        assertTrue(getState().autoFailoverToLocalLlm)
+
+        composeRule.onAllNodes(isToggleable())[1].performClick()
+        assertFalse(getState().autoFailoverToLocalLlm)
         assertEquals(TranslationSyncStatus.Sending, getState().syncStatus)
     }
 
     @Test
     fun segmentedConcurrency_updatesState() {
         val getState = setState()
-        composeRule.onNodeWithText("4 en parallèle").assertExists()
+        composeRule.onNodeWithText("Vitesse").performScrollTo().performClick()
+        assertTrue(getState().speedExpanded)
+        composeRule.onNodeWithText("Chapitres à la fois").performScrollTo().assertExists()
+        composeRule.onNodeWithText("2 par chapitre · recommandé").performScrollTo().assertExists()
+        composeRule.onNodeWithText("3 · plus de contexte si élevé").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Carte graphique").performScrollTo().assertExists()
 
-        // Select 1 chapter concurrency
-        composeRule.onAllNodes(androidx.compose.ui.test.hasText("1"))[0].performClick()
+        // Premier « 1 » de l'ecran : le segment du nombre de chapitres.
+        composeRule.onNodeWithText("Chapitres à la fois").performScrollTo()
+        composeRule.onAllNodes(hasText("1"))[0].performClick()
         assertEquals(1, getState().chapterConcurrency)
-        composeRule.onNodeWithText("Un à la fois").assertExists()
+        composeRule.onNodeWithText("1 chapitre à la fois · carte graphique").performScrollTo().assertExists()
     }
 
     @Test
-    fun toggleAdvanced_showsAndHidesAdvancedSection() {
+    fun pagesRows_openSheetsAndSelect() {
         val getState = setState()
-        assertFalse(getState().isAdvancedExpanded)
+        composeRule.onNodeWithText("Vitesse").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Vision avancée (5 réglages)").performScrollTo().performClick()
-        assertTrue(getState().isAdvancedExpanded)
-        composeRule.onNodeWithText("Détecteur de bulles").assertExists()
-        composeRule.onNodeWithText("OCR").assertExists()
-        composeRule.onNodeWithText("Effacement du texte").assertExists()
+        composeRule.onNodeWithText("Pages à la fois").performScrollTo().performClick()
+        assertEquals(ActiveSheet.PagesAtOnce, getState().activeSheet)
+        composeRule.onNodeWithText("Recommandé").assertExists()
+        composeRule.onNodeWithText("4 par chapitre").performClick()
+        assertEquals(4, getState().concurrency)
+        assertEquals(null, getState().activeSheet)
 
-        composeRule.onNodeWithText("Masquer la vision avancée").performScrollTo().performClick()
-        assertFalse(getState().isAdvancedExpanded)
+        composeRule.onNodeWithText("Pages par envoi au moteur").performScrollTo().performClick()
+        assertEquals(ActiveSheet.PagesPerBatch, getState().activeSheet)
+        composeRule.onAllNodes(hasText("1")).onLast().performClick()
+        assertEquals(1, getState().pileSize)
+    }
+
+    @Test
+    fun toggleGroups_showsAndHidesRenderingAndReading() {
+        val getState = setState()
+        assertFalse(getState().renderingExpanded)
+        assertFalse(getState().readingExpanded)
+
+        composeRule.onNodeWithText("Rendu des pages").performScrollTo().performClick()
+        assertTrue(getState().renderingExpanded)
+        composeRule.onNodeWithText("Police").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Effacement du texte").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Taille d’effacement").performScrollTo().assertExists()
+
+        composeRule.onNodeWithText("Lecture des bulles").performScrollTo().performClick()
+        assertTrue(getState().readingExpanded)
+        composeRule.onNodeWithText("Détecteur de bulles").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Reconnaissance du texte (OCR)").performScrollTo().assertExists()
+
+        composeRule.onNodeWithText("Rendu des pages").performScrollTo().performClick()
+        assertFalse(getState().renderingExpanded)
+        composeRule.onNodeWithText("Effacement du texte").assertDoesNotExist()
     }
 }

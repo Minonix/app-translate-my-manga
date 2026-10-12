@@ -5,15 +5,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Chaque texte visible d'une maquette deja portee en Compose (E4) doit avoir
- * une ligne dans mockup_texts.tsv, et toute ressource STR/FMT/PLU qu'elle
- * declare doit exister dans strings.xml (PLAN_GEMINI.md section 4.10/353-360).
+ * Chaque texte visible d'une maquette portee en Compose doit avoir une ligne
+ * dans mockup_texts.tsv, et toute ressource STR/FMT/PLU qu'elle declare doit
+ * exister dans res/values (PLAN_GEMINI.md section 4.10/353-360).
  *
- * Ecrans pas encore livres en E4 : exclus ici, liste videe au fur et a mesure
- * des commits E4.2 a E4.13, vide a E4.13.
+ * Maquettes de reference : les .dc.html restes a la racine de maquettes/
+ * (ecrans inchanges en v2) et les sections de maquettes/v2-simplifiee/index.html,
+ * notees `v2-simplifiee/index.html#<section>` dans la colonne fichier.
  */
 class MockupTextCoverageTest {
-    private val pendingScreens = emptySet<String>()
+    // Sections de la maquette v2 (tous les ecrans principaux sont portes).
+    private val v2Sections = listOf("accueil", "bibliotheque", "serie", "traduire", "activite", "reglages", "reglages-traduction")
 
     private data class TsvRow(val fichier: String, val texte: String, val type: String, val ressource: String)
 
@@ -26,8 +28,9 @@ class MockupTextCoverageTest {
     }
 
     private fun stringResourceNames(): Set<String> {
-        val text = File("src/main/res/values/strings.xml").readText()
-        return Regex("""name="([^"]+)"""").findAll(text).map { it.groupValues[1] }.toSet()
+        // strings.xml et les fichiers par ecran (home_v2.xml, library_v2.xml...).
+        val files = File("src/main/res/values").listFiles { f -> f.name.endsWith(".xml") }.orEmpty()
+        return files.flatMap { f -> Regex("""name="([^"]+)"""").findAll(f.readText()).map { it.groupValues[1] } }.toSet()
     }
 
     @Test
@@ -35,8 +38,7 @@ class MockupTextCoverageTest {
         val doneScreens = File("../maquettes")
             .listFiles { f -> f.name.endsWith(".dc.html") }
             .orEmpty()
-            .map { it.name }
-            .filterNot { it in pendingScreens }
+            .map { it.name } + v2Sections.map { "v2-simplifiee/index.html#$it" }
         val covered = tsvRows().map { it.fichier }.toSet()
         val missing = doneScreens.filterNot { it in covered }
         assertTrue("Ecrans livres sans ligne dans mockup_texts.tsv : $missing", missing.isEmpty())
@@ -48,6 +50,6 @@ class MockupTextCoverageTest {
         val missing = tsvRows()
             .filter { it.type == "STR" || it.type == "FMT" || it.type == "PLU" }
             .filterNot { it.ressource in resources }
-        assertTrue("Ressources declarees dans mockup_texts.tsv absentes de strings.xml : $missing", missing.isEmpty())
+        assertTrue("Ressources declarees dans mockup_texts.tsv absentes de res/values : $missing", missing.isEmpty())
     }
 }
