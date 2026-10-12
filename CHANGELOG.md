@@ -11,6 +11,27 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.5.0] - 2026-10-12
+
+Remplace la 1.4.0, qui n'a pas ete publiee.
+
+### Ajoute
+- Gestion des erreurs avec le PC : chaque erreur affiche un libelle et une action (Relancer, Reconnecter Drive, Mettre a jour le PC...).
+- Bandeaux "Drive plein" et "Le PC n'accede plus a Google Drive".
+- Detection d'un job bloque sur le PC, avec Relancer.
+- Parametres : "Recuperer depuis Google Drive" recree les traductions recues mais pas installees.
+- Reglages de traduction : le motif d'un refus du PC est affiche.
+
+### Corrige
+- Premier envoi en traduction : la source et la demande partaient dans deux dossiers Drive differents.
+- Une perte d'autorisation Google ne fait plus echouer definitivement les jobs.
+- Un resultat sans fichier ne bloque plus l'envoi des accuses.
+- Installation : l'ancien chapitre n'est plus supprime avant que le nouveau soit en place, et un nouvel essai ne retelecharge pas.
+- Plusieurs reglages modifies d'affilee ne sont plus perdus.
+
+### Note
+- La base locale passe en version 3 (migration conservatrice). Reinstaller une version anterieure efface l'historique local des jobs.
+
 ## [1.4.0] - 2026-10-12
 
 ### Ajoute
