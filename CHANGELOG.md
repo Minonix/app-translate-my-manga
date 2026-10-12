@@ -11,6 +11,24 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.4.0] - 2026-10-12
+
+### Ajoute
+- Interface simplifiee (maquette v2) : Accueil, Bibliotheque, Fiche serie, feuille Traduire, Activite, Parametres et Reglages de traduction.
+- Feuille Traduire : "Traduire" envoie les chapitres a traduire, "Copier" les envoie sans traduction.
+- Activer le suivi d'une serie envoie aussi ses chapitres deja telecharges.
+- Parametres : reimport d'une sauvegarde Mihon.
+- Notifications d'envoi et de reception distinctes (canal "Envois et receptions").
+
+### Modifie
+- Le Catalogue et l'ecran Nouvelle traduction sont remplaces par la Bibliotheque et la feuille Traduire.
+- Accueil : "dans N series" accorde au pluriel.
+
+### Corrige
+- Reception : progression mise a jour pendant le telechargement, et un chapitre supprime pendant la reception n'est plus reinstalle.
+- Activite : la coche s'affiche correctement (plus de "racine carree").
+- Actualiser renvoie vers l'ecran Permission quand l'acces au dossier Mihon a ete retire.
+
 ## [1.3.1] - 2026-10-11
 
 ### Corrige
