@@ -53,7 +53,7 @@ class SettingsScreenBehaviorTest {
                             is SettingsEvent.DirectUrlChanged -> state.copy(directUrl = event.url)
                             is SettingsEvent.PairingCodeChanged -> state.copy(pairingCode = event.code)
                             SettingsEvent.ChangeMihonFolder, SettingsEvent.ExportLogs,
-                            SettingsEvent.Pair, SettingsEvent.ForgetPc -> state
+                            SettingsEvent.Pair, SettingsEvent.ForgetPc, SettingsEvent.RecoverFromDrive -> state
                             SettingsEvent.ToggleAdvanced -> state.copy(advancedExpanded = !state.advancedExpanded)
                             SettingsEvent.OpenDirect -> state.copy(directOpen = true)
                             SettingsEvent.CloseDirect -> state.copy(directOpen = false)

@@ -1,21 +1,30 @@
 package com.tmm.mobile.data
 
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.ChapterFacts
 import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.deriveStatus
 import com.tmm.mobile.protocol.MihonPath
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 // PLAN_GEMINI.md 5.15/5.16 : meme etape d'auto-traduction appelee par Startup.run() (une fois au
 // demarrage) et par RefreshCoordinator.refresh() (a chaque cycle) - une seule implementation partagee.
 // Tourne a chaque refresh : les series en auto-traduction sont lues en une requete (et le cas courant,
 // aucune, sort tout de suite) au lieu d'une requete par chapitre telecharge.
+// R15 : appelee hors de tout try (Startup, refresh) ; une erreur est journalisee, jamais propagee.
 suspend fun runAutoTranslate(db: TmmDatabase, jobRepository: JobRepository) {
-    val autoSeries = db.seriesSettingsDao().autoTranslateSeriesKeys().toSet()
-    if (autoSeries.isEmpty()) return
-    for (target in autoTranslateTargets(db, autoSeries)) {
-        jobRepository.createJobs(JobMode.TRANSLATE, listOf(target))
+    try {
+        val autoSeries = db.seriesSettingsDao().autoTranslateSeriesKeys().toSet()
+        if (autoSeries.isEmpty()) return
+        for (target in autoTranslateTargets(db, autoSeries)) {
+            jobRepository.createJobs(JobMode.TRANSLATE, listOf(target))
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        AppLog.d("AutoTranslate", "traduction automatique interrompue : ${e.javaClass.simpleName} ${e.message}")
     }
 }
 

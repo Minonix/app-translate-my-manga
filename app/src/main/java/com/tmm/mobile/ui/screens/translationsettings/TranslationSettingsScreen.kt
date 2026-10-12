@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.screens.translationsettings
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -130,7 +131,7 @@ fun TranslationSettingsScreen(
                 }
 
                 // Carte d'état de synchronisation avec le PC
-                SyncStatusCard(status = state.syncStatus, isReadOnly = state.isReadOnly, pcName = state.pcName)
+                SyncStatusCard(status = state.syncStatus, isReadOnly = state.isReadOnly, pcName = state.pcName, rejectReason = state.rejectReason)
 
                 // Groupe 1 : Langues
                 SettingsGroup(title = stringResource(R.string.settings_v2_essential)) {
@@ -303,9 +304,10 @@ fun TranslationSettingsScreen(
 }
 
 @Composable
-private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, pcName: String) {
+private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, pcName: String, @StringRes rejectReason: Int? = null) {
     val sending = status == TranslationSyncStatus.Sending
-    val waiting = status == TranslationSyncStatus.WaitingPc || isReadOnly
+    val rejected = status == TranslationSyncStatus.Rejected && !isReadOnly
+    val waiting = status == TranslationSyncStatus.WaitingPc || isReadOnly || rejected
     // PLAN_GEMINI.md 5.18/7.9 : fond #8A5A00 (ajouté) pour WAITING_PC (timeout 60s ou lecture seule).
     val badgeBg = when {
         waiting -> TmmColors.C8A5A00
@@ -317,12 +319,14 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
         status == TranslationSyncStatus.Sending -> stringResource(R.string.trans_settings_sync_sending_title)
         status == TranslationSyncStatus.Applied -> stringResource(R.string.trans_settings_sync_applied_title_fmt, pcName)
         status == TranslationSyncStatus.WaitingPc -> stringResource(R.string.trans_settings_sync_waiting_title)
+        rejected -> stringResource(R.string.trans_settings_sync_rejected_title)
         else -> stringResource(R.string.trans_settings_sync_synced_title_fmt, pcName)
     }
     val hint = when {
         isReadOnly -> stringResource(R.string.trans_settings_sync_readonly_hint)
         sending -> stringResource(R.string.trans_settings_sync_sending_hint)
         status == TranslationSyncStatus.WaitingPc -> stringResource(R.string.trans_settings_sync_waiting_hint)
+        rejected -> stringResource(rejectReason ?: R.string.error_unknown).replaceFirstChar { it.uppercase() }
         else -> stringResource(R.string.trans_settings_sync_synced_hint)
     }
 
@@ -371,7 +375,7 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
                 )
             } else {
                 TmmIcon(
-                    icon = TmmIconId.CheckSimple,
+                    icon = if (rejected) TmmIconId.Warning else TmmIconId.CheckSimple,
                     size = 18.dp,
                     tint = TmmColors.surface,
                 )

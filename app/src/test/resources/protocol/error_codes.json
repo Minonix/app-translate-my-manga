@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "pcJob": [
+    {"code": "bad_request", "retryable": false, "action": "resend"},
+    {"code": "protocol", "retryable": false, "action": "update_pc"},
+    {"code": "source_missing", "retryable": true, "action": "resend"},
+    {"code": "integrity", "retryable": true, "action": "resend"},
+    {"code": "duplicate", "retryable": false, "action": "none"},
+    {"code": "disk_full", "retryable": true, "action": "retry"},
+    {"code": "model_missing", "retryable": false, "action": "none"},
+    {"code": "api_key", "retryable": true, "action": "retry"},
+    {"code": "provider_quota", "retryable": true, "action": "retry"},
+    {"code": "engine_crash", "retryable": true, "action": "retry"},
+    {"code": "drive_quota", "retryable": true, "action": "redeliver"},
+    {"code": "job_lost", "retryable": true, "action": "retry"},
+    {"code": "translation_failed", "retryable": true, "action": "retry"}
+  ],
+  "directHttp": ["unauthorized", "bad_request", "protocol", "integrity", "not_found", "other_channel", "internal"],
+  "settingsReject": ["stale_version", "invalid_value", "bad_request"],
+  "phoneLocal": [
+    {"code": "network", "action": "retry"},
+    {"code": "auth", "action": "reconnect_drive"},
+    {"code": "pairing", "action": "repair"},
+    {"code": "drive_quota", "action": "retry"},
+    {"code": "source_unreadable", "action": "none"},
+    {"code": "permission", "action": "open_permission"},
+    {"code": "phone_disk_full", "action": "retry"},
+    {"code": "download", "action": "redeliver"},
+    {"code": "result_missing", "action": "redeliver"},
+    {"code": "install", "action": "retry"},
+    {"code": "pc_stalled", "action": "retry"},
+    {"code": "protocol_too_new", "action": "update_app"}
+  ]
+}

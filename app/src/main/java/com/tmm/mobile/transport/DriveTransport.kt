@@ -20,6 +20,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 private const val CHUNK_SIZE = 8 * 1024 * 1024
@@ -29,6 +30,7 @@ const val APP_FOLDER = "App"
 
 private val PC_FILES = listOf("heartbeat.json", "index.json", "settings.json", "remote.json")
 private val JOB_FILES = listOf("status.json", "result.json")
+private const val PROTOCOL_FILE = "protocol.json"
 
 // CdC 7.1/7.3. Canal Drive de JobTransport (le canal direct est DirectTransport).
 class DriveTransport(
@@ -70,13 +72,49 @@ class DriveTransport(
                 ?: driveApi.createFolder(pcId, "commands").also { created = true }
             prefs.setDriveCommandsId(commandsId)
         }
-        if (driveApi.findChild(rootId, "protocol.json", folder = false) == null) {
+        val marker = driveApi.findChild(rootId, PROTOCOL_FILE, folder = false)
+        if (marker == null) {
             val bytes = ProtocolJson.encodeToString(ProtocolMarker.serializer(), ProtocolMarker())
                 .toByteArray(Charsets.UTF_8)
-            driveApi.createJson(rootId, "protocol.json", bytes)
+            driveApi.createJson(rootId, PROTOCOL_FILE, bytes)
             created = true
+        } else {
+            // protocol.json du PC : un protocole > 1 leve le bandeau « mettre a jour l'app », 1 le fait retomber.
+            readProtocolMarker(marker.id)?.let { prefs.setProtocolTooNew(it > 1) }
         }
         return LayoutInfo(created)
+    }
+
+    // R3 : un fichier vide ou tronque est « pas encore pret », pas une erreur.
+    private suspend fun readProtocolMarker(fileId: String): Int? = try {
+        ProtocolJson.decodeFromString(ProtocolMarker.serializer(), driveApi.readText(fileId)).protocol
+    } catch (e: AuthExpiredException) {
+        throw e
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        AppLog.d("DriveTransport", "protocol.json illisible : ${e.message}")
+        null
+    }
+
+    private suspend fun findJobFolder(jobId: String): String? {
+        val jobsId = prefs.driveJobsId.first() ?: return null
+        return driveApi.findChild(jobsId, jobId, folder = true)?.id
+    }
+
+    // R1 : fichier a nom fixe ecrit en « chercher puis mettre a jour par fileId, creer seulement s'il
+    // n'existe pas ». ponytail: pas de cache des fileId (une recherche par ecriture) : un cache par job
+    // grossirait sans fin dans DataStore. A revoir si le quota de requetes Drive devient un sujet.
+    private suspend fun writeFixedJson(parentId: String, name: String, bytes: ByteArray): DriveFile {
+        val existing = driveApi.findChild(parentId, name, folder = false)
+        if (existing != null) {
+            try {
+                return driveApi.updateJson(existing.id, bytes)
+            } catch (e: DriveNotFoundException) {
+                // Supprime entre la recherche et l'ecriture : on le recree.
+            }
+        }
+        return driveApi.createJson(parentId, name, bytes)
     }
 
     override suspend fun accountEmail(): String? = driveApi.about()
@@ -93,9 +131,8 @@ class DriveTransport(
         onSession: suspend (String) -> Unit,
         onProgress: suspend (sent: Long, total: Long) -> Unit,
     ): String {
-        val jobsId = requireNotNull(prefs.driveJobsId.first()) { "ensureLayout() non appele" }
-        val jobFolderId = job.driveFolderId
-            ?: driveApi.createFolder(jobsId, job.jobId)
+        // R2 : jamais de createFolder aveugle ; le dossier vient de la base ou d'un chercher-puis-creer.
+        val jobFolderId = job.driveFolderId ?: ensureJobFolder(job.jobId)
         val total = file.length()
         var session = job.uploadSessionUrl
         if (session == null) {
@@ -139,126 +176,193 @@ class DriveTransport(
     }
 
     override suspend fun writeRequest(jobFolderId: String?, request: RequestJson): String {
-        val jobsId = requireNotNull(prefs.driveJobsId.first()) { "ensureLayout() non appele" }
-        val folderId = jobFolderId ?: driveApi.createFolder(jobsId, request.jobId)
+        val folderId = jobFolderId ?: ensureJobFolder(request.jobId)
         val bytes = ProtocolJson.encodeToString(RequestJson.serializer(), request).toByteArray(Charsets.UTF_8)
-        return driveApi.createJson(folderId, "request.json", bytes).id
+        return writeFixedJson(folderId, "request.json", bytes).id
     }
 
+    // Sans dossier sur Drive, le PC n'a jamais vu le job : rien a annuler.
     override suspend fun writeCancel(job: JobEntity, cancel: CancelJson) {
-        val folderId = requireNotNull(job.driveFolderId) { "job sans dossier Drive" }
+        val folderId = job.driveFolderId ?: findJobFolder(job.jobId) ?: return
         val bytes = ProtocolJson.encodeToString(CancelJson.serializer(), cancel).toByteArray(Charsets.UTF_8)
-        driveApi.createJson(folderId, "cancel.json", bytes)
+        writeFixedJson(folderId, "cancel.json", bytes)
     }
 
+    // Dossier deja purge cote Drive : l'accuse n'a plus de destinataire.
     override suspend fun writeReceived(job: JobEntity, received: ReceivedJson) {
-        val folderId = requireNotNull(job.driveFolderId) { "job sans dossier Drive" }
+        val folderId = job.driveFolderId ?: findJobFolder(job.jobId) ?: return
         val bytes = ProtocolJson.encodeToString(ReceivedJson.serializer(), received).toByteArray(Charsets.UTF_8)
-        driveApi.createJson(folderId, "received.json", bytes)
+        writeFixedJson(folderId, "received.json", bytes)
     }
 
     override suspend fun writeCommand(command: SettingsCommand) {
         val commandsId = requireNotNull(prefs.driveCommandsId.first()) { "ensureLayout() non appele" }
         val bytes = ProtocolJson.encodeToString(SettingsCommand.serializer(), command).toByteArray(Charsets.UTF_8)
-        driveApi.createJson(commandsId, "${command.cmdId}.json", bytes)
+        writeFixedJson(commandsId, "${command.cmdId}.json", bytes)
     }
 
     // CdC 5.9 : liste les fichiers modifies depuis `since`, classe chacun par nom, decode son
     // contenu et en tire jobId directement plutot que de maintenir une table dossier->jobId.
     override suspend fun poll(since: String?): PollResult {
         val sinceIso = since ?: Instant.EPOCH.toString()
-        val statuses = mutableListOf<StatusJson>()
-        val results = mutableListOf<Pair<ResultJson, String?>>()
-        var heartbeat: Heartbeat? = null
-        var index: PcIndex? = null
-        var settings: PcSettings? = null
-        var remote: RemoteInfo? = null
+        // R3 : status le plus recent par job, result le plus ancien par job (doublons de nom).
+        val statusByJob = HashMap<String, Pair<String, StatusJson>>()
+        val resultByJob = HashMap<String, Triple<String, ResultJson, String?>>()
+        // R3 : fichiers PC reecrits en place, le modifiedTime le plus recent l'emporte.
+        var heartbeat: Pair<String, Heartbeat>? = null
+        var index: Pair<String, PcIndex>? = null
+        var settings: Pair<String, PcSettings>? = null
+        var remote: Pair<String, RemoteInfo>? = null
         var protocolTooNew = false
+        var protocolSeen = false
         var maxModified: String? = null
+        // R4 : le curseur n'avance pas au-dela d'une entree qui n'a pas pu etre lue.
+        var minUnreadable: String? = null
+        var serverTime: String? = null
         var pageToken: String? = null
+        val rootId = prefs.driveRootId.first()
+        fun newer(candidate: String, known: Pair<String, *>?) = known == null || candidate >= known.first
         // Acces Drive complet : un settings.json ou status.json d'une autre application peut porter le
         // meme nom. Seuls comptent les fichiers de pc/ et des dossiers de jobs/ de la boite aux lettres.
         val pcId = prefs.drivePcId.first()
         val jobsId = prefs.driveJobsId.first()
         var jobFolderIds: Set<String>? = null
         do {
-            val page = driveApi.listChanged(sinceIso, pageToken, PC_FILES + JOB_FILES)
+            val page = driveApi.listChanged(sinceIso, pageToken, PC_FILES + JOB_FILES + PROTOCOL_FILE)
+            if (serverTime == null) serverTime = page.serverTime
             for (entry in page.files) {
-                val modified = entry.modifiedTime
-                if (modified != null && (maxModified == null || modified > maxModified!!)) maxModified = modified
-                val parent = entry.parents.firstOrNull()
-                val inMailbox = when (entry.name) {
-                    in PC_FILES -> parent != null && parent == pcId
-                    in JOB_FILES -> parent != null && jobsId != null &&
-                        parent in (jobFolderIds ?: driveApi.listChildFolderIds(jobsId).also { jobFolderIds = it })
-                    else -> false
-                }
-                if (!inMailbox) continue
+                val modified = entry.modifiedTime ?: ""
+                if (modified.isNotEmpty() && (maxModified == null || modified > maxModified!!)) maxModified = modified
                 try {
+                    val parent = entry.parents.firstOrNull()
+                    val inMailbox = when (entry.name) {
+                        in PC_FILES -> parent != null && parent == pcId
+                        in JOB_FILES -> parent != null && jobsId != null &&
+                            parent in (jobFolderIds ?: driveApi.listChildFolderIds(jobsId).also { jobFolderIds = it })
+                        PROTOCOL_FILE -> parent != null && parent == rootId
+                        else -> false
+                    }
+                    if (!inMailbox) continue
                     when (entry.name) {
                         "status.json" -> {
                             val text = driveApi.readText(entry.id)
                             val decoded = ProtocolJson.decodeFromString(StatusJson.serializer(), text)
-                            if (decoded.protocol > 1) protocolTooNew = true else statuses += decoded
+                            if (decoded.protocol > 1) {
+                                protocolTooNew = true
+                            } else if (newer(modified, statusByJob[decoded.jobId])) {
+                                statusByJob[decoded.jobId] = modified to decoded
+                            }
                         }
                         "result.json" -> {
                             val text = driveApi.readText(entry.id)
                             val decoded = ProtocolJson.decodeFromString(ResultJson.serializer(), text)
+                            val known = resultByJob[decoded.jobId]
                             if (decoded.protocol > 1) {
                                 protocolTooNew = true
-                            } else {
+                            } else if (known == null || modified < known.first) {
                                 val resultCbz = entry.parents.firstOrNull()
                                     ?.let { driveApi.findChild(it, "result.cbz", folder = false)?.id }
-                                results += decoded to resultCbz
+                                resultByJob[decoded.jobId] = Triple(modified, decoded, resultCbz)
                             }
                         }
                         "heartbeat.json" -> {
                             val text = driveApi.readText(entry.id)
                             val decoded = ProtocolJson.decodeFromString(Heartbeat.serializer(), text)
-                            if (decoded.protocol > 1) protocolTooNew = true else heartbeat = decoded
+                            if (decoded.protocol > 1) {
+                                protocolTooNew = true
+                            } else {
+                                protocolSeen = true
+                                if (newer(modified, heartbeat)) heartbeat = modified to decoded
+                            }
                         }
                         "index.json" -> {
                             val text = driveApi.readText(entry.id)
                             val decoded = ProtocolJson.decodeFromString(PcIndex.serializer(), text)
-                            if (decoded.protocol > 1) protocolTooNew = true else index = decoded
+                            if (decoded.protocol > 1) protocolTooNew = true else if (newer(modified, index)) index = modified to decoded
                         }
                         "settings.json" -> {
                             val text = driveApi.readText(entry.id)
                             val decoded = ProtocolJson.decodeFromString(PcSettings.serializer(), text)
-                            if (decoded.protocol > 1) protocolTooNew = true else settings = decoded
+                            if (decoded.protocol > 1) protocolTooNew = true else if (newer(modified, settings)) settings = modified to decoded
                         }
                         "remote.json" -> {
                             val text = driveApi.readText(entry.id)
                             val decoded = ProtocolJson.decodeFromString(RemoteInfo.serializer(), text)
-                            if (decoded.protocol > 1) protocolTooNew = true else remote = decoded
+                            if (decoded.protocol > 1) protocolTooNew = true else if (newer(modified, remote)) remote = modified to decoded
+                        }
+                        PROTOCOL_FILE -> {
+                            val text = driveApi.readText(entry.id)
+                            val decoded = ProtocolJson.decodeFromString(ProtocolMarker.serializer(), text)
+                            if (decoded.protocol > 1) protocolTooNew = true else protocolSeen = true
                         }
                     }
+                } catch (e: AuthExpiredException) {
+                    throw e
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
-                    // ponytail: un fichier partiellement ecrit ou corrompu ne doit pas bloquer
-                    // tout le poll ; il sera relu au prochain cycle si son modifiedTime avance encore.
-                    AppLog.d("DriveTransport", "poll: entree ignoree (${entry.name}) : ${e.message}")
+                    // R3/R4 : un fichier vide, tronque ou une erreur reseau sur cette entree ne bloque pas le
+                    // poll ; le curseur reste avant elle pour la relire au prochain cycle.
+                    AppLog.d("DriveTransport", "poll: entree relue au prochain cycle (${entry.name}) : ${e.message}")
+                    if (modified.isNotEmpty() && (minUnreadable == null || modified < minUnreadable!!)) minUnreadable = modified
                 }
             }
             pageToken = page.nextPageToken
         } while (pageToken != null)
         // Marge de recouvrement CdC 7.3 : on retranche 120s pour couvrir les ecritures encore en vol.
-        val cursor = maxModified?.let { Instant.parse(it).minusSeconds(120).toString() } ?: since
-        return PollResult(cursor, statuses, results, heartbeat, index, settings, protocolTooNew, remote)
+        // R4 : borne a juste avant la premiere entree illisible (la requete est « modifiedTime > curseur »).
+        val cursor = when {
+            minUnreadable != null -> Instant.parse(minUnreadable).minusSeconds(120).minusMillis(1).toString()
+            maxModified != null -> Instant.parse(maxModified).minusSeconds(120).toString()
+            else -> since
+        }
+        return PollResult(
+            cursor = cursor,
+            statuses = statusByJob.values.map { it.second },
+            results = resultByJob.values.sortedBy { it.first }.map { it.second to it.third },
+            heartbeat = heartbeat?.second,
+            index = index?.second,
+            settings = settings?.second,
+            protocolTooNew = protocolTooNew,
+            remote = remote?.second,
+            heartbeatModifiedTime = heartbeat?.first,
+            serverTime = serverTime,
+            protocolSeen = protocolSeen && !protocolTooNew,
+        )
     }
 
-    override suspend fun readSettings(): PcSettings? {
-        val pcId = prefs.drivePcId.first() ?: return null
-        val file = driveApi.findChild(pcId, "settings.json", folder = false) ?: return null
-        val text = driveApi.readText(file.id)
-        return ProtocolJson.decodeFromString(PcSettings.serializer(), text)
-    }
+    // R4 : lecture sur demande ; un fichier absent, vide ou illisible rend null (relu plus tard) au lieu de lever.
+    override suspend fun readSettings(): PcSettings? = readPcFile("settings.json", PcSettings.serializer())
 
     // Lecture directe de pc/remote.json (ecran d'appairage) : le poll ne le voit que s'il a change
     // depuis le curseur, alors qu'ici on veut la valeur courante.
     suspend fun readRemoteInfo(): RemoteInfo? {
-        val pcId = prefs.drivePcId.first() ?: ensureLayout().let { prefs.drivePcId.first() } ?: return null
-        val file = driveApi.findChild(pcId, "remote.json", folder = false) ?: return null
-        return ProtocolJson.decodeFromString(RemoteInfo.serializer(), driveApi.readText(file.id))
+        if (prefs.drivePcId.first() == null) {
+            try {
+                ensureLayout()
+            } catch (e: AuthExpiredException) {
+                throw e
+            } catch (e: IOException) {
+                AppLog.d("DriveTransport", "remote.json : boite aux lettres introuvable : ${e.message}")
+                return null
+            }
+        }
+        return readPcFile("remote.json", RemoteInfo.serializer())
+    }
+
+    private suspend fun <T> readPcFile(name: String, serializer: kotlinx.serialization.KSerializer<T>): T? {
+        val pcId = prefs.drivePcId.first() ?: return null
+        return try {
+            val file = driveApi.findChild(pcId, name, folder = false, newest = true) ?: return null
+            ProtocolJson.decodeFromString(serializer, driveApi.readText(file.id))
+        } catch (e: AuthExpiredException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLog.d("DriveTransport", "$name illisible : ${e.message}")
+            null
+        }
     }
 
     override suspend fun downloadResult(job: JobEntity, fileId: String, dest: File, onProgress: suspend (Long, Long) -> Unit) {
@@ -268,7 +372,40 @@ class DriveTransport(
     }
 
     override suspend fun deleteJobFolder(job: JobEntity) {
-        val folderId = job.driveFolderId ?: return
+        val folderId = job.driveFolderId ?: findJobFolder(job.jobId) ?: return
         driveApi.delete(folderId)
+    }
+
+    /**
+     * R14 : dossiers jobs/<jobId> qui ont un result.json et pas de received.json (resultat jamais accuse).
+     * Chaque entree : result.json decode, id de result.cbz (null si absent) et request.json s'il est lisible.
+     */
+    override suspend fun listUnreceivedResults(): List<RecoverableResult> {
+        val jobsId = prefs.driveJobsId.first() ?: run {
+            ensureLayout()
+            prefs.driveJobsId.first()
+        } ?: return emptyList()
+        val found = mutableListOf<RecoverableResult>()
+        for (folder in driveApi.listChildFolders(jobsId)) {
+            try {
+                if (driveApi.findChild(folder.id, "received.json", folder = false) != null) continue
+                val resultFile = driveApi.findChild(folder.id, "result.json", folder = false) ?: continue
+                val result = ProtocolJson.decodeFromString(ResultJson.serializer(), driveApi.readText(resultFile.id))
+                if (result.protocol > 1 || result.jobId != folder.name) continue
+                val cbz = driveApi.findChild(folder.id, "result.cbz", folder = false)?.id
+                val request = driveApi.findChild(folder.id, "request.json", folder = false)?.let { file ->
+                    runCatching { ProtocolJson.decodeFromString(RequestJson.serializer(), driveApi.readText(file.id)) }.getOrNull()
+                }
+                found += RecoverableResult(folder.id, result, cbz, request)
+            } catch (e: AuthExpiredException) {
+                throw e
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // R4 : un dossier illisible n'empeche pas de recuperer les autres.
+                AppLog.d("DriveTransport", "recuperation : dossier ${folder.name} ignore : ${e.message}")
+            }
+        }
+        return found
     }
 }

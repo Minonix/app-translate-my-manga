@@ -75,7 +75,8 @@ class OutboxWorkerTest {
 
         buildWorker().doWork()
 
-        assertNotNull(env.drive.childOf(f.id, "received.json"))
+        // La suppression du dossier emporte ses enfants (comme sur Drive) : on verifie l'ecriture via le journal.
+        assertTrue((f.id to "received.json") in env.drive.createdJsonFiles)
         val updated = env.db.jobDao().get("job-2")!!
         assertNotNull(updated.receivedWrittenAt)
         assertNotNull(updated.driveDeletedAt)

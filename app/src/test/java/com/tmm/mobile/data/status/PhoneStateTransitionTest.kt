@@ -51,9 +51,16 @@ class PhoneStateTransitionTest {
         assertFalse(isAllowedPhoneStateTransition("DOWNLOADING", "SENT"))
     }
 
+    @Test fun failed_canResumeReception_R10() {
+        assertTrue(isAllowedPhoneStateTransition("FAILED", "RESULT_READY"))
+        assertFalse(isAllowedPhoneStateTransition("FAILED", "PREPARING"))
+    }
+
     @Test fun terminalStates_haveNoOutgoingTransition() {
         for (terminal in listOf("INSTALLED", "FAILED", "CANCEL_REQUESTED")) {
             for (candidate in listOf("PREPARING", "UPLOADING", "SENT", "RESULT_READY", "DOWNLOADING", "INSTALLED", "FAILED", "CANCEL_REQUESTED")) {
+                // Seule exception : reprise R10 d'un echec de reception (FAILED -> RESULT_READY).
+                if (terminal == "FAILED" && candidate == "RESULT_READY") continue
                 assertFalse("$terminal -> $candidate ne devrait jamais etre autorise", isAllowedPhoneStateTransition(terminal, candidate))
             }
         }

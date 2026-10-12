@@ -1,6 +1,8 @@
 package com.tmm.mobile.ui.screens.queue
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
+import com.tmm.mobile.data.status.ErrorAction
 
 /** Onglets de l'écran Activité (maquette v2, écran 7). */
 enum class QueueTab { Active, Done, Fail }
@@ -79,11 +81,18 @@ data class FailedJob(
     val title: String,
     val color: Color,
     val page: Int?,
-    val message: String,
+    /** Libelle du code d'erreur (ErrorCatalog), seul texte principal (docs/ERREURS_PROTOCOLE.md 1.3). */
+    @StringRes val label: Int,
     /** « Gemini · les pages 1 à 11 sont conservées ». */
     val keptInfo: String,
-    /** Quota du moteur atteint : l'astuce « Secours LLM local » s'affiche. */
+    /** Quota du moteur atteint (provider_quota) : l'astuce « Secours LLM local » s'affiche. */
     val quota: Boolean = false,
+    /** Message brut du PC ou du telephone, en detail secondaire seulement. */
+    val detail: String? = null,
+    /** Bouton propose selon le code (ErrorCatalog). */
+    val action: ErrorAction = ErrorAction.RETRY,
+    /** La relance reprend a la page d'echec (verify/retranslate) ; en translate tout le chapitre repart. */
+    val resumeAtPage: Boolean = false,
 )
 
 data class QueueState(

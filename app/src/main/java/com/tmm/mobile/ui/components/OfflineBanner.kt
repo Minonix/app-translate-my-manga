@@ -31,6 +31,10 @@ sealed class OfflineBannerState {
     data object NoNetwork : OfflineBannerState()
     data class TokenExpired(val reconnecting: Boolean, val onReconnect: () -> Unit) : OfflineBannerState()
     data object ProtocolTooNew : OfflineBannerState()
+    // R5 / drive_quota : meme style que le bandeau d'acces expire, sans bouton (rien a faire dans l'app).
+    data object DriveFull : OfflineBannerState()
+    // Heartbeat driveOk == false : panne du Drive cote PC, information neutre sans action.
+    data object PcDriveDown : OfflineBannerState()
 }
 
 @Composable
@@ -56,6 +60,36 @@ fun OfflineBanner(state: OfflineBannerState, modifier: Modifier = Modifier) {
             TmmText(
                 text = "Le PC utilise une version plus récente du protocole. Mettez à jour l'app.",
                 style = TmmType.sans(13),
+                color = TmmColors.paper,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        is OfflineBannerState.DriveFull -> BannerRow(
+            modifier = modifier,
+            bg = TmmColors.dangerBg,
+            fg = TmmColors.dangerText,
+            liveMode = LiveRegionMode.Assertive,
+            icon = TmmIconId.Cloud,
+        ) {
+            RichText(
+                bold = "Google Drive plein.",
+                rest = " Libérez de l'espace pour reprendre les envois.",
+                color = TmmColors.dangerText,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        is OfflineBannerState.PcDriveDown -> BannerRow(
+            modifier = modifier,
+            bg = TmmColors.ink,
+            fg = TmmColors.paper,
+            liveMode = LiveRegionMode.Polite,
+            icon = TmmIconId.Cloud,
+        ) {
+            RichText(
+                bold = "Le PC n'accède plus à Google Drive.",
+                rest = " Les traductions reprendront dès son retour.",
                 color = TmmColors.paper,
                 modifier = Modifier.weight(1f),
             )

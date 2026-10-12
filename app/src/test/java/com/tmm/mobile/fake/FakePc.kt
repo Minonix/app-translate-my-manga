@@ -1,5 +1,6 @@
 package com.tmm.mobile.fake
 
+import com.tmm.mobile.protocol.CommandResult
 import com.tmm.mobile.protocol.FileRef
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.JobError
@@ -11,7 +12,11 @@ import com.tmm.mobile.protocol.Quality
 import com.tmm.mobile.protocol.QueueCounts
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.ResultJson
+import com.tmm.mobile.protocol.SettingsCommand
+import com.tmm.mobile.protocol.SettingsValues
 import com.tmm.mobile.protocol.StatusJson
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Simule le cote TMM-Win du protocole (CdC 7.1-7.5) en agissant directement sur [FakeDrive],
@@ -80,7 +85,15 @@ class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
         writeStatus(jobId, StatusJson(jobId = jobId, updatedAt = nowIso(), mode = request.options.mode, state = "failed", error = JobError(code, message)))
     }
 
-    fun writeHeartbeat(slots: Int = 1, active: List<String> = emptyList(), queueActive: Int = 0, queueWaiting: Int = 0, queueFailed: Int = 0) {
+    fun writeHeartbeat(
+        slots: Int = 1,
+        active: List<String> = emptyList(),
+        queueActive: Int = 0,
+        queueWaiting: Int = 0,
+        queueFailed: Int = 0,
+        driveOk: Boolean? = null,
+        lastErrorCode: String? = null,
+    ) {
         val heartbeat = Heartbeat(
             pcName = "PC-TEST",
             appVersion = "1.0.0",
@@ -88,6 +101,8 @@ class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
             slots = slots,
             activeJobIds = active,
             queue = QueueCounts(queueActive, queueWaiting, queueFailed),
+            driveOk = driveOk,
+            lastErrorCode = lastErrorCode,
         )
         writeJson(pcId(), "heartbeat.json", ProtocolJson.encodeToString(Heartbeat.serializer(), heartbeat).toByteArray())
     }
@@ -100,4 +115,63 @@ class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
     fun writeSettings(settings: PcSettings) {
         writeJson(pcId(), "settings.json", ProtocolJson.encodeToString(PcSettings.serializer(), settings).toByteArray())
     }
+
+    // R12 : un cycle PC sur pc/commands comme bridge.py (_apply_commands/_run_command) : chaque commande
+    // du dossier est traitee puis supprimee ; baseVersion != version -> rejected/stale_version, sinon
+    // appliquee et version + 1. Seul le dernier accuse reste visible dans settings.json.
+    fun processCommands(current: PcSettings): PcSettings {
+        val commandsId = drive.childOf(pcId(), "commands")?.id ?: return current
+        var settings = current
+        val files = drive.files.values.filter { commandsId in it.parents }.sortedBy { it.modifiedTime }
+        for (file in files) {
+            val command = ProtocolJson.decodeFromString(SettingsCommand.serializer(), String(file.bytes))
+            drive.files.remove(file.id)
+            settings = if (command.baseVersion != settings.version) {
+                settings.copy(lastCommandId = command.cmdId, lastCommandResult = CommandResult(command.cmdId, "rejected", "stale_version"))
+            } else {
+                val values = ProtocolJson.encodeToJsonElement(SettingsValues.serializer(), settings.values).jsonObject
+                val merged = JsonObject(values + command.changes.mapValues { (k, v) -> coerce(values.getValue(k), v) })
+                settings.copy(
+                    version = settings.version + 1,
+                    values = ProtocolJson.decodeFromJsonElement(SettingsValues.serializer(), merged),
+                    lastCommandId = command.cmdId,
+                    lastCommandResult = CommandResult(command.cmdId, "applied"),
+                )
+            }
+        }
+        writeSettings(settings.copy(updatedAt = nowIso()))
+        return settings
+    }
+
+    // Le telephone envoie des chaines ("2", "true") ; le PC les convertit au type du reglage.
+    private fun coerce(old: kotlinx.serialization.json.JsonElement, value: kotlinx.serialization.json.JsonElement) =
+        if (old is kotlinx.serialization.json.JsonPrimitive && !old.isString) {
+            kotlinx.serialization.json.Json.parseToJsonElement((value as kotlinx.serialization.json.JsonPrimitive).content)
+        } else {
+            value
+        }
+
+    // R12 : accuse d'une commande de reglages (lastCommandId + lastCommandResult), ecrit comme le PC
+    // avant de supprimer la commande. status "applied" | "rejected", code de rejet sinon null.
+    fun acknowledgeCommand(base: PcSettings, cmdId: String, status: String, code: String? = null, version: Int = base.version) {
+        writeSettings(
+            base.copy(
+                updatedAt = nowIso(),
+                version = version,
+                lastCommandId = cmdId,
+                lastCommandResult = CommandResult(cmdId = cmdId, status = status, code = code),
+            ),
+        )
+    }
+
+    // R3 : second fichier de meme nom dans le dossier du job (ecriture concurrente cote PC), avec son
+    // propre modifiedTime ; contenu brut pour pouvoir aussi simuler un JSON vide ou tronque.
+    fun writeDuplicateJobFile(jobId: String, name: String, content: String, modifiedTime: String): FakeFile {
+        val file = FakeFile(name = name, parents = mutableListOf(jobFolderId(jobId)), mimeType = "application/json", modifiedTime = modifiedTime, bytes = content.toByteArray())
+        drive.files[file.id] = file
+        return file
+    }
+
+    fun statusJson(jobId: String, state: String, updatedAt: String = nowIso(), error: JobError? = null): String =
+        ProtocolJson.encodeToString(StatusJson.serializer(), StatusJson(jobId = jobId, updatedAt = updatedAt, mode = "translate", state = state, error = error))
 }

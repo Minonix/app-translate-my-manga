@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.mock
 
+import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.screens.library.LibraryState
 import com.tmm.mobile.ui.screens.main.MainFollowedSeries
@@ -212,8 +213,8 @@ object MockupData {
         failedJobs = listOf(
             FailedJob(
                 jobId = "csm171", seriesKey = "chainsaw", coverUrl = null, title = "Chainsaw Man · ch. 171",
-                color = TmmColors.CE2C6BB, page = 12, message = "quota du moteur atteint",
-                keptInfo = "Gemini · les pages 1 à 11 sont conservées", quota = true,
+                color = TmmColors.CE2C6BB, page = 12, label = R.string.error_pc_provider_quota,
+                keptInfo = "Gemini · les pages 1 à 11 sont conservées", quota = true, resumeAtPage = true,
             ),
         ),
     )

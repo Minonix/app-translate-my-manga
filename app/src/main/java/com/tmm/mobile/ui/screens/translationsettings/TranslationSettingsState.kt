@@ -1,5 +1,7 @@
 package com.tmm.mobile.ui.screens.translationsettings
 
+import androidx.annotation.StringRes
+
 // Les badges suivent la maquette v2 (« Gemini · recommandé ») : minuscule apres le point median,
 // la feuille de choix remet la majuscule quand le badge est affiche seul.
 enum class SourceLanguage(val code: String, val label: String, val badge: String = "") {
@@ -95,6 +97,8 @@ enum class TranslationSyncStatus {
     Applied,
     // PLAN_GEMINI.md 5.18/7.9 : pas de confirmation du PC sous 60s (fond #8A5A00, ajouté).
     WaitingPc,
+    // R12 : commande refusee par le PC (ajoute, meme bandeau que WaitingPc) ; motif dans rejectReason.
+    Rejected,
 }
 
 data class TranslationSettingsState(
@@ -119,6 +123,8 @@ data class TranslationSettingsState(
     val readingExpanded: Boolean = false,
     val activeSheet: ActiveSheet? = null,
     val syncStatus: TranslationSyncStatus = TranslationSyncStatus.Synced,
+    // Libelle du motif de refus (ErrorCatalog.settingsRejectLabel), affiche avec Rejected.
+    @StringRes val rejectReason: Int? = null,
     // PLAN_GEMINI.md 7.9 : aucun settings_json recu -> controles desactives, alpha 0.45.
     val isReadOnly: Boolean = false,
 )

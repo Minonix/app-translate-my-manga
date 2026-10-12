@@ -15,6 +15,7 @@ import com.tmm.mobile.protocol.ReceivedJson
 import com.tmm.mobile.protocol.RemoteErrorBody
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.SettingsCommand
+import com.tmm.mobile.protocol.StatusJson
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -144,7 +145,12 @@ class DirectTransport(
 
     override suspend fun writeRequest(jobFolderId: String?, request: RequestJson): String {
         val body = ProtocolJson.encodeToString(RequestJson.serializer(), request).toRequestBody(JSON_TYPE)
-        call("jobs/${request.jobId}") { post(body) }
+        val response = call("jobs/${request.jobId}") { post(body) }
+        // Refus de job renvoye en HTTP 200 : corps = status.json "failed" avec error.code (meme contrat
+        // que sur Drive). Leve avec le statut 200 pour que SendJobWorker le classe comme un refus PC.
+        val status = runCatching { ProtocolJson.decodeFromString(StatusJson.serializer(), response) }.getOrNull()
+        val error = status?.error
+        if (status?.state == "failed" && error != null) throw DirectHttpException(200, error.code, error.message)
         return request.jobId
     }
 
@@ -187,7 +193,7 @@ class DirectTransport(
         val heartbeat = doc.heartbeat?.let { keep(it.protocol, it) }
         val index = doc.index?.let { keep(it.protocol, it) }
         val settings = doc.settings?.let { keep(it.protocol, it) }
-        return PollResult(doc.cursor, statuses, results, heartbeat, index, settings, tooNew)
+        return PollResult(doc.cursor, statuses, results, heartbeat, index, settings, tooNew, protocolSeen = heartbeat != null && !tooNew)
     }
 
     // ponytail: un poll complet pour relire les reglages (index inclus). Suffisant : le PC applique une

@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         BackupImportEntity::class,
         PcIndexChapterEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -51,9 +51,22 @@ abstract class TmmDatabase : RoomDatabase() {
             }
         }
 
+        // v2 -> v3 : code d'erreur local du job (docs/ERREURS_PROTOCOLE.md 1.2) et redemande (redeliver, 2).
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `job` ADD COLUMN `errorCode` TEXT")
+                db.execSQL("ALTER TABLE `job` ADD COLUMN `redeliver` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+
+        // R14 : la base ne doit jamais empecher l'app de demarrer. Un retour a une version anterieure de
+        // l'app (downgrade) repart d'une base vide ; une migration montante absente reste un bug (teste).
         fun build(context: Context): TmmDatabase =
             Room.databaseBuilder(context, TmmDatabase::class.java, "tmm.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(*ALL_MIGRATIONS)
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
     }
 }

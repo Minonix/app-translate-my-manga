@@ -126,6 +126,12 @@ data class JobEntity(
     val driveDeletedAt: Long?,
     // Canal du job, fige a l'envoi : "drive" ou "direct" (Tailscale). Il ne change plus jusqu'au resultat.
     @ColumnInfo(defaultValue = CHANNEL_DRIVE) val channel: String = CHANNEL_DRIVE,
+    // Code d'erreur local au telephone (docs/ERREURS_PROTOCOLE.md 1.2), jamais ecrit sur Drive ; null si
+    // l'echec vient du PC (pcErrorCode) ou si le job n'a pas echoue.
+    val errorCode: String? = null,
+    // Mode translate sans fichier, options.redeliver (docs/ERREURS_PROTOCOLE.md 2) : redemande au PC la
+    // traduction qu'il a deja (resultat perdu ou illisible).
+    @ColumnInfo(defaultValue = "0") val redeliver: Boolean = false,
 )
 
 const val CHANNEL_DRIVE = "drive"

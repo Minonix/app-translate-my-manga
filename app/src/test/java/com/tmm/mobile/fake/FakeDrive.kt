@@ -44,6 +44,17 @@ class FakeDrive(private val nowIso: () -> String) {
     var caseInsensitiveNames: Boolean = false
     // Appele avant de servir le contenu d'un fichier : simule un changement d'etat pendant un telechargement.
     var beforeMediaGet: ((String) -> Unit)? = null
+    // R5 : les N prochaines requetes repondent 403 avec cette raison (rateLimitExceeded, storageQuotaExceeded...).
+    var force403Reason: String? = null
+    var force403ForNextAttempts: Int = 0
+    // Limite le 403 aux requetes dont le chemin commence par ce prefixe (null = toutes).
+    var force403PathPrefix: String? = null
+    // Statut renvoye par toute suppression (null = suppression normale, 404 si deja absent).
+    var deleteFailsWith: Int? = null
+    // Compteurs par forme de requete, pour verifier qu'aucune creation en double n'a lieu.
+    val createdFolderNames = java.util.Collections.synchronizedList(mutableListOf<String>())
+    // Fichiers JSON crees (parentId to nom) : survit a la suppression en cascade du dossier parent.
+    val createdJsonFiles = java.util.Collections.synchronizedList(mutableListOf<Pair<String, String>>())
 
     init {
         files["root"] = FakeFile(id = "root", name = "root", parents = mutableListOf(), mimeType = FOLDER, modifiedTime = nowIso())
@@ -71,10 +82,18 @@ class FakeDrive(private val nowIso: () -> String) {
         }
         val url = request.url
         val path = url.encodedPath
+        if (force403ForNextAttempts > 0 && (force403PathPrefix == null || path.startsWith(force403PathPrefix!!))) {
+            force403ForNextAttempts--
+            val reason = force403Reason
+            val body = if (reason != null) """{"error":{"code":403,"errors":[{"reason":"$reason"}]}}""" else "{}"
+            return MockResponse(code = 403, body = body)
+        }
         return when {
             path == "/drive/v3/files" && request.method == "GET" -> handleQuery(url)
             path == "/drive/v3/files" && request.method == "POST" -> handleCreateFolder(request)
             path == "/upload/drive/v3/files" && request.method == "POST" -> handleUpload(request, url)
+            path.startsWith("/upload/drive/v3/files/") && request.method == "PATCH" && url.queryParameter("uploadType") == "media" ->
+                handlePatch(request, path.removePrefix("/upload/drive/v3/files/"))
             path.startsWith("/upload/session/") && request.method == "PUT" -> handleChunk(request, path.removePrefix("/upload/session/"))
             path.startsWith("/drive/v3/files/") && request.method == "GET" -> handleGet(path.removePrefix("/drive/v3/files/"))
             path.startsWith("/drive/v3/files/") && request.method == "DELETE" -> handleDelete(path.removePrefix("/drive/v3/files/"))
@@ -106,7 +125,9 @@ class FakeDrive(private val nowIso: () -> String) {
             val since = m.groupValues[1]
             val names = Regex("""name = '([^']*)'""").findAll(m.groupValues[2]).map { it.groupValues[1] }.toSet()
             val entries = files.values.filter { it.id != "root" && it.name in names && it.modifiedTime > since }.sortedBy { it.modifiedTime }
-            return MockResponse(code = 200, body = filesJson(entries, null))
+            // R9 : en-tete Date = heure serveur (celle du faux Drive, pas l'horloge du telephone).
+            val date = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME.format(java.time.Instant.parse(nowIso()).atZone(java.time.ZoneOffset.UTC))
+            return MockResponse.Builder().code(200).addHeader("Date", date).body(filesJson(entries, null)).build()
         }
         childFoldersRegex.matchEntire(q)?.let { m ->
             val parentId = m.groupValues[1]
@@ -122,7 +143,15 @@ class FakeDrive(private val nowIso: () -> String) {
         val parentId = extractJsonArrayFirst(body, "parents") ?: return failRequest("parents manquant : $body")
         val file = FakeFile(name = name, parents = mutableListOf(parentId), mimeType = FOLDER, modifiedTime = nowIso())
         files[file.id] = file
+        createdFolderNames += name
         return MockResponse(code = 200, body = """{"id":"${file.id}"}""")
+    }
+
+    private fun handlePatch(request: RecordedRequest, fileId: String): MockResponse {
+        val file = files[fileId] ?: return MockResponse(code = 404)
+        file.bytes = request.body?.toByteArray() ?: ByteArray(0)
+        file.modifiedTime = nowIso()
+        return MockResponse(code = 200, body = """{"id":"${file.id}","name":"${file.name}","modifiedTime":"${file.modifiedTime}"}""")
     }
 
     private fun handleUpload(request: RecordedRequest, url: HttpUrl): MockResponse {
@@ -146,6 +175,7 @@ class FakeDrive(private val nowIso: () -> String) {
         val parentId = extractJsonArrayFirst(metadata, "parents") ?: return failRequest("parents manquant : $metadata")
         val file = FakeFile(name = name, parents = mutableListOf(parentId), mimeType = "application/json", modifiedTime = nowIso(), bytes = content.toByteArray())
         files[file.id] = file
+        createdJsonFiles += parentId to name
         return MockResponse(code = 200, body = """{"id":"${file.id}","modifiedTime":"${file.modifiedTime}"}""")
     }
 
@@ -205,7 +235,10 @@ class FakeDrive(private val nowIso: () -> String) {
     }
 
     private fun handleDelete(fileId: String): MockResponse {
-        files.remove(fileId)
+        deleteFailsWith?.let { return MockResponse(code = it) }
+        // Comme Drive : supprimer un dossier supprime son contenu ; un id inconnu repond 404.
+        files.remove(fileId) ?: return MockResponse(code = 404)
+        files.values.filter { fileId in it.parents }.forEach { files.remove(it.id) }
         return MockResponse(code = 204)
     }
 

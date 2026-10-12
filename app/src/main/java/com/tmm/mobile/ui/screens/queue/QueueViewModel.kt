@@ -3,6 +3,7 @@ package com.tmm.mobile.ui.screens.queue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.db.ChapterQualityEntity
@@ -10,6 +11,8 @@ import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.status.ErrorCatalog
+import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.isFailed
@@ -20,6 +23,7 @@ import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -102,7 +106,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         when (event) {
             is QueueEvent.SelectTab -> _ui.update { it.copy(activeTab = event.tab) }
             is QueueEvent.FocusJob -> _ui.update { it.copy(focusedJobIndex = event.index) }
-            is QueueEvent.RemoveWaitingJob -> viewModelScope.launch { jobRepository.cancel(event.id) }
+            is QueueEvent.RemoveWaitingJob -> launchSafely { jobRepository.cancel(event.id) }
             is QueueEvent.ToggleDoneJobDetails -> {
                 val mihonPath = state.value.doneJobs.getOrNull(event.index)?.mihonPath ?: return
                 _ui.update {
@@ -115,14 +119,27 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                     )
                 }
             }
-            is QueueEvent.VerifyPage -> viewModelScope.launch {
-                val mihonPathStr = state.value.doneJobs.getOrNull(event.doneIndex)?.mihonPath ?: return@launch
-                val anyJob = db.jobDao().getAllForMihonPath(mihonPathStr).firstOrNull() ?: return@launch
+            is QueueEvent.VerifyPage -> launchSafely {
+                val mihonPathStr = state.value.doneJobs.getOrNull(event.doneIndex)?.mihonPath ?: return@launchSafely
+                val anyJob = db.jobDao().getAllForMihonPath(mihonPathStr).firstOrNull() ?: return@launchSafely
                 val mihonPath = MihonPath(anyJob.sourceDir, anyJob.seriesDir, anyJob.chapterDir)
                 // event.page est en base 1 (affichage) ; JobRepository.verifyPage attend une page0 base 0.
                 jobRepository.verifyPage(mihonPath, event.page - 1)
             }
-            is QueueEvent.RetryFailedJob -> viewModelScope.launch { jobRepository.retry(event.jobId) }
+            is QueueEvent.RetryFailedJob -> launchSafely { jobRepository.retry(event.jobId) }
+        }
+    }
+
+    // R15 : une erreur (base, reseau du best-effort Drive) est journalisee, jamais propagee au scope.
+    private fun launchSafely(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("QueueViewModel", "action en echec : ${e.javaClass.simpleName} ${e.message}")
+            }
         }
     }
 
@@ -176,7 +193,8 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         // sont des lignes « Envoi »).
         val pipelinePhoneStates = setOf("PREPARING", "SENT", "CANCEL_REQUESTED")
         val waitingJobs = r.jobs
-            .filter { it.isInActivity() && it.phoneState in pipelinePhoneStates && it.jobId !in activeJobIds }
+            // pc_stalled (R8) : affiche dans Echecs avec « Relancer », pas dans Ensuite.
+            .filter { it.isInActivity() && it.phoneState in pipelinePhoneStates && it.jobId !in activeJobIds && !it.isStalled() }
             .sortedWith(
                 compareByDescending<JobEntity> { it.phoneState == "PREPARING" }
                     .thenBy { it.pcQueuePosition ?: Int.MAX_VALUE }
@@ -242,7 +260,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         // Ce sont surtout les envois de chapitres non telecharges des versions < 1.0.6 (~1800 lignes).
         // Ensembles calcules une fois : pas de requete ni de parcours de r.jobs par echec.
         val pcOriginalPaths = r.pcIndex.asSequence().filter { it.original }.mapTo(HashSet()) { it.mihonPath }
-        val failedJobs = r.jobs.filter { it.isFailed() }
+        val failedJobs = r.jobs.filter { it.isFailed() || it.isStalled() }
             .filter { failed -> latestJobByPath.getValue(failed.mihonPath).createdAt <= failed.createdAt }
             .filter { failed -> failed.mihonPath in downloadedByPath || failed.mihonPath in pcOriginalPaths }
             .sortedByDescending { it.updatedAt }
@@ -250,7 +268,9 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                 val page = job.pcErrorPage
                 val refAt = job.statusUpdatedAt?.let { parseIsoMillis(it) } ?: job.updatedAt
                 val origin = job.pcEngine ?: Formatters.relativeFr(refAt, now).replaceFirstChar { it.uppercase() }
-                val message = job.pcErrorMessage ?: job.errorMessage ?: "erreur inconnue"
+                val info = ErrorCatalog.forJob(job)
+                // JobRepository.retry ne reprend a la page d'echec qu'hors mode translate.
+                val resumeAtPage = page != null && job.mode != JobMode.TRANSLATE
                 FailedJob(
                     jobId = job.jobId,
                     seriesKey = seriesKey(job),
@@ -258,11 +278,12 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                     title = jobLabel(job),
                     color = seriesColor(job),
                     page = page,
-                    message = message,
-                    keptInfo = if (page != null && page > 1) "$origin · les pages 1 à ${page - 1} sont conservées" else origin,
-                    // ponytail: le protocole n'a pas de code d'erreur « quota » documente ; on cherche le
-                    // mot dans le code et le message. Upgrade quand le PC exposera un code stable.
-                    quota = listOfNotNull(job.pcErrorCode, message).any { it.contains("quota", ignoreCase = true) },
+                    label = info.label,
+                    keptInfo = if (page != null && resumeAtPage && page > 1) "$origin · les pages 1 à ${page - 1} sont conservées" else origin,
+                    quota = job.pcErrorCode == "provider_quota",
+                    detail = job.pcErrorMessage ?: job.errorMessage,
+                    action = info.action,
+                    resumeAtPage = resumeAtPage,
                 )
             }
 
@@ -279,6 +300,8 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         )
         return Built(state, ::jobLabel)
     }
+
+    private fun JobEntity.isStalled(): Boolean = phoneState == "SENT" && errorCode == LocalErrorCode.PC_STALLED
 
     private fun jobReferenceMillis(job: JobEntity): Long =
         job.installedAt ?: job.finishedAt?.let { parseIsoMillis(it) } ?: job.updatedAt

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
@@ -84,13 +85,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         RoomSnapshot(jobs, downloaded, localFr.mapNotNull { it.mihonPath }.toSet(), pcIndex)
     }
 
-    private data class PrefsSnapshot(val heartbeatJson: String?, val lastRefreshAt: Long, val lastScanAt: Long)
+    private data class PrefsSnapshot(val heartbeatJson: String?, val lastRefreshAt: Long, val lastScanAt: Long, val heartbeatSeenAt: Long?)
 
     private val prefsSnapshot = combine(
         container.prefs.heartbeatJson,
         container.prefs.lastRefreshAt,
         container.prefs.lastScanAt,
-    ) { heartbeatJson, lastRefreshAt, lastScanAt -> PrefsSnapshot(heartbeatJson, lastRefreshAt, lastScanAt) }
+        container.prefs.heartbeatSeenAt,
+    ) { heartbeatJson, lastRefreshAt, lastScanAt, seenAt -> PrefsSnapshot(heartbeatJson, lastRefreshAt, lastScanAt, seenAt) }
 
     private val derived = combine(roomSnapshot, prefsSnapshot, db.seriesDao().observeAll()) { room, prefsSnap, series ->
         buildState(room, prefsSnap, series)
@@ -197,10 +199,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val heartbeat = prefsSnap.heartbeatJson?.let { json ->
             runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), json) }.getOrNull()
         }
-        val heartbeatMillis = heartbeat?.updatedAt?.let { iso -> runCatching { Instant.parse(iso).toEpochMilli() }.getOrNull() }
+        // R9 : dernier signal deduit de l'heure serveur (RefreshCoordinator), pas de updatedAt du PC
+        // compare a l'horloge du telephone ; updatedAt seulement a defaut (cache d'avant la mise a jour).
+        val heartbeatMillis = heartbeat?.let { hb ->
+            prefsSnap.heartbeatSeenAt ?: runCatching { Instant.parse(hb.updatedAt).toEpochMilli() }.getOrNull()
+        }
         val pcTone = when {
             heartbeatMillis == null -> PcTone.Offline
-            now - heartbeatMillis < 5 * 60_000L -> PcTone.Online
+            now - heartbeatMillis < PC_ONLINE_MILLIS -> PcTone.Online
             now - heartbeatMillis < 24 * 60 * 60_000L -> PcTone.Seen
             else -> PcTone.Offline
         }

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
+import com.tmm.mobile.data.status.ErrorAction
 import com.tmm.mobile.ui.components.Cover
 import com.tmm.mobile.ui.components.PillTone
 import com.tmm.mobile.ui.components.StatusPill
@@ -76,6 +77,8 @@ fun QueueScreen(
     onEvent: (QueueEvent) -> Unit,
     onOpenNewTranslation: () -> Unit = {},
     onOpenTranslationSettings: () -> Unit = {},
+    // Actions d'erreur qui menent hors de l'ecran (Permission, Reglages) ; les relances passent par onEvent.
+    onErrorAction: (ErrorAction) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Liste paresseuse : « Ensuite », « Terminées » et « Échecs » peuvent compter des centaines de
@@ -113,7 +116,7 @@ fun QueueScreen(
         when (state.activeTab) {
             QueueTab.Active -> activeItems(state, onEvent)
             QueueTab.Done -> doneItems(state, onEvent)
-            QueueTab.Fail -> failItems(state, onEvent)
+            QueueTab.Fail -> failItems(state, onEvent, onErrorAction)
         }
     }
 }
@@ -543,13 +546,13 @@ private fun AlertBox(doneIndex: Int, alerts: List<DoneJobAlert>, onEvent: (Queue
 
 // ---------------------------------------------------------------- Échecs
 
-private fun LazyListScope.failItems(state: QueueState, onEvent: (QueueEvent) -> Unit) {
+private fun LazyListScope.failItems(state: QueueState, onEvent: (QueueEvent) -> Unit, onErrorAction: (ErrorAction) -> Unit) {
     val failed = state.failedJobs
     if (failed.isEmpty()) {
         item(key = "failEmpty", contentType = "empty") { EmptyCard(stringResource(R.string.activity_fail_empty)) }
         return
     }
-    items(failed.size, key = { "f:" + failed[it].jobId }, contentType = { "fail" }) { i -> FailCard(failed[i], onEvent) }
+    items(failed.size, key = { "f:" + failed[it].jobId }, contentType = { "fail" }) { i -> FailCard(failed[i], onEvent, onErrorAction) }
     if (failed.any { it.quota }) item(key = "quotaTip", contentType = "tip") { QuotaTip() }
 }
 
@@ -564,7 +567,7 @@ private fun QuotaTip() {
 }
 
 @Composable
-private fun FailCard(failed: FailedJob, onEvent: (QueueEvent) -> Unit) {
+private fun FailCard(failed: FailedJob, onEvent: (QueueEvent) -> Unit, onErrorAction: (ErrorAction) -> Unit) {
     Column(
         Modifier
             .padding(top = 12.dp)
@@ -577,27 +580,58 @@ private fun FailCard(failed: FailedJob, onEvent: (QueueEvent) -> Unit) {
             Column(Modifier.weight(1f)) {
                 RowTitle(failed.title)
                 val page = failed.page
+                val label = stringResource(failed.label)
                 TmmText(
                     text = if (page != null) {
-                        stringResource(R.string.activity_fail_page_fmt, page, failed.message)
+                        stringResource(R.string.activity_fail_page_fmt, page, label)
                     } else {
-                        stringResource(R.string.activity_fail_fmt, failed.message)
+                        stringResource(R.string.activity_fail_fmt, label)
                     },
                     style = TmmType.sans(13).px(13.5f),
                     color = C.redDark,
                     modifier = Modifier.padding(top = 2.dp),
                 )
+                // docs/ERREURS_PROTOCOLE.md 1.3 : le message brut n'est qu'un detail secondaire.
+                failed.detail?.let { detail ->
+                    TmmText(
+                        text = detail,
+                        style = TmmType.sans(12),
+                        color = C.muted,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
         }
         TmmText(text = failed.keptInfo, style = TmmType.sans(13), color = C.muted, modifier = Modifier.padding(top = 10.dp))
         val page = failed.page
-        V2Button(
-            label = if (page != null) stringResource(R.string.activity_resume_page_fmt, page) else stringResource(R.string.activity_resume),
-            onClick = { onEvent(QueueEvent.RetryFailedJob(failed.jobId)) },
-            style = V2ButtonStyle.Ink,
-            size = V2ButtonSize.Block,
-            modifier = Modifier.padding(top = 12.dp).height(48.dp),
-        )
+        val retry = { onEvent(QueueEvent.RetryFailedJob(failed.jobId)) }
+        val (buttonLabel, onClick) = when (failed.action) {
+            ErrorAction.RETRY -> (if (failed.resumeAtPage && page != null) stringResource(R.string.activity_resume_page_fmt, page) else stringResource(R.string.activity_resume)) to retry
+            ErrorAction.RESEND -> stringResource(R.string.activity_action_resend) to retry
+            ErrorAction.REDELIVER -> stringResource(R.string.activity_action_redeliver) to retry
+            ErrorAction.REPAIR -> stringResource(R.string.activity_action_repair) to { onErrorAction(ErrorAction.REPAIR) }
+            ErrorAction.RECONNECT_DRIVE -> stringResource(R.string.offline_btn_reconnect) to { onErrorAction(ErrorAction.RECONNECT_DRIVE) }
+            ErrorAction.OPEN_PERMISSION -> stringResource(R.string.activity_action_open_permission) to { onErrorAction(ErrorAction.OPEN_PERMISSION) }
+            ErrorAction.UPDATE_PC, ErrorAction.UPDATE_APP, ErrorAction.NONE -> null to null
+        }
+        if (buttonLabel != null && onClick != null) {
+            V2Button(
+                label = buttonLabel,
+                onClick = onClick,
+                style = V2ButtonStyle.Ink,
+                size = V2ButtonSize.Block,
+                modifier = Modifier.padding(top = 12.dp).height(48.dp),
+            )
+        }
+        // Mise a jour a faire hors de l'app : consigne a la place du bouton.
+        val hint = when (failed.action) {
+            ErrorAction.UPDATE_PC -> R.string.activity_action_update_pc
+            ErrorAction.UPDATE_APP -> R.string.activity_action_update_app
+            else -> null
+        }
+        hint?.let { TmmText(text = stringResource(it), style = TmmType.sans(13), color = C.ink, modifier = Modifier.padding(top = 12.dp)) }
     }
 }
 

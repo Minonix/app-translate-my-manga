@@ -16,14 +16,18 @@ fun JobEntity.isCancelled(): Boolean = pcState == "cancelled"
 
 // PLAN_GEMINI.md 5.4 : table exacte des transitions autorisees ("toute autre est un bug").
 // null = creation (JobRepository.createJobs). INSTALLED/FAILED/CANCEL_REQUESTED sont terminaux
-// (un retry() cree un nouveau job, il ne fait pas rejouer l'ancien).
+// (un retry() cree un nouveau job, il ne fait pas rejouer l'ancien), sauf FAILED -> RESULT_READY :
+// R10, reprise d'un echec de telechargement/installation sur le meme job, sans retelecharger le CBZ
+// garde en cache (docs/ERREURS_PROTOCOLE.md).
 private val PHONE_STATE_TRANSITIONS: Map<String?, Set<String>> = mapOf(
-    null to setOf("PREPARING"),
+    // RESULT_READY a la creation : recuperation depuis Drive (R14, JobRepository.recoverFromDrive).
+    null to setOf("PREPARING", "RESULT_READY"),
     "PREPARING" to setOf("UPLOADING", "SENT", "CANCEL_REQUESTED", "FAILED"),
     "UPLOADING" to setOf("SENT", "CANCEL_REQUESTED", "FAILED"),
     "SENT" to setOf("RESULT_READY", "INSTALLED", "CANCEL_REQUESTED"),
     "RESULT_READY" to setOf("DOWNLOADING"),
     "DOWNLOADING" to setOf("INSTALLED", "FAILED"),
+    "FAILED" to setOf("RESULT_READY"),
 )
 
 fun isAllowedPhoneStateTransition(from: String?, to: String): Boolean = to in (PHONE_STATE_TRANSITIONS[from] ?: emptySet())

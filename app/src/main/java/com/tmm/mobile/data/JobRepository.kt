@@ -11,8 +11,11 @@ import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.db.TmmDatabase
+import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.protocol.MihonPath
+import com.tmm.mobile.protocol.ProtocolJson
+import com.tmm.mobile.protocol.ResultJson
 import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.workers.enqueueInstallJob
 import com.tmm.mobile.workers.enqueueOutbox
@@ -46,6 +49,9 @@ const val STALLED_SENT_MILLIS = 10 * 60 * 1000L
 // 1 : remise a plat de la v1.3.0 (traductions lancees sans demande par les versions precedentes).
 private const val JOB_RESET_VERSION = 1
 private val FINISHED_PHONE_STATES = setOf("RESULT_READY", "DOWNLOADING", "INSTALLED")
+// Codes locaux dont l'action est « redemander au PC » (docs/ERREURS_PROTOCOLE.md 1.2).
+private val REDELIVER_LOCAL_CODES = setOf(LocalErrorCode.DOWNLOAD, LocalErrorCode.RESULT_MISSING)
+private val RECEPTION_STEPS = setOf("download", "install")
 
 // PLAN_GEMINI.md 5.17. Le verrou est global (pas par mihonPath) : createJobs() n'est appele qu'en
 // rafales courtes (bouton UI ou auto-translate au demarrage), jamais a haute frequence.
@@ -66,6 +72,7 @@ class JobRepository(
         targets: List<JobTarget>,
         pages: List<Int>? = null,
         translate: Boolean = true,
+        redeliver: Boolean = false,
     ): CreateJobsResult {
         val createdIds = mutableListOf<String>()
         var refused = 0
@@ -78,7 +85,10 @@ class JobRepository(
                         val flatPath = target.mihonPath.flatten()
                         val hasActive = db.jobDao().getAllForMihonPath(flatPath).any { it.isActive() }
                         val indexEntry = db.pcIndexChapterDao().get(flatPath)
-                        val refuse = if (mode == JobMode.TRANSLATE) {
+                        val refuse = if (redeliver) {
+                            // Redemande sans fichier (docs/ERREURS_PROTOCOLE.md 2) : rien a lire localement.
+                            hasActive
+                        } else if (mode == JobMode.TRANSLATE) {
                             // Sans chapitre telecharge, SendJobWorker.prepareCbz echouerait ("chapitre
                             // telecharge introuvable"). Lu en base et non dans target.downloaded : Serie et
                             // Bibliotheque passent null pour les lignes catalogue, et c'est cette meme
@@ -135,6 +145,7 @@ class JobRepository(
                                 receivedWrittenAt = null,
                                 cancelWrittenAt = null,
                                 driveDeletedAt = null,
+                                redeliver = redeliver,
                             ),
                         )
                         id
@@ -222,23 +233,67 @@ class JobRepository(
             it.phoneState == "SENT" && it.pcState == null && now - it.updatedAt >= STALLED_SENT_MILLIS &&
                 (db.downloadedChapterDao().get(it.mihonPath) != null || db.pcIndexChapterDao().get(it.mihonPath)?.original == true)
         }
+        var resent = 0
         for (job in unseen) {
-            try {
-                router.forJob(job).deleteJobFolder(job)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                AppLog.d("JobRepository", "dossier Drive du job non supprime : ${e.message}")
-            }
+            // Dossier non supprime (hors ligne...) : le PC pourrait encore le traiter, on ne cree pas de
+            // doublon ; nouvel essai au prochain rafraichissement.
+            if (!deleteFolder(job)) continue
             db.jobDao().delete(job)
             recreate(job)
+            resent++
         }
-        if (unseen.isNotEmpty()) AppLog.d("JobRepository", "${unseen.size} job(s) Drive sans reponse renvoye(s) en direct")
+        if (resent > 0) AppLog.d("JobRepository", "$resent job(s) Drive sans reponse renvoye(s) en direct")
     }
 
+    /**
+     * Relance d'un job en echec selon l'etape et le code (docs/ERREURS_PROTOCOLE.md 1) :
+     * - echec de reception local (install, reseau, place, acces) avec resultat connu : reprise sur le meme
+     *   job (FAILED -> RESULT_READY), le CBZ en cache n'est pas retelecharge (R10) ;
+     * - download / result_missing / drive_quota du PC : redemande sans fichier (options.redeliver) ;
+     * - pc_stalled (R8) : dossier supprime puis job recree, seulement si la suppression a reussi ;
+     * - sinon : nouveau job (renvoi complet).
+     */
     suspend fun retry(jobId: String) {
-        recreate(db.jobDao().get(jobId) ?: return)
+        val job = db.jobDao().get(jobId) ?: return
+        when {
+            job.phoneState == "FAILED" && job.resultJson != null && job.resultFileId != null &&
+                job.errorCode !in REDELIVER_LOCAL_CODES && job.failedStep in RECEPTION_STEPS -> {
+                db.jobDao().upsert(
+                    job.copy(
+                        phoneState = "RESULT_READY", failedStep = null, errorCode = null, errorMessage = null,
+                        updatedAt = clock.nowMillis(),
+                    ),
+                )
+                workManager.enqueueInstallJob(job.jobId, prefs.wifiOnly.first())
+            }
+            job.errorCode in REDELIVER_LOCAL_CODES || (job.pcState == "failed" && job.pcErrorCode == "drive_quota") ->
+                createJobs(JobMode.TRANSLATE, listOf(targetOf(job)), redeliver = true)
+            job.errorCode == LocalErrorCode.PC_STALLED -> {
+                if (!deleteFolder(job)) return
+                db.jobDao().delete(job)
+                recreate(job)
+            }
+            else -> recreate(job)
+        }
     }
+
+    // Suppression best-effort du dossier du job ; false si elle a echoue (le PC peut encore le voir).
+    private suspend fun deleteFolder(job: JobEntity): Boolean = try {
+        router.forJob(job).deleteJobFolder(job)
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        AppLog.d("JobRepository", "dossier du job non supprime : ${e.message}")
+        false
+    }
+
+    private suspend fun targetOf(old: JobEntity): JobTarget = JobTarget(
+        mihonPath = MihonPath(old.sourceDir, old.seriesDir, old.chapterDir),
+        downloaded = db.downloadedChapterDao().get(old.mihonPath),
+        series = old.seriesKey?.let { db.seriesDao().get(it) },
+        chapter = old.chapterKey?.let { db.chapterDao().get(it) },
+    )
 
     private suspend fun recreate(old: JobEntity) {
         val flatPath = old.mihonPath
@@ -248,16 +303,58 @@ class JobRepository(
         } else {
             old.mode
         }
-        val target = JobTarget(
-            mihonPath = MihonPath(old.sourceDir, old.seriesDir, old.chapterDir),
-            downloaded = db.downloadedChapterDao().get(flatPath),
-            series = old.seriesKey?.let { db.seriesDao().get(it) },
-            chapter = old.chapterKey?.let { db.chapterDao().get(it) },
-        )
+        val target = targetOf(old)
         // ponytail: reprise best-effort a la seule page d'erreur ; §5.17 ne precise pas si la PC
-        // attend une plage complete (errorPage..pages) plutot qu'une page isolee.
-        val pages = old.pcErrorPage?.let { listOf(it) } ?: old.pages
+        // attend une plage complete (errorPage..pages) plutot qu'une page isolee. Jamais en mode
+        // translate : le chapitre entier est renvoye et doit etre traduit en entier.
+        val pages = if (old.mode == JobMode.TRANSLATE) old.pages else old.pcErrorPage?.let { listOf(it) } ?: old.pages
         createJobs(newMode, listOf(target), pages, old.translate)
+    }
+
+    /**
+     * R14 : « Recuperer depuis Google Drive ». Chaque dossier jobs/<jobId> avec result.json sans
+     * received.json redevient un job local RESULT_READY (InstallJobWorker l'installe). Ignores : job
+     * deja connu en base, chapitre deja installe (fichier FR rattache a ce jobId ou de meme nom), dossier
+     * sans request.json lisible (chemin Mihon inconnu). Retourne le nombre de jobs recrees.
+     */
+    suspend fun recoverFromDrive(): Int {
+        val now = clock.nowMillis()
+        val recovered = mutableListOf<String>()
+        for (item in router.drive.listUnreceivedResults()) {
+            val result = item.result
+            val request = item.request ?: continue
+            if (db.jobDao().get(result.jobId) != null) continue
+            val installed = db.localFrChapterDao().getForFolder(result.localFolderName)
+                .any { it.jobId == result.jobId || it.fileName == result.chapterFileName }
+            if (installed) continue
+            val path = MihonPath(request.mihonPath.source, request.mihonPath.series, request.mihonPath.chapter)
+            val flatPath = path.flatten()
+            val downloaded = db.downloadedChapterDao().get(flatPath)
+            db.jobDao().upsert(
+                JobEntity(
+                    jobId = result.jobId, mode = result.mode, pages = request.options.pages,
+                    translate = request.options.translate, mihonPath = flatPath,
+                    sourceDir = path.source, seriesDir = path.series, chapterDir = path.chapter,
+                    seriesKey = downloaded?.seriesKey, chapterKey = downloaded?.chapterKey,
+                    phoneState = "RESULT_READY", failedStep = null, errorMessage = null,
+                    driveFolderId = item.folderId, uploadSessionUrl = null, cachePath = null, sha256 = null,
+                    sizeBytes = null, transferredBytes = 0L, transferTotal = 0L,
+                    pcState = "done", pcStage = null, pcPage = null, pcPages = null, pcEngine = result.engine,
+                    pcQueuePosition = null, pcErrorCode = null, pcErrorMessage = null, pcErrorPage = null,
+                    statusUpdatedAt = null,
+                    resultJson = ProtocolJson.encodeToString(ResultJson.serializer(), result),
+                    resultFileId = item.resultFileId,
+                    createdAt = now, updatedAt = now, finishedAt = result.finishedAt, installedAt = null,
+                    installedPath = null, receivedWrittenAt = null, cancelWrittenAt = null, driveDeletedAt = null,
+                    channel = CHANNEL_DRIVE,
+                ),
+            )
+            recovered += result.jobId
+        }
+        val wifiOnly = prefs.wifiOnly.first()
+        recovered.forEach { workManager.enqueueInstallJob(it, wifiOnly) }
+        if (recovered.isNotEmpty()) AppLog.d("JobRepository", "recuperation Drive : ${recovered.size} job(s) recree(s)")
+        return recovered.size
     }
 
     suspend fun verifyPage(mihonPath: MihonPath, page0: Int) {

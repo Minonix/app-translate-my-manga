@@ -284,6 +284,12 @@ fun SettingsScreen(
                             onRowClick = onNavigateOnboarding,
                         )
                         SettingsRow(
+                            label = stringResource(R.string.settings_row_recover),
+                            value = stringResource(R.string.settings_row_recover_desc),
+                            actionButtonText = stringResource(R.string.settings_action_recover),
+                            onActionClick = { onEvent(SettingsEvent.RecoverFromDrive) },
+                        )
+                        SettingsRow(
                             label = stringResource(R.string.settings_row_logs),
                             value = state.logsInfo,
                             actionButtonText = stringResource(R.string.settings_action_export),
@@ -318,6 +324,8 @@ private fun SettingsToastHost(state: SettingsState, onEvent: (SettingsEvent) -> 
         SettingsToast.LogsReady -> stringResource(R.string.settings_toast_logs_ready)
         SettingsToast.Paired -> stringResource(R.string.settings_toast_paired)
         SettingsToast.PairFailed -> stringResource(R.string.settings_toast_pair_failed)
+        is SettingsToast.Recovered -> pluralStringResource(R.plurals.settings_toast_recovered, state.toast.count, state.toast.count)
+        SettingsToast.RecoverFailed -> stringResource(R.string.settings_toast_recover_failed)
         null -> ""
     }
     TmmToast(

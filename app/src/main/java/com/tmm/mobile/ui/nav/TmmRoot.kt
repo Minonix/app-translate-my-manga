@@ -103,6 +103,8 @@ fun TmmRoot() {
     val networkOnline by rememberNetworkOnline(context)
     val authExpired by container.prefs.authExpired.collectAsState(initial = false)
     val protocolTooNew by container.prefs.protocolTooNew.collectAsState(initial = false)
+    val driveFull by container.prefs.driveFull.collectAsState(initial = false)
+    val pcDriveDown by container.prefs.pcDriveDown.collectAsState(initial = false)
     var reconnecting by remember { mutableStateOf(false) }
 
     // Un refresh seul ne pouvait pas aboutir : sans consentement (nouvelle portee Drive, jeton revoque),
@@ -140,6 +142,8 @@ fun TmmRoot() {
             }
         }
         protocolTooNew -> OfflineBannerState.ProtocolTooNew
+        driveFull -> OfflineBannerState.DriveFull
+        pcDriveDown -> OfflineBannerState.PcDriveDown
         !networkOnline -> OfflineBannerState.NoNetwork
         else -> null
     }

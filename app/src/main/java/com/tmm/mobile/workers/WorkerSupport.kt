@@ -16,6 +16,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.tmm.mobile.R
+import com.tmm.mobile.data.status.LocalErrorCode
+import com.tmm.mobile.transport.DirectPairingExpiredException
+import com.tmm.mobile.transport.DriveQuotaException
 import java.util.concurrent.TimeUnit
 
 // PLAN_GEMINI.md 5.12 : constantes et helpers partages par les 3 workers (noms de travail
@@ -27,6 +30,25 @@ const val BACKOFF_DELAY_SECONDS = 30L
 // CdC 11.2 : a partir de la 6e tentative (runAttemptCount commence a 0), on abandonne en FAILED
 // plutot que de reessayer indefiniment.
 const val MAX_RETRY_ATTEMPTS = 5
+
+/** Chapitre Mihon supprime ou illisible (code local `source_unreadable`) : inutile de reessayer. */
+class SourceUnreadableException(message: String) : Exception(message)
+
+/** docs/ERREURS_PROTOCOLE.md §1.2 : code local d'un echec de worker. */
+fun localErrorCode(e: Throwable): String = when {
+    e is DirectPairingExpiredException -> LocalErrorCode.PAIRING
+    e is DriveQuotaException -> LocalErrorCode.DRIVE_QUOTA
+    e is SecurityException -> LocalErrorCode.PERMISSION
+    e is SourceUnreadableException -> LocalErrorCode.SOURCE_UNREADABLE
+    isDiskFull(e) -> LocalErrorCode.PHONE_DISK_FULL
+    else -> LocalErrorCode.NETWORK
+}
+
+// ENOSPC remonte en IOException (« No space left on device »), parfois enveloppee.
+fun isDiskFull(e: Throwable): Boolean = generateSequence(e) { it.cause }.take(5).any {
+    val message = it.message.orEmpty()
+    message.contains("ENOSPC") || message.contains("No space left", ignoreCase = true)
+}
 
 fun sendWorkName(jobId: String) = "send-$jobId"
 fun installWorkName(jobId: String) = "install-$jobId"

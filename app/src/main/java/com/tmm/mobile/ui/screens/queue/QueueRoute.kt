@@ -9,6 +9,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.tmm.mobile.TmmApp
+import com.tmm.mobile.data.status.ErrorAction
+import com.tmm.mobile.ui.nav.PermissionRoute
+import com.tmm.mobile.ui.nav.SettingsRoute
 import com.tmm.mobile.ui.nav.TranslationSettingsRoute
 import com.tmm.mobile.ui.screens.translate.LocalOpenTranslate
 import com.tmm.mobile.ui.screens.translate.TranslateRequest
@@ -33,6 +36,14 @@ fun QueueRoute(nav: NavController) {
         onEvent = viewModel::onEvent,
         onOpenTranslationSettings = { nav.navigate(TranslationSettingsRoute) },
         onOpenNewTranslation = { openTranslate(TranslateRequest(preselectAll = false)) },
+        onErrorAction = { action ->
+            when (action) {
+                ErrorAction.OPEN_PERMISSION -> nav.navigate(PermissionRoute)
+                // Appairage direct et compte Google se gerent dans Reglages.
+                ErrorAction.REPAIR, ErrorAction.RECONNECT_DRIVE -> nav.navigate(SettingsRoute)
+                else -> Unit
+            }
+        },
     )
 }
 

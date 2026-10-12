@@ -34,6 +34,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val LAST_CHANGES_CURSOR = stringPreferencesKey("last_changes_cursor")
         val LAST_REFRESH_AT = longPreferencesKey("last_refresh_at")
         val HEARTBEAT_JSON = stringPreferencesKey("heartbeat_json")
+        val HEARTBEAT_SEEN_AT = longPreferencesKey("heartbeat_seen_at")
         val INDEX_UPDATED_AT = stringPreferencesKey("index_updated_at")
         val SETTINGS_JSON = stringPreferencesKey("settings_json")
         val PENDING_COMMANDS_JSON = stringPreferencesKey("pending_commands_json")
@@ -42,6 +43,9 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val RETENTION = stringPreferencesKey("retention")
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
         val PROTOCOL_TOO_NEW = booleanPreferencesKey("protocol_too_new")
+        // R5 : 403 storageQuotaExceeded vu cote telephone, leve au prochain envoi reussi.
+        val DRIVE_FULL = booleanPreferencesKey("drive_full")
+        val PC_DRIVE_DOWN = booleanPreferencesKey("pc_drive_down")
         val DIRECT_URL = stringPreferencesKey("direct_url")
         val DIRECT_TOKEN_ENC = stringPreferencesKey("direct_token_enc")
         val DIRECT_DEVICE_ID = stringPreferencesKey("direct_device_id")
@@ -93,6 +97,11 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     val heartbeatJson: Flow<String?> = dataStore.data.map { it[Keys.HEARTBEAT_JSON] }
     suspend fun setHeartbeatJson(value: String?) = setOrRemove(Keys.HEARTBEAT_JSON, value)
 
+    // R9 : instant (horloge du telephone) ou le PC a ecrit son dernier heartbeat, deduit de l'age cote
+    // serveur (en-tete Date Drive - modifiedTime, ou reception en direct) : insensible au decalage d'horloge.
+    val heartbeatSeenAt: Flow<Long?> = dataStore.data.map { it[Keys.HEARTBEAT_SEEN_AT] }
+    suspend fun setHeartbeatSeenAt(value: Long) = set(Keys.HEARTBEAT_SEEN_AT, value)
+
     val indexUpdatedAt: Flow<String?> = dataStore.data.map { it[Keys.INDEX_UPDATED_AT] }
     suspend fun setIndexUpdatedAt(value: String?) = setOrRemove(Keys.INDEX_UPDATED_AT, value)
 
@@ -129,6 +138,13 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
 
     val protocolTooNew: Flow<Boolean> = dataStore.data.map { it[Keys.PROTOCOL_TOO_NEW] ?: false }
     suspend fun setProtocolTooNew(value: Boolean) = set(Keys.PROTOCOL_TOO_NEW, value)
+    val driveFull: Flow<Boolean> = dataStore.data.map { it[Keys.DRIVE_FULL] ?: false }
+    suspend fun setDriveFull(value: Boolean) = set(Keys.DRIVE_FULL, value)
+
+    // Heartbeat driveOk == false : c'est le Drive du PC qui est en panne (quota ou reseau), pas le
+    // compte du telephone ; bandeau neutre, jamais « Reconnecter ».
+    val pcDriveDown: Flow<Boolean> = dataStore.data.map { it[Keys.PC_DRIVE_DOWN] ?: false }
+    suspend fun setPcDriveDown(value: Boolean) = set(Keys.PC_DRIVE_DOWN, value)
 
     // Connexion directe (Tailscale). Le jeton n'est jamais stocke en clair : voir DirectTokenStore.
     val directUrl: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_URL] }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.data.SyncBanner
+import com.tmm.mobile.data.status.ErrorCatalog
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.SettingsValues
@@ -45,21 +46,23 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
         }
     }
 
+    // R3/R15 : une valeur inconnue du PC (nouvelle option, code a 2 lettres "FR"...) garde la valeur
+    // courante au lieu de lever NoSuchElementException et de fermer l'ecran.
     private fun fromValues(state: TranslationSettingsState, v: SettingsValues) = state.copy(
-        sourceLanguage = SourceLanguage.entries.first { it.code == v.sourceLanguage },
-        targetLanguage = TargetLanguage.entries.first { it.code == v.targetLanguage },
-        translationProvider = TranslationProvider.entries.first { it.id == v.translationProvider },
+        sourceLanguage = SourceLanguage.entries.firstOrNull { it.code == normalizeLang(v.sourceLanguage) } ?: state.sourceLanguage,
+        targetLanguage = TargetLanguage.entries.firstOrNull { it.code == normalizeLang(v.targetLanguage) } ?: state.targetLanguage,
+        translationProvider = TranslationProvider.entries.firstOrNull { it.id == v.translationProvider } ?: state.translationProvider,
         autoFailoverToLocalLlm = v.autoFailoverToLocalLlm,
         autoVerifyAfterTranslate = v.autoVerifyAfterTranslate,
         chapterConcurrency = v.chapterConcurrency,
         concurrency = v.concurrency,
         pileSize = v.pileSize,
         useGpu = v.useGpu,
-        detector = BubbleDetector.entries.first { it.id == v.detector },
-        preferredOcr = PreferredOcr.entries.first { it.id == v.preferredOcr },
-        inpainter = Inpainter.entries.first { it.id == v.inpainter },
-        inpaintingSize = InpaintingSize.entries.first { it.sizePx == v.inpaintingSize },
-        font = TranslationFont.entries.first { it.fontName == v.font },
+        detector = BubbleDetector.entries.firstOrNull { it.id == v.detector } ?: state.detector,
+        preferredOcr = PreferredOcr.entries.firstOrNull { it.id == v.preferredOcr } ?: state.preferredOcr,
+        inpainter = Inpainter.entries.firstOrNull { it.id == v.inpainter } ?: state.inpainter,
+        inpaintingSize = InpaintingSize.entries.firstOrNull { it.sizePx == v.inpaintingSize } ?: state.inpaintingSize,
+        font = TranslationFont.entries.firstOrNull { it.fontName == v.font } ?: state.font,
     )
 
     fun onEvent(event: TranslationSettingsEvent) {
@@ -116,8 +119,24 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
                     _state.update { it.copy(syncStatus = TranslationSyncStatus.Synced) }
                 }
                 SyncBanner.WAITING_PC -> _state.update { it.copy(syncStatus = TranslationSyncStatus.WaitingPc) }
+                // R12 : refusee par le PC -> on reaffiche ses valeurs (la commande n'est plus en attente)
+                // et le motif du refus, jusqu'au prochain changement.
+                SyncBanner.REJECTED -> {
+                    load()
+                    val reason = ErrorCatalog.settingsRejectLabel(container.settingsSync.rejectCode(cmdId))
+                    _state.update { it.copy(syncStatus = TranslationSyncStatus.Rejected, rejectReason = reason) }
+                }
                 else -> Unit
             }
         }
     }
+}
+
+// Codes ISO a 2 lettres (requete telephone) -> codes TMM-Win a 3 lettres, comme map_language du PC.
+private val ISO_TO_TMM_LANG = mapOf("FR" to "FRA", "EN" to "ENG", "ES" to "SPA", "DE" to "DEU", "JA" to "JPN", "JP" to "JPN", "KO" to "KOR", "ZH" to "CHS")
+
+internal fun normalizeLang(code: String): String {
+    if (code.equals("auto", ignoreCase = true)) return "auto"
+    val upper = code.trim().uppercase()
+    return ISO_TO_TMM_LANG[upper] ?: upper
 }

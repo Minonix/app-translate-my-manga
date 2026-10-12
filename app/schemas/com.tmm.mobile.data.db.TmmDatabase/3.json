@@ -1,0 +1,871 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "e09e6c68fe396a757b65f50f98c8375c",
+    "entities": [
+      {
+        "tableName": "series",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seriesKey` TEXT NOT NULL, `sourceId` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `author` TEXT, `status` INTEGER NOT NULL, `thumbnailUrl` TEXT, `sourceName` TEXT NOT NULL, `dateAdded` INTEGER NOT NULL, `mangaType` TEXT, PRIMARY KEY(`seriesKey`))",
+        "fields": [
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "author",
+            "columnName": "author",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thumbnailUrl",
+            "columnName": "thumbnailUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sourceName",
+            "columnName": "sourceName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateAdded",
+            "columnName": "dateAdded",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaType",
+            "columnName": "mangaType",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seriesKey"
+          ]
+        }
+      },
+      {
+        "tableName": "category",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`order` INTEGER NOT NULL, `name` TEXT NOT NULL, PRIMARY KEY(`order`))",
+        "fields": [
+          {
+            "fieldPath": "order",
+            "columnName": "order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "order"
+          ]
+        }
+      },
+      {
+        "tableName": "series_category",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seriesKey` TEXT NOT NULL, `categoryOrder` INTEGER NOT NULL, PRIMARY KEY(`seriesKey`, `categoryOrder`))",
+        "fields": [
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoryOrder",
+            "columnName": "categoryOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seriesKey",
+            "categoryOrder"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_series_category_categoryOrder",
+            "unique": false,
+            "columnNames": [
+              "categoryOrder"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_series_category_categoryOrder` ON `${TABLE_NAME}` (`categoryOrder`)"
+          }
+        ]
+      },
+      {
+        "tableName": "chapter",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chapterKey` TEXT NOT NULL, `seriesKey` TEXT NOT NULL, `url` TEXT NOT NULL, `name` TEXT NOT NULL, `number` REAL NOT NULL, `scanlator` TEXT, `read` INTEGER NOT NULL, `dateUpload` INTEGER NOT NULL, PRIMARY KEY(`chapterKey`))",
+        "fields": [
+          {
+            "fieldPath": "chapterKey",
+            "columnName": "chapterKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "number",
+            "columnName": "number",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scanlator",
+            "columnName": "scanlator",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "read",
+            "columnName": "read",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateUpload",
+            "columnName": "dateUpload",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "chapterKey"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_chapter_seriesKey",
+            "unique": false,
+            "columnNames": [
+              "seriesKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_chapter_seriesKey` ON `${TABLE_NAME}` (`seriesKey`)"
+          }
+        ]
+      },
+      {
+        "tableName": "downloaded_chapter",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mihonPath` TEXT NOT NULL, `sourceDir` TEXT NOT NULL, `seriesDir` TEXT NOT NULL, `chapterDir` TEXT NOT NULL, `documentUri` TEXT NOT NULL, `isCbz` INTEGER NOT NULL, `sizeBytes` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, `pageCount` INTEGER NOT NULL, `seriesKey` TEXT, `chapterKey` TEXT, `number` REAL, PRIMARY KEY(`mihonPath`))",
+        "fields": [
+          {
+            "fieldPath": "mihonPath",
+            "columnName": "mihonPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceDir",
+            "columnName": "sourceDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seriesDir",
+            "columnName": "seriesDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chapterDir",
+            "columnName": "chapterDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentUri",
+            "columnName": "documentUri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCbz",
+            "columnName": "isCbz",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sizeBytes",
+            "columnName": "sizeBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageCount",
+            "columnName": "pageCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "chapterKey",
+            "columnName": "chapterKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "number",
+            "columnName": "number",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "mihonPath"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_downloaded_chapter_seriesKey",
+            "unique": false,
+            "columnNames": [
+              "seriesKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_downloaded_chapter_seriesKey` ON `${TABLE_NAME}` (`seriesKey`)"
+          },
+          {
+            "name": "index_downloaded_chapter_chapterKey",
+            "unique": false,
+            "columnNames": [
+              "chapterKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_downloaded_chapter_chapterKey` ON `${TABLE_NAME}` (`chapterKey`)"
+          }
+        ]
+      },
+      {
+        "tableName": "scanned_series_dir",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sourceDir` TEXT NOT NULL, `seriesDir` TEXT NOT NULL, `lastModified` INTEGER NOT NULL, PRIMARY KEY(`sourceDir`, `seriesDir`))",
+        "fields": [
+          {
+            "fieldPath": "sourceDir",
+            "columnName": "sourceDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seriesDir",
+            "columnName": "seriesDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sourceDir",
+            "seriesDir"
+          ]
+        }
+      },
+      {
+        "tableName": "local_fr_chapter",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`localPath` TEXT NOT NULL, `folderName` TEXT NOT NULL, `fileName` TEXT NOT NULL, `documentUri` TEXT NOT NULL, `lastModified` INTEGER NOT NULL, `jobId` TEXT, `mihonPath` TEXT, PRIMARY KEY(`localPath`))",
+        "fields": [
+          {
+            "fieldPath": "localPath",
+            "columnName": "localPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderName",
+            "columnName": "folderName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileName",
+            "columnName": "fileName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentUri",
+            "columnName": "documentUri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jobId",
+            "columnName": "jobId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mihonPath",
+            "columnName": "mihonPath",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "localPath"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_local_fr_chapter_mihonPath",
+            "unique": false,
+            "columnNames": [
+              "mihonPath"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_fr_chapter_mihonPath` ON `${TABLE_NAME}` (`mihonPath`)"
+          },
+          {
+            "name": "index_local_fr_chapter_jobId",
+            "unique": false,
+            "columnNames": [
+              "jobId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_fr_chapter_jobId` ON `${TABLE_NAME}` (`jobId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "job",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`jobId` TEXT NOT NULL, `mode` TEXT NOT NULL, `pages` TEXT, `translate` INTEGER NOT NULL, `mihonPath` TEXT NOT NULL, `sourceDir` TEXT NOT NULL, `seriesDir` TEXT NOT NULL, `chapterDir` TEXT NOT NULL, `seriesKey` TEXT, `chapterKey` TEXT, `phoneState` TEXT NOT NULL, `failedStep` TEXT, `errorMessage` TEXT, `driveFolderId` TEXT, `uploadSessionUrl` TEXT, `cachePath` TEXT, `sha256` TEXT, `sizeBytes` INTEGER, `transferredBytes` INTEGER NOT NULL, `transferTotal` INTEGER NOT NULL, `pcState` TEXT, `pcStage` TEXT, `pcPage` INTEGER, `pcPages` INTEGER, `pcEngine` TEXT, `pcQueuePosition` INTEGER, `pcErrorCode` TEXT, `pcErrorMessage` TEXT, `pcErrorPage` INTEGER, `statusUpdatedAt` TEXT, `resultJson` TEXT, `resultFileId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `finishedAt` TEXT, `installedAt` INTEGER, `installedPath` TEXT, `receivedWrittenAt` INTEGER, `cancelWrittenAt` INTEGER, `driveDeletedAt` INTEGER, `channel` TEXT NOT NULL DEFAULT 'drive', `errorCode` TEXT, `redeliver` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`jobId`))",
+        "fields": [
+          {
+            "fieldPath": "jobId",
+            "columnName": "jobId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pages",
+            "columnName": "pages",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "translate",
+            "columnName": "translate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mihonPath",
+            "columnName": "mihonPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceDir",
+            "columnName": "sourceDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seriesDir",
+            "columnName": "seriesDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chapterDir",
+            "columnName": "chapterDir",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "chapterKey",
+            "columnName": "chapterKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "phoneState",
+            "columnName": "phoneState",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "failedStep",
+            "columnName": "failedStep",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "errorMessage",
+            "columnName": "errorMessage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "driveFolderId",
+            "columnName": "driveFolderId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "uploadSessionUrl",
+            "columnName": "uploadSessionUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cachePath",
+            "columnName": "cachePath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sizeBytes",
+            "columnName": "sizeBytes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "transferredBytes",
+            "columnName": "transferredBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transferTotal",
+            "columnName": "transferTotal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pcState",
+            "columnName": "pcState",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pcStage",
+            "columnName": "pcStage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pcPage",
+            "columnName": "pcPage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pcPages",
+            "columnName": "pcPages",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pcEngine",
+            "columnName": "pcEngine",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pcQueuePosition",
+            "columnName": "pcQueuePosition",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pcErrorCode",
+            "columnName": "pcErrorCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pcErrorMessage",
+            "columnName": "pcErrorMessage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pcErrorPage",
+            "columnName": "pcErrorPage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "statusUpdatedAt",
+            "columnName": "statusUpdatedAt",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "resultJson",
+            "columnName": "resultJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "resultFileId",
+            "columnName": "resultFileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finishedAt",
+            "columnName": "finishedAt",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "installedAt",
+            "columnName": "installedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "installedPath",
+            "columnName": "installedPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "receivedWrittenAt",
+            "columnName": "receivedWrittenAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cancelWrittenAt",
+            "columnName": "cancelWrittenAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "driveDeletedAt",
+            "columnName": "driveDeletedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "channel",
+            "columnName": "channel",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'drive'"
+          },
+          {
+            "fieldPath": "errorCode",
+            "columnName": "errorCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "redeliver",
+            "columnName": "redeliver",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "jobId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_job_mihonPath",
+            "unique": false,
+            "columnNames": [
+              "mihonPath"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_job_mihonPath` ON `${TABLE_NAME}` (`mihonPath`)"
+          },
+          {
+            "name": "index_job_phoneState",
+            "unique": false,
+            "columnNames": [
+              "phoneState"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_job_phoneState` ON `${TABLE_NAME}` (`phoneState`)"
+          }
+        ]
+      },
+      {
+        "tableName": "chapter_quality",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mihonPath` TEXT NOT NULL, `totalPages` INTEGER NOT NULL, `translatedBubbles` INTEGER NOT NULL, `untranslatedBubbles` INTEGER NOT NULL, `sfxKept` INTEGER NOT NULL, `verifiedAt` TEXT, `alerts` TEXT NOT NULL, `jobId` TEXT NOT NULL, PRIMARY KEY(`mihonPath`))",
+        "fields": [
+          {
+            "fieldPath": "mihonPath",
+            "columnName": "mihonPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPages",
+            "columnName": "totalPages",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "translatedBubbles",
+            "columnName": "translatedBubbles",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "untranslatedBubbles",
+            "columnName": "untranslatedBubbles",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sfxKept",
+            "columnName": "sfxKept",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "verifiedAt",
+            "columnName": "verifiedAt",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "alerts",
+            "columnName": "alerts",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jobId",
+            "columnName": "jobId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "mihonPath"
+          ]
+        }
+      },
+      {
+        "tableName": "series_settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seriesKey` TEXT NOT NULL, `autoTranslate` INTEGER NOT NULL, `targetLang` TEXT NOT NULL, PRIMARY KEY(`seriesKey`))",
+        "fields": [
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "autoTranslate",
+            "columnName": "autoTranslate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetLang",
+            "columnName": "targetLang",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seriesKey"
+          ]
+        }
+      },
+      {
+        "tableName": "ignored_gap",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seriesKey` TEXT NOT NULL, `number` INTEGER NOT NULL, PRIMARY KEY(`seriesKey`, `number`))",
+        "fields": [
+          {
+            "fieldPath": "seriesKey",
+            "columnName": "seriesKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "number",
+            "columnName": "number",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seriesKey",
+            "number"
+          ]
+        }
+      },
+      {
+        "tableName": "backup_import",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `size` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, `importedAt` INTEGER NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "size",
+            "columnName": "size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importedAt",
+            "columnName": "importedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "pc_index_chapter",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mihonPath` TEXT NOT NULL, `original` INTEGER NOT NULL, `fr` INTEGER NOT NULL, PRIMARY KEY(`mihonPath`))",
+        "fields": [
+          {
+            "fieldPath": "mihonPath",
+            "columnName": "mihonPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "original",
+            "columnName": "original",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fr",
+            "columnName": "fr",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "mihonPath"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e09e6c68fe396a757b65f50f98c8375c')"
+    ]
+  }
+}

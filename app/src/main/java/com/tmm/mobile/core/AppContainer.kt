@@ -12,6 +12,7 @@ import com.tmm.mobile.data.SettingsSync
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.data.tmmDataStore
+import com.tmm.mobile.mihon.MihonRoot
 import com.tmm.mobile.mihon.MihonTree
 import com.tmm.mobile.transport.AuthExpiredException
 import com.tmm.mobile.transport.DirectTokenStore
@@ -23,6 +24,7 @@ import com.tmm.mobile.transport.DriveTransport
 import com.tmm.mobile.transport.GoogleAuth
 import com.tmm.mobile.transport.JobTransport
 import com.tmm.mobile.ui.screens.library.LibraryCache
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,6 +50,9 @@ interface AppContainer {
     val chapterDeleter: ChapterDeleter
     val startup: Startup
     val libraryCache: LibraryCache
+
+    /** Arbre Mihon (SAF) configure, ou null s'il n'y en a pas. Point d'injection des workers pour les tests. */
+    suspend fun mihonRoot(): MihonRoot?
 }
 
 // PLAN_GEMINI.md : cablage complet de l'E8 (pas de framework de DI - singletons lazy manuels, comme
@@ -73,7 +78,20 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     private suspend fun provideToken(forceRefresh: Boolean): String = tokenMutex.withLock {
         val cached = cachedToken
         if (!forceRefresh && cached != null) return@withLock cached
-        val result = googleAuth.authorize()
+        // R13 : jeton refuse par Drive (401) : invalide aupres de Play Services avant d'en redemander un.
+        if (forceRefresh && cached != null) {
+            cachedToken = null
+            googleAuth.clearToken(cached)
+        }
+        // R13 : toute exception de l'autorisation (Play Services hors ligne, compte retire...) est `auth` :
+        // retry + bandeau « Reconnecter », jamais un FAILED definitif.
+        val result = try {
+            googleAuth.authorize()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw AuthExpiredException("autorisation Google impossible : ${e.javaClass.simpleName}")
+        }
         val token = result.accessToken ?: throw AuthExpiredException("consentement Google requis")
         cachedToken = token
         // Jeton obtenu = consentement valide : le bandeau "Reconnecter" tombe tout de suite, sans
@@ -82,11 +100,18 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
         token
     }
 
+    private suspend fun rejectToken() = tokenMutex.withLock {
+        val cached = cachedToken ?: return@withLock
+        cachedToken = null
+        googleAuth.clearToken(cached)
+    }
+
     private val driveApi: DriveApi by lazy {
         DriveApi(
             client = OkHttpClient(),
             token = ::provideToken,
             baseUrl = "https://www.googleapis.com/".toHttpUrl(),
+            onTokenRejected = ::rejectToken,
         )
     }
 
@@ -112,6 +137,7 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
         RefreshCoordinator(
             db, prefs, router, workManager, clock, scope,
             resendStalledDriveJobs = { jobRepository.resendStalledDriveJobs() },
+            onSettings = { settingsSync.reconcile(it) },
         ) { runAutoTranslate(db, jobRepository) }
     }
 
@@ -126,4 +152,9 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
 
     override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(context.filesDir, "library_snapshot.json")) }
+
+    override suspend fun mihonRoot(): MihonRoot? {
+        val treeUri = prefs.mihonTreeUri.first()?.let { Uri.parse(it) } ?: return null
+        return MihonRoot(MihonTree(context.contentResolver, treeUri), android.provider.DocumentsContract.getTreeDocumentId(treeUri))
+    }
 }

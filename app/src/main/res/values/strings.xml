@@ -272,6 +272,43 @@
     <string name="activity_resume">Reprendre</string>
     <string name="activity_quota_tip">Astuce : activez « Secours LLM local » dans Réglages, Traduction, pour basculer sur Ollama quand le quota est atteint.</string>
     <string name="activity_fail_empty">Aucun échec en cours.</string>
+    <string name="activity_action_resend">Renvoyer le chapitre</string>
+    <string name="activity_action_redeliver">Redemander au PC</string>
+    <string name="activity_action_repair">Réappairer le PC</string>
+    <string name="activity_action_open_permission">Rétablir l\'accès à Mihon</string>
+    <string name="activity_action_update_pc">Mettez à jour Translate My Manga sur le PC.</string>
+    <string name="activity_action_update_app">Mettez à jour TMM Mobile.</string>
+
+    <!-- Libellés des codes d'erreur (docs/ERREURS_PROTOCOLE.md §1) -->
+    <string name="error_pc_bad_request">demande illisible par le PC</string>
+    <string name="error_pc_protocol">version du PC trop ancienne</string>
+    <string name="error_pc_source_missing">chapitre original absent sur le PC</string>
+    <string name="error_pc_integrity">chapitre envoyé abîmé en route</string>
+    <string name="error_pc_duplicate">déjà en cours dans un autre envoi</string>
+    <string name="error_pc_disk_full">disque du PC plein</string>
+    <string name="error_pc_model_missing">modèle de traduction absent sur le PC</string>
+    <string name="error_pc_api_key">clé du fournisseur absente ou refusée</string>
+    <string name="error_pc_provider_quota">quota du moteur atteint</string>
+    <string name="error_pc_engine_crash">moteur de traduction arrêté</string>
+    <string name="error_pc_drive_quota">Google Drive plein, le PC n\'a pas pu déposer le chapitre</string>
+    <string name="error_pc_job_lost">tâche perdue par le PC</string>
+    <string name="error_pc_translation_failed">traduction échouée</string>
+    <string name="error_local_network">connexion perdue</string>
+    <string name="error_local_auth">accès à Google Drive expiré</string>
+    <string name="error_local_pairing">appairage avec le PC refusé</string>
+    <string name="error_local_drive_quota">Google Drive plein</string>
+    <string name="error_local_source_unreadable">chapitre introuvable dans Mihon</string>
+    <string name="error_local_permission">accès au dossier Mihon perdu</string>
+    <string name="error_local_phone_disk_full">plus de place sur le téléphone</string>
+    <string name="error_local_download">chapitre traduit illisible</string>
+    <string name="error_local_result_missing">chapitre traduit absent de Google Drive</string>
+    <string name="error_local_install">installation dans Mihon impossible</string>
+    <string name="error_local_pc_stalled">bloqué sur le PC</string>
+    <string name="error_local_protocol_too_new">application trop ancienne pour ce PC</string>
+    <string name="error_settings_stale_version">réglages modifiés entre-temps sur le PC</string>
+    <string name="error_settings_invalid_value">valeur refusée par le PC</string>
+    <string name="error_settings_bad_request">commande illisible par le PC</string>
+    <string name="error_unknown">échec inattendu</string>
 
     <!-- Settings.dc.html (E4.8) -->
     <string name="settings_title">Réglages</string>
@@ -305,6 +342,14 @@
     <string name="settings_action_forget">Oublier ce PC</string>
     <string name="settings_toast_paired">PC associé</string>
     <string name="settings_toast_pair_failed">Association impossible, vérifiez l\'adresse et le code</string>
+    <string name="settings_row_recover">Récupérer depuis Google Drive</string>
+    <string name="settings_row_recover_desc">Traductions déposées par le PC et jamais installées</string>
+    <string name="settings_action_recover">Récupérer</string>
+    <plurals name="settings_toast_recovered">
+        <item quantity="one">%d chapitre récupéré</item>
+        <item quantity="other">%d chapitres récupérés</item>
+    </plurals>
+    <string name="settings_toast_recover_failed">Récupération impossible, vérifiez la connexion</string>
 
     <!-- TranslationSettings.dc.html (E4.9) -->
     <string name="trans_settings_back_cd">Retour aux réglages</string>
@@ -316,6 +361,8 @@
     <!-- PLAN_GEMINI.md 5.18/7.9 : bandeau WAITING_PC (ajouté) -->
     <string name="trans_settings_sync_waiting_title">En attente du PC</string>
     <string name="trans_settings_sync_waiting_hint">Sera appliqué au prochain démarrage du PC</string>
+    <!-- R12 : bandeau commande refusee par le PC (ajouté), motif = error_settings_* -->
+    <string name="trans_settings_sync_rejected_title">Refusé par le PC</string>
     <string name="trans_settings_sync_readonly_hint">Les réglages s\'afficheront au premier signal du PC</string>
     <string name="trans_settings_pile_size">Pages par envoi au moteur</string>
     <string name="trans_settings_gpu_on_desc">DirectML / CUDA</string>

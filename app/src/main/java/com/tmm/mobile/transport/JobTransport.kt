@@ -45,6 +45,9 @@ interface JobTransport {
     )
 
     suspend fun deleteJobFolder(job: JobEntity)
+
+    // R14 : resultats jamais accuses, a recuperer apres perte de la base (Drive seulement).
+    suspend fun listUnreceivedResults(): List<RecoverableResult> = emptyList()
 }
 
 data class LayoutInfo(val created: Boolean)
@@ -59,4 +62,15 @@ data class PollResult(
     val protocolTooNew: Boolean,
     // pc/remote.json (Drive uniquement) : URL de la connexion directe publiee par le PC.
     val remote: RemoteInfo? = null,
+    // R9 : modifiedTime Drive du heartbeat et en-tete Date de la reponse (heure serveur) ; null en direct.
+    val heartbeatModifiedTime: String? = null,
+    val serverTime: String? = null,
+    // Un fichier PC au protocole 1 a ete lu (et aucun plus recent) : le bandeau protocolTooNew peut retomber.
+    val protocolSeen: Boolean = false,
 )
+
+/**
+ * R14 : resultat depose sur Drive et jamais accuse (pas de received.json). request : request.json du
+ * meme dossier (chemin Mihon et titres), null s'il est absent ou illisible.
+ */
+data class RecoverableResult(val folderId: String, val result: ResultJson, val resultFileId: String?, val request: RequestJson? = null)

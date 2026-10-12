@@ -23,6 +23,7 @@ import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.fake.FakeDrive
 import com.tmm.mobile.fake.FakePc
 import com.tmm.mobile.mihon.MihonFs
+import com.tmm.mobile.mihon.MihonRoot
 import com.tmm.mobile.transport.DirectTokenStore
 import com.tmm.mobile.transport.DirectTransport
 import com.tmm.mobile.transport.DriveApi
@@ -142,11 +143,19 @@ class FakeAppContainer(
         RefreshCoordinator(
             db, prefs, router, workManager, clock, scope,
             resendStalledDriveJobs = { jobRepository.resendStalledDriveJobs() },
+            onSettings = { settingsSync.reconcile(it) },
         ) { runAutoTranslate(db, jobRepository) }
     }
     override val settingsSync: SettingsSync by lazy { SettingsSync(prefs, router, workManager) }
     // Arbre Mihon substituable (FakeMihonFs) ; null = aucun arbre SAF configure.
     var mihonFs: MihonFs? = null
+    // docId de la racine de l'arbre (FakeMihonFs : chemin absolu du dossier racine).
+    var mihonRootDocId: String? = null
+    override suspend fun mihonRoot(): MihonRoot? {
+        val fs = mihonFs ?: return null
+        val root = mihonRootDocId ?: return null
+        return MihonRoot(fs, root)
+    }
     override val chapterDeleter: ChapterDeleter by lazy { ChapterDeleter(db, settingsSync) { mihonFs } }
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
     // Fichier neuf par test : un instantane d'un test precedent ne doit pas s'afficher dans le suivant.

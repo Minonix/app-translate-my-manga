@@ -13,12 +13,16 @@ import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.ResultJson
 import com.tmm.mobile.transport.AuthExpiredException
+import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.data.status.isActive
+import com.tmm.mobile.transport.DriveQuotaException
 import com.tmm.mobile.transport.PollResult
 import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.workers.enqueueInstallJob
 import java.io.IOException
 import java.time.Instant
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -45,11 +49,17 @@ private const val DIRECT_COOLDOWN_SECONDS = 5
 // 1 : boite aux lettres dans APP/TranslateMyManga. 2 : retour dans App/TranslateMyManga.
 private const val DRIVE_LAYOUT_VERSION = 2
 
+// R9 : PC « en ligne » si son dernier heartbeat date de moins de 5 min (heure serveur).
+const val PC_ONLINE_MILLIS = 5 * 60_000L
+
+// R8 : aucun status.json 15 min apres l'envoi, ou fetching/translating hors activeJobIds depuis 10 min.
+const val PC_STALLED_NO_STATUS_MILLIS = 15 * 60_000L
+const val PC_STALLED_INACTIVE_MILLIS = 10 * 60_000L
+private val PC_TERMINAL_STATES = setOf("done", "failed", "cancelled")
+private val PC_WORKING_STATES = setOf("fetching", "translating")
+
 // PLAN_GEMINI.md 5.15/CdC 11.3. autoTranslate est injectee (pas reimplementee ici) : Startup (5.16)
 // et refresh() appellent la meme etape de traduction automatique sur les memes chapitres TO_SEND.
-// ponytail: DriveApi ne distingue pas encore une erreur de quota Drive (403) d'une IOException
-// generique -> RefreshError.DRIVE_QUOTA n'est jamais produit pour l'instant ; a brancher si DriveApi
-// gagne une exception dediee.
 class RefreshCoordinator(
     private val db: TmmDatabase,
     private val prefs: AppPrefs,
@@ -58,6 +68,8 @@ class RefreshCoordinator(
     private val clock: Clock,
     private val scope: CoroutineScope,
     private val resendStalledDriveJobs: suspend () -> Unit = {},
+    // R12 : rapproche les commandes de reglages en attente de chaque settings.json recu.
+    private val onSettings: suspend (PcSettings) -> Unit = {},
     private val autoTranslate: suspend () -> Unit,
 ) {
     private val mutex = Mutex()
@@ -65,6 +77,10 @@ class RefreshCoordinator(
     val state: StateFlow<RefreshState> = _state.asStateFlow()
     private var cooldownJob: Job? = null
     private var lastCooldown = DRIVE_COOLDOWN_SECONDS
+    // R8 : premier instant (horloge telephone) ou un job fetching/translating est absent d'activeJobIds.
+    // ponytail: en memoire seulement, un redemarrage de l'app relance le delai de 10 min ; a persister
+    // si des jobs bloques passent inapercus apres des redemarrages frequents.
+    private val absentSince = mutableMapOf<String, Long>()
 
     suspend fun refresh() {
         if (!mutex.tryLock()) return
@@ -115,6 +131,10 @@ class RefreshCoordinator(
         } catch (e: AuthExpiredException) {
             prefs.setAuthExpired(true)
             _state.value = _state.value.copy(running = false, error = RefreshError.AUTH)
+        } catch (e: DriveQuotaException) {
+            // R5 : 403 storageQuotaExceeded -> bandeau « Google Drive plein ».
+            prefs.setDriveFull(true)
+            _state.value = _state.value.copy(running = false, error = RefreshError.DRIVE_QUOTA)
         } catch (e: IOException) {
             _state.value = _state.value.copy(running = false, error = RefreshError.NETWORK)
         } catch (e: CancellationException) {
@@ -151,15 +171,30 @@ class RefreshCoordinator(
     }
 
     private suspend fun applyPoll(result: PollResult) {
-        if (result.protocolTooNew) prefs.setProtocolTooNew(true)
+        // Le drapeau retombe des qu'un fichier PC lisible en protocole 1 est vu (PC mis a jour).
+        if (result.protocolTooNew) {
+            prefs.setProtocolTooNew(true)
+        } else if (result.protocolSeen) {
+            prefs.setProtocolTooNew(false)
+        }
         val ownJobIds = db.jobDao().observeAll().first().map { it.jobId }.toSet()
 
         for (status in result.statuses) {
             if (status.jobId !in ownJobIds) continue
             val job = db.jobDao().get(status.jobId) ?: continue
+            // R11 : etat terminal apres une demande d'annulation -> clos localement comme annule (le
+            // chapitre n'est plus bloque par un job actif, rien n'est installe).
+            val cancelledLocally = job.phoneState == "CANCEL_REQUESTED" && status.state in PC_TERMINAL_STATES
             db.jobDao().upsert(
                 job.copy(
-                    pcState = status.state,
+                    pcState = if (cancelledLocally) "cancelled" else status.state,
+                    // Un statut nouveau leve le diagnostic « bloque sur le PC » (R8), reevalue plus bas ; le
+                    // meme statut relu a chaque poll ne le fait pas clignoter.
+                    errorCode = if (job.errorCode == LocalErrorCode.PC_STALLED && status.updatedAt != job.statusUpdatedAt) {
+                        null
+                    } else {
+                        job.errorCode
+                    },
                     pcStage = status.stage,
                     pcPage = status.page,
                     pcPages = status.pages,
@@ -180,6 +215,13 @@ class RefreshCoordinator(
         for ((resultJson, resultFileId) in result.results) {
             if (resultJson.jobId !in ownJobIds) continue
             val job = db.jobDao().get(resultJson.jobId) ?: continue
+            // R11 : resultat arrive apres la demande d'annulation -> clos localement, non installe.
+            if (job.phoneState == "CANCEL_REQUESTED") {
+                if (job.pcState != "cancelled") {
+                    db.jobDao().upsert(job.copy(pcState = "cancelled", updatedAt = clock.nowMillis()))
+                }
+                continue
+            }
             // Le meme result.json revient a chaque poll (marge Drive de 120 s, poll direct complet) :
             // seul SENT -> RESULT_READY/INSTALLED est permis (5.4), sinon un job deja installe
             // repasserait RESULT_READY et serait retelecharge (voire FAILED si le dossier est purge).
@@ -224,13 +266,20 @@ class RefreshCoordinator(
                 ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() }
             if (isNotOlder(heartbeat.updatedAt, known?.updatedAt)) {
                 prefs.setHeartbeatJson(ProtocolJson.encodeToString(Heartbeat.serializer(), heartbeat))
+                prefs.setHeartbeatSeenAt(heartbeatSeenAt(result))
+                // §2 : driveOk == false signale une panne du Drive du PC (lastErrorCode null ou drive_quota,
+                // jamais auth) : bandeau neutre, sans toucher au drapeau Drive plein ni a l'auth du telephone.
+                heartbeat.driveOk?.let { prefs.setPcDriveDown(!it) }
             }
         }
+        detectStalledJobs(result.heartbeat ?: prefs.heartbeatJson.first()
+            ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() })
         result.settings?.let { settings ->
             val known = prefs.settingsJson.first()
                 ?.let { runCatching { ProtocolJson.decodeFromString(PcSettings.serializer(), it) }.getOrNull() }
             if (isNotOlder(settings.updatedAt, known?.updatedAt)) {
                 prefs.setSettingsJson(ProtocolJson.encodeToString(PcSettings.serializer(), settings))
+                onSettings(settings)
             }
         }
 
@@ -238,6 +287,41 @@ class RefreshCoordinator(
         db.jobDao().observeAll().first()
             .filter { it.phoneState == "RESULT_READY" }
             .forEach { workManager.enqueueInstallJob(it.jobId, wifiOnly) }
+    }
+
+    // R9 : age du heartbeat mesure cote serveur (en-tete Date - modifiedTime Drive), reporte sur
+    // l'horloge du telephone. En direct (ni l'un ni l'autre), l'heure de reception fait foi.
+    private fun heartbeatSeenAt(result: PollResult): Long {
+        val now = clock.nowMillis()
+        val modified = result.heartbeatModifiedTime?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+            ?: return now
+        val server = result.serverTime
+            ?.let { runCatching { ZonedDateTime.parse(it, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli() }.getOrNull() }
+            ?: return now
+        return now - (server - modified).coerceAtLeast(0)
+    }
+
+    /**
+     * R8 : PC en ligne (R9) et job SENT sans nouvelles. Le job garde son etat (SENT -> FAILED est hors
+     * table, 5.4) ; seul errorCode = pc_stalled le fait apparaitre en echec avec « Relancer ».
+     */
+    private suspend fun detectStalledJobs(heartbeat: Heartbeat?) {
+        val now = clock.nowMillis()
+        val seenAt = prefs.heartbeatSeenAt.first()
+        val pcOnline = heartbeat != null && seenAt != null && now - seenAt < PC_ONLINE_MILLIS
+        val activeIds = heartbeat?.activeJobIds.orEmpty().toSet()
+        val sent = db.jobDao().observeAll().first().filter { it.phoneState == "SENT" }
+        absentSince.keys.retainAll(sent.map { it.jobId }.toSet())
+        for (job in sent) {
+            val working = job.pcState in PC_WORKING_STATES && job.jobId !in activeIds
+            if (working) absentSince.getOrPut(job.jobId) { now } else absentSince.remove(job.jobId)
+            if (!pcOnline || job.errorCode == LocalErrorCode.PC_STALLED) continue
+            val noStatus = job.pcState == null && now - job.updatedAt >= PC_STALLED_NO_STATUS_MILLIS
+            val inactive = working && now - (absentSince[job.jobId] ?: now) >= PC_STALLED_INACTIVE_MILLIS
+            if (noStatus || inactive) {
+                db.jobDao().upsert(job.copy(errorCode = LocalErrorCode.PC_STALLED))
+            }
+        }
     }
 
     // Date illisible d'un cote ou de l'autre : on prend la nouvelle valeur (comportement d'avant).

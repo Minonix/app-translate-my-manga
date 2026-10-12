@@ -18,6 +18,8 @@ sealed interface SettingsToast {
     data object LogsReady : SettingsToast
     data object Paired : SettingsToast
     data object PairFailed : SettingsToast
+    data class Recovered(val count: Int) : SettingsToast
+    data object RecoverFailed : SettingsToast
 }
 
 // Connexion directe (Tailscale) : etat affiche dans les Reglages.
@@ -71,6 +73,8 @@ sealed interface SettingsEvent {
     data class SetWifiOnly(val enabled: Boolean) : SettingsEvent
     data object ToggleWifiOnly : SettingsEvent
     data object ExportLogs : SettingsEvent
+    // R14 : recree les jobs dont le resultat attend sur Drive sans accuse.
+    data object RecoverFromDrive : SettingsEvent
     data object DismissToast : SettingsEvent
     data class DirectUrlChanged(val url: String) : SettingsEvent
     data class PairingCodeChanged(val code: String) : SettingsEvent

@@ -23,3 +23,6 @@ interface MihonFs {
     fun openInput(docId: String): InputStream
     fun openOutput(docId: String): OutputStream
 }
+
+/** Arbre Mihon choisi a l'onboarding : acces fichiers + docId de sa racine. */
+data class MihonRoot(val fs: MihonFs, val rootDocId: String)

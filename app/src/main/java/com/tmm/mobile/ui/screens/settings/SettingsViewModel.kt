@@ -5,6 +5,7 @@ import android.os.Build
 import android.provider.DocumentsContract
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Formatters
+import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.Retention
 import com.tmm.mobile.data.db.BackupImportEntity
 import com.tmm.mobile.protocol.Heartbeat
@@ -112,15 +113,18 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     private suspend fun observeHeartbeat() {
-        container.prefs.heartbeatJson.collect { json ->
-            val heartbeat = json?.let { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }
-            _state.update {
-                it.copy(
-                    pcName = pcNameOf(heartbeat), pcVersionProtocol = pcVersionOf(heartbeat),
-                    isPcOnline = isOnline(heartbeat), pcLastSignalText = lastSignalTextOf(heartbeat),
-                )
+        combine(container.prefs.heartbeatJson, container.prefs.heartbeatSeenAt) { json, seenAt -> json to seenAt }
+            .collect { (json, seenAt) ->
+                // R15 : un heartbeat illisible en cache ne doit pas tuer la collecte (ni l'ecran).
+                val heartbeat = json?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() }
+                val signalAt = signalAtOf(heartbeat, seenAt)
+                _state.update {
+                    it.copy(
+                        pcName = pcNameOf(heartbeat), pcVersionProtocol = pcVersionOf(heartbeat),
+                        isPcOnline = isOnline(signalAt), pcLastSignalText = lastSignalTextOf(signalAt),
+                    )
+                }
             }
-        }
     }
 
     private fun pcNameOf(heartbeat: Heartbeat?): String = heartbeat?.pcName ?: "PC"
@@ -130,19 +134,21 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
 
     // PLAN_GEMINI.md 7.1 : en ligne (<5 min), vu (5 min-24h), hors ligne (>24h ou absent). L'ecran
     // Reglages n'a qu'une pastille binaire : le cas "vu" compte comme hors ligne pour cette pastille.
-    private fun isOnline(heartbeat: Heartbeat?): Boolean {
-        if (heartbeat == null) return false
-        val updatedAt = runCatching { Instant.parse(heartbeat.updatedAt).toEpochMilli() }.getOrNull() ?: return false
-        return container.clock.nowMillis() - updatedAt < 5 * 60_000L
+    // R9 : heure du dernier signal sur l'horloge du telephone, deduite de l'heure serveur (RefreshCoordinator) ;
+    // updatedAt du PC seulement a defaut (cache d'avant la mise a jour).
+    private fun signalAtOf(heartbeat: Heartbeat?, seenAt: Long?): Long? {
+        if (heartbeat == null) return null
+        return seenAt ?: runCatching { Instant.parse(heartbeat.updatedAt).toEpochMilli() }.getOrNull()
     }
 
-    private fun lastSignalTextOf(heartbeat: Heartbeat?): String {
-        if (heartbeat == null) return "Aucun signal reçu" // ajouté, PLAN_GEMINI.md 7.8
-        val updatedAt = runCatching { Instant.parse(heartbeat.updatedAt).toEpochMilli() }.getOrNull()
-            ?: return "Aucun signal reçu"
-        val relative = Formatters.relativeFr(updatedAt, container.clock.nowMillis())
+    private fun isOnline(signalAt: Long?): Boolean =
+        signalAt != null && container.clock.nowMillis() - signalAt < PC_ONLINE_MILLIS
+
+    private fun lastSignalTextOf(signalAt: Long?): String {
+        if (signalAt == null) return "Aucun signal reçu" // ajouté, PLAN_GEMINI.md 7.8
+        val relative = Formatters.relativeFr(signalAt, container.clock.nowMillis())
         // Maquette v2 : "Allumé · vu il y a 17 s" ; au-dela de 5 min, meme vocabulaire que l'Accueil ("PC éteint").
-        val power = if (isOnline(heartbeat)) "Allumé" else "Éteint"
+        val power = if (isOnline(signalAt)) "Allumé" else "Éteint"
         return "$power · vu $relative"
     }
 
@@ -264,6 +270,17 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                 dao.observe(event.seriesKey).first()?.let { dao.upsert(it.copy(autoTranslate = false)) }
             }
             SettingsEvent.Reimport -> reimport()
+            SettingsEvent.RecoverFromDrive -> viewModelScope.launch {
+                val toast = try {
+                    SettingsToast.Recovered(container.jobRepository.recoverFromDrive())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("SettingsViewModel", "recuperation Drive impossible : ${e.javaClass.simpleName} ${e.message}")
+                    SettingsToast.RecoverFailed
+                }
+                showToast(toast)
+            }
             // BLOQUÉ (E10) : re-authentifier un autre compte Google necessite GoogleAuth, non expose
             // par AppContainer (interface figee) - reste un stub visuel jusqu'a exposition explicite.
             SettingsEvent.ChangeGoogleAccount -> showToast(SettingsToast.ChooseAccount)

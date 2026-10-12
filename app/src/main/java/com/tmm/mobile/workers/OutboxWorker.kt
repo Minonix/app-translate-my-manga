@@ -12,8 +12,10 @@ import com.tmm.mobile.protocol.CancelJson
 import com.tmm.mobile.protocol.ReceivedJson
 import com.tmm.mobile.transport.AuthExpiredException
 import com.tmm.mobile.transport.TransportRouter
+import com.tmm.mobile.core.AppLog
 import java.io.IOException
 import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 // PLAN_GEMINI.md 5.12/CdC 7.3.10 : ecrit cancel.json/received.json pour les jobs qui les doivent
@@ -43,7 +45,9 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
 
             for (job in db.jobDao().observeAll().first()) {
                 if (job.phoneState == "INSTALLED" && job.receivedWrittenAt == null) {
-                    val installedPath = requireNotNull(job.installedPath) { "job INSTALLED sans installedPath" }
+                    // R10/R15 : un result.json sans fichier clot le job sans installation, donc sans
+                    // installedPath ; l'accuse part quand meme (le PC direct oublie le job a sa reception).
+                    val installedPath = job.installedPath.orEmpty()
                     router.forJob(job).writeReceived(job, ReceivedJson(jobId = job.jobId, receivedAt = now, installedPath = installedPath))
                     var updated = job.copy(receivedWrittenAt = clock.nowMillis(), updatedAt = clock.nowMillis())
                     if (retention == Retention.AFTER_RECEIVE) {
@@ -57,8 +61,16 @@ class OutboxWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
             applyDays30Retention(retention, router, db.jobDao().observeAll().first(), clock)
             Result.success()
         } catch (e: AuthExpiredException) {
+            // R13 : meme drapeau que les autres workers (bandeau « Reconnecter »).
+            prefs.setAuthExpired(true)
             Result.retry()
         } catch (e: IOException) {
+            if (runAttemptCount >= MAX_RETRY_ATTEMPTS) Result.failure() else Result.retry()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // R15 : reponse illisible ou erreur inattendue, jamais de crash du worker.
+            AppLog.d("OutboxWorker", "outbox en echec : ${e.javaClass.simpleName} ${e.message}")
             if (runAttemptCount >= MAX_RETRY_ATTEMPTS) Result.failure() else Result.retry()
         }
     }

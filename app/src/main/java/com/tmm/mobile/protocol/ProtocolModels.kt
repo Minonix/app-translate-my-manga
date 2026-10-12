@@ -44,6 +44,11 @@ data class RequestOptions(
     val translate: Boolean = true,
     val sourceLang: String = "auto",
     val targetLang: String = "FR",
+    // docs/ERREURS_PROTOCOLE.md §2 : mode translate sans fichier, « renvoie-moi la traduction que tu as
+    // deja ». Omis du JSON quand null (meme raison que SettingsCommand.delete).
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val redeliver: Boolean? = null,
 )
 
 @Serializable
@@ -134,6 +139,14 @@ data class Heartbeat(
     val slots: Int,
     val activeJobIds: List<String> = emptyList(),
     val queue: QueueCounts,
+    // §2 (optionnels) : sante du pont Drive vue par le PC (lastErrorCode : null ou drive_quota, jamais auth ;
+    // driveOk = false signale le Drive du PC, pas l'acces du telephone).
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val driveOk: Boolean? = null,
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val lastErrorCode: String? = null,
 )
 
 @Serializable
@@ -175,6 +188,22 @@ data class PcSettings(
     val version: Int,
     val lastCommandId: String?,
     val values: SettingsValues,
+    // §2 / R12 (optionnel) : accuse explicite de la derniere commande.
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val lastCommandResult: CommandResult? = null,
+)
+
+// §2 : status "applied" | "rejected" ; code de rejet stale_version | invalid_value | bad_request ;
+// deleted/failed : compteurs d'une commande "delete".
+@Serializable
+data class CommandResult(
+    val cmdId: String,
+    val status: String,
+    val code: String? = null,
+    val message: String? = null,
+    val deleted: Int? = null,
+    val failed: Int? = null,
 )
 
 @Serializable
