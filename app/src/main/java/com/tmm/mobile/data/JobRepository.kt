@@ -14,8 +14,6 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.protocol.MihonPath
-import com.tmm.mobile.protocol.ProtocolJson
-import com.tmm.mobile.protocol.ResultJson
 import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.workers.enqueueInstallJob
 import com.tmm.mobile.workers.enqueueOutbox
@@ -309,52 +307,6 @@ class JobRepository(
         // translate : le chapitre entier est renvoye et doit etre traduit en entier.
         val pages = if (old.mode == JobMode.TRANSLATE) old.pages else old.pcErrorPage?.let { listOf(it) } ?: old.pages
         createJobs(newMode, listOf(target), pages, old.translate)
-    }
-
-    /**
-     * R14 : « Recuperer depuis Google Drive ». Chaque dossier jobs/<jobId> avec result.json sans
-     * received.json redevient un job local RESULT_READY (InstallJobWorker l'installe). Ignores : job
-     * deja connu en base, chapitre deja installe (fichier FR rattache a ce jobId ou de meme nom), dossier
-     * sans request.json lisible (chemin Mihon inconnu). Retourne le nombre de jobs recrees.
-     */
-    suspend fun recoverFromDrive(): Int {
-        val now = clock.nowMillis()
-        val recovered = mutableListOf<String>()
-        for (item in router.drive.listUnreceivedResults()) {
-            val result = item.result
-            val request = item.request ?: continue
-            if (db.jobDao().get(result.jobId) != null) continue
-            val installed = db.localFrChapterDao().getForFolder(result.localFolderName)
-                .any { it.jobId == result.jobId || it.fileName == result.chapterFileName }
-            if (installed) continue
-            val path = MihonPath(request.mihonPath.source, request.mihonPath.series, request.mihonPath.chapter)
-            val flatPath = path.flatten()
-            val downloaded = db.downloadedChapterDao().get(flatPath)
-            db.jobDao().upsert(
-                JobEntity(
-                    jobId = result.jobId, mode = result.mode, pages = request.options.pages,
-                    translate = request.options.translate, mihonPath = flatPath,
-                    sourceDir = path.source, seriesDir = path.series, chapterDir = path.chapter,
-                    seriesKey = downloaded?.seriesKey, chapterKey = downloaded?.chapterKey,
-                    phoneState = "RESULT_READY", failedStep = null, errorMessage = null,
-                    driveFolderId = item.folderId, uploadSessionUrl = null, cachePath = null, sha256 = null,
-                    sizeBytes = null, transferredBytes = 0L, transferTotal = 0L,
-                    pcState = "done", pcStage = null, pcPage = null, pcPages = null, pcEngine = result.engine,
-                    pcQueuePosition = null, pcErrorCode = null, pcErrorMessage = null, pcErrorPage = null,
-                    statusUpdatedAt = null,
-                    resultJson = ProtocolJson.encodeToString(ResultJson.serializer(), result),
-                    resultFileId = item.resultFileId,
-                    createdAt = now, updatedAt = now, finishedAt = result.finishedAt, installedAt = null,
-                    installedPath = null, receivedWrittenAt = null, cancelWrittenAt = null, driveDeletedAt = null,
-                    channel = CHANNEL_DRIVE,
-                ),
-            )
-            recovered += result.jobId
-        }
-        val wifiOnly = prefs.wifiOnly.first()
-        recovered.forEach { workManager.enqueueInstallJob(it, wifiOnly) }
-        if (recovered.isNotEmpty()) AppLog.d("JobRepository", "recuperation Drive : ${recovered.size} job(s) recree(s)")
-        return recovered.size
     }
 
     suspend fun verifyPage(mihonPath: MihonPath, page0: Int) {

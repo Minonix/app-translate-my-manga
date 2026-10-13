@@ -20,7 +20,7 @@ fun JobEntity.isCancelled(): Boolean = pcState == "cancelled"
 // R10, reprise d'un echec de telechargement/installation sur le meme job, sans retelecharger le CBZ
 // garde en cache (docs/ERREURS_PROTOCOLE.md).
 private val PHONE_STATE_TRANSITIONS: Map<String?, Set<String>> = mapOf(
-    // RESULT_READY a la creation : recuperation depuis Drive (R14, JobRepository.recoverFromDrive).
+    // RESULT_READY a la creation.
     null to setOf("PREPARING", "RESULT_READY"),
     "PREPARING" to setOf("UPLOADING", "SENT", "CANCEL_REQUESTED", "FAILED"),
     "UPLOADING" to setOf("SENT", "CANCEL_REQUESTED", "FAILED"),

@@ -71,13 +71,6 @@ enum class InpaintingSize(val sizePx: Int, val label: String, val badge: String 
     val displaySummary: String get() = if (badge.isNotEmpty()) "$label · $badge" else label
 }
 
-enum class TranslationFont(val fontName: String, val label: String) {
-    AnimeAce("Anime Ace", "Anime Ace"),
-    MangaTemple("Manga Temple", "Manga Temple");
-
-    val displaySummary: String get() = label
-}
-
 enum class ActiveSheet {
     SourceLanguage,
     TargetLanguage,
@@ -86,7 +79,6 @@ enum class ActiveSheet {
     PreferredOcr,
     Inpainter,
     InpaintingSize,
-    Font,
     PagesAtOnce,
     PagesPerBatch,
 }
@@ -116,7 +108,6 @@ data class TranslationSettingsState(
     val preferredOcr: PreferredOcr = PreferredOcr.Auto,
     val inpainter: Inpainter = Inpainter.LamaLarge,
     val inpaintingSize: InpaintingSize = InpaintingSize.Size1280,
-    val font: TranslationFont = TranslationFont.AnimeAce,
     val isAdvancedExpanded: Boolean = false,
     val speedExpanded: Boolean = false,
     val renderingExpanded: Boolean = false,
@@ -143,7 +134,6 @@ sealed interface TranslationSettingsEvent {
     data class SelectPreferredOcr(val value: PreferredOcr) : TranslationSettingsEvent
     data class SelectInpainter(val value: Inpainter) : TranslationSettingsEvent
     data class SelectInpaintingSize(val value: InpaintingSize) : TranslationSettingsEvent
-    data class SelectFont(val value: TranslationFont) : TranslationSettingsEvent
     data object ToggleAdvanced : TranslationSettingsEvent
     data object ToggleSpeed : TranslationSettingsEvent
     data object ToggleRendering : TranslationSettingsEvent

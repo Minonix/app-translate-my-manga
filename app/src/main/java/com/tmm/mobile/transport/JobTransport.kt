@@ -45,9 +45,6 @@ interface JobTransport {
     )
 
     suspend fun deleteJobFolder(job: JobEntity)
-
-    // R14 : resultats jamais accuses, a recuperer apres perte de la base (Drive seulement).
-    suspend fun listUnreceivedResults(): List<RecoverableResult> = emptyList()
 }
 
 data class LayoutInfo(val created: Boolean)
@@ -73,4 +70,3 @@ data class PollResult(
  * R14 : resultat depose sur Drive et jamais accuse (pas de received.json). request : request.json du
  * meme dossier (chemin Mihon et titres), null s'il est absent ou illisible.
  */
-data class RecoverableResult(val folderId: String, val result: ResultJson, val resultFileId: String?, val request: RequestJson? = null)

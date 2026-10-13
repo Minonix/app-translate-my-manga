@@ -66,7 +66,6 @@ class TranslationSettingsScreenBehaviorTest {
             is TranslationSettingsEvent.SelectPreferredOcr -> sent(state.copy(preferredOcr = event.value))
             is TranslationSettingsEvent.SelectInpainter -> sent(state.copy(inpainter = event.value))
             is TranslationSettingsEvent.SelectInpaintingSize -> sent(state.copy(inpaintingSize = event.value))
-            is TranslationSettingsEvent.SelectFont -> sent(state.copy(font = event.value))
             TranslationSettingsEvent.ToggleAdvanced -> state.copy(isAdvancedExpanded = !state.isAdvancedExpanded)
             TranslationSettingsEvent.ToggleSpeed -> state.copy(speedExpanded = !state.speedExpanded)
             TranslationSettingsEvent.ToggleRendering -> state.copy(renderingExpanded = !state.renderingExpanded)
@@ -91,7 +90,7 @@ class TranslationSettingsScreenBehaviorTest {
         composeRule.onNodeWithText("Si le moteur échoue").assertExists()
         // Les trois groupes techniques sont replies, seul leur resume est visible.
         composeRule.onNodeWithText("4 chapitres à la fois · carte graphique").performScrollTo().assertExists()
-        composeRule.onNodeWithText("Police Anime Ace · effacement LaMa Large").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Effacement LaMa Large").performScrollTo().assertExists()
         composeRule.onNodeWithText("Détecteur et OCR automatiques").performScrollTo().assertExists()
         composeRule.onNodeWithText("Chapitres à la fois").assertDoesNotExist()
         // Plus de groupe « Après traduction » vide.
@@ -181,7 +180,7 @@ class TranslationSettingsScreenBehaviorTest {
 
         composeRule.onNodeWithText("Rendu des pages").performScrollTo().performClick()
         assertTrue(getState().renderingExpanded)
-        composeRule.onNodeWithText("Police").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Police").assertDoesNotExist()
         composeRule.onNodeWithText("Effacement du texte").performScrollTo().assertExists()
         composeRule.onNodeWithText("Taille d’effacement").performScrollTo().assertExists()
 

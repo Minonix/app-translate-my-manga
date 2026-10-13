@@ -224,15 +224,9 @@ fun TranslationSettingsScreen(
                 }
 
                 CollapsibleGroup(stringResource(R.string.settings_v2_rendering),
-                    stringResource(R.string.settings_v2_rendering_hint_fmt, state.font.label, state.inpainter.label),
+                    stringResource(R.string.settings_v2_rendering_hint_fmt, state.inpainter.label),
                     state.renderingExpanded || state.isAdvancedExpanded,
                     { onEvent(TranslationSettingsEvent.ToggleRendering) }) {
-                        PickRow(
-                            label = stringResource(R.string.settings_v2_font),
-                            value = state.font.displaySummary,
-                            onClick = { onEvent(TranslationSettingsEvent.OpenSheet(ActiveSheet.Font)) },
-                            enabled = enabled,
-                        )
                         PickRow(
                             label = stringResource(R.string.trans_settings_inpainter),
                             value = state.inpainter.displaySummary,
@@ -647,7 +641,6 @@ private fun SettingsBottomSheet(
         ActiveSheet.PreferredOcr -> stringResource(R.string.settings_v2_ocr)
         ActiveSheet.Inpainter -> stringResource(R.string.trans_settings_inpainter)
         ActiveSheet.InpaintingSize -> stringResource(R.string.trans_settings_inpainting_size)
-        ActiveSheet.Font -> stringResource(R.string.settings_v2_font)
         ActiveSheet.PagesAtOnce -> stringResource(R.string.settings_v2_pages_at_once)
         ActiveSheet.PagesPerBatch -> stringResource(R.string.trans_settings_pile_size)
     }
@@ -715,15 +708,6 @@ private fun SettingsBottomSheet(
                 hint = sz.badge,
                 isSelected = state.inpaintingSize == sz,
                 onClick = { onEvent(TranslationSettingsEvent.SelectInpaintingSize(sz)) },
-            )
-        }
-        ActiveSheet.Font -> TranslationFont.entries.map { fnt ->
-            SheetOptionItem(
-                id = fnt.fontName,
-                label = fnt.label,
-                hint = "",
-                isSelected = state.font == fnt,
-                onClick = { onEvent(TranslationSettingsEvent.SelectFont(fnt)) },
             )
         }
         ActiveSheet.PagesAtOnce -> (1..4).map { n ->

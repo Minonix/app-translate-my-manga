@@ -336,9 +336,7 @@ v2-simplifiee/index.html#reglages-traduction	3 · plus de contexte si élevé	FM
 v2-simplifiee/index.html#reglages-traduction	Carte graphique	STR	settings_v2_gpu
 v2-simplifiee/index.html#reglages-traduction	DirectML / CUDA	STR	trans_settings_gpu_on_desc
 v2-simplifiee/index.html#reglages-traduction	Rendu des pages	STR	settings_v2_rendering
-v2-simplifiee/index.html#reglages-traduction	Police Anime Ace · effacement LaMa Large	FMT	settings_v2_rendering_hint_fmt		[Anime Ace, LaMa Large]
-v2-simplifiee/index.html#reglages-traduction	Police	STR	settings_v2_font
-v2-simplifiee/index.html#reglages-traduction	Anime Ace	DEMO
+v2-simplifiee/index.html#reglages-traduction	Effacement LaMa Large	FMT	settings_v2_rendering_hint_fmt		[LaMa Large]
 v2-simplifiee/index.html#reglages-traduction	Effacement du texte	STR	trans_settings_inpainter
 v2-simplifiee/index.html#reglages-traduction	LaMa Large	DEMO
 v2-simplifiee/index.html#reglages-traduction	Taille d'effacement	STR	trans_settings_inpainting_size

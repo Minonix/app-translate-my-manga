@@ -375,37 +375,4 @@ class DriveTransport(
         val folderId = job.driveFolderId ?: findJobFolder(job.jobId) ?: return
         driveApi.delete(folderId)
     }
-
-    /**
-     * R14 : dossiers jobs/<jobId> qui ont un result.json et pas de received.json (resultat jamais accuse).
-     * Chaque entree : result.json decode, id de result.cbz (null si absent) et request.json s'il est lisible.
-     */
-    override suspend fun listUnreceivedResults(): List<RecoverableResult> {
-        val jobsId = prefs.driveJobsId.first() ?: run {
-            ensureLayout()
-            prefs.driveJobsId.first()
-        } ?: return emptyList()
-        val found = mutableListOf<RecoverableResult>()
-        for (folder in driveApi.listChildFolders(jobsId)) {
-            try {
-                if (driveApi.findChild(folder.id, "received.json", folder = false) != null) continue
-                val resultFile = driveApi.findChild(folder.id, "result.json", folder = false) ?: continue
-                val result = ProtocolJson.decodeFromString(ResultJson.serializer(), driveApi.readText(resultFile.id))
-                if (result.protocol > 1 || result.jobId != folder.name) continue
-                val cbz = driveApi.findChild(folder.id, "result.cbz", folder = false)?.id
-                val request = driveApi.findChild(folder.id, "request.json", folder = false)?.let { file ->
-                    runCatching { ProtocolJson.decodeFromString(RequestJson.serializer(), driveApi.readText(file.id)) }.getOrNull()
-                }
-                found += RecoverableResult(folder.id, result, cbz, request)
-            } catch (e: AuthExpiredException) {
-                throw e
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // R4 : un dossier illisible n'empeche pas de recuperer les autres.
-                AppLog.d("DriveTransport", "recuperation : dossier ${folder.name} ignore : ${e.message}")
-            }
-        }
-        return found
-    }
 }

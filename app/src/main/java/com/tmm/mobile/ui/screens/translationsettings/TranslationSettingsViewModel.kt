@@ -62,7 +62,6 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
         preferredOcr = PreferredOcr.entries.firstOrNull { it.id == v.preferredOcr } ?: state.preferredOcr,
         inpainter = Inpainter.entries.firstOrNull { it.id == v.inpainter } ?: state.inpainter,
         inpaintingSize = InpaintingSize.entries.firstOrNull { it.sizePx == v.inpaintingSize } ?: state.inpaintingSize,
-        font = TranslationFont.entries.firstOrNull { it.fontName == v.font } ?: state.font,
     )
 
     fun onEvent(event: TranslationSettingsEvent) {
@@ -93,8 +92,6 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
                 change("inpainter", event.value.id) { it.copy(inpainter = event.value) }
             is TranslationSettingsEvent.SelectInpaintingSize ->
                 change("inpaintingSize", event.value.sizePx.toString()) { it.copy(inpaintingSize = event.value) }
-            is TranslationSettingsEvent.SelectFont ->
-                change("font", event.value.fontName) { it.copy(font = event.value) }
             TranslationSettingsEvent.ToggleSpeed -> _state.update { it.copy(speedExpanded = !it.speedExpanded) }
             TranslationSettingsEvent.ToggleRendering -> _state.update { it.copy(renderingExpanded = !it.renderingExpanded) }
             TranslationSettingsEvent.ToggleReading -> _state.update { it.copy(readingExpanded = !it.readingExpanded) }

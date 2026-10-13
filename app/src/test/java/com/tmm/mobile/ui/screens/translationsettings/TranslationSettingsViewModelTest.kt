@@ -59,7 +59,6 @@ class TranslationSettingsViewModelTest {
         assertTrue(state.useGpu)
         assertTrue(state.autoVerifyAfterTranslate)
         assertEquals(InpaintingSize.Size1280, state.inpaintingSize)
-        assertEquals(TranslationFont.AnimeAce, state.font)
     }
 
     @Test fun state_withoutSettingsJson_isReadOnly() = runTest {
@@ -111,6 +110,23 @@ class TranslationSettingsViewModelTest {
         assertEquals(false, vm.state.value.useGpu)
         val pendingJson = env.prefs.pendingCommandsJson.first { it != null }
         assertTrue(requireNotNull(pendingJson).contains("\"useGpu\":\"false\""))
+    }
+
+    // R12 : la police n'est plus un reglage mobile ; les autres reglages partent intacts, sans cle "font".
+    @Test fun onEvent_changes_neverSendFont_andKeepOtherSettingsIntact() = runTest {
+        seedSettings()
+        val vm = TranslationSettingsViewModel(env.container)
+        vm.state.first { !it.isReadOnly }
+
+        vm.onEvent(TranslationSettingsEvent.SelectInpainter(Inpainter.entries.first { it.id == "lama_mpe" }))
+        vm.onEvent(TranslationSettingsEvent.SelectInpaintingSize(InpaintingSize.Size1800))
+
+        val pendingJson = requireNotNull(env.prefs.pendingCommandsJson.first { it != null })
+        assertTrue(pendingJson.contains("\"inpainter\":\"lama_mpe\""))
+        assertTrue(pendingJson.contains("\"inpaintingSize\":\"1800\""))
+        assertTrue(!pendingJson.contains("font"))
+        assertEquals(3, vm.state.value.concurrency)
+        assertEquals(TargetLanguage.French, vm.state.value.targetLanguage)
     }
 
     @Test fun onEvent_whileReadOnly_isIgnored() = runTest {
