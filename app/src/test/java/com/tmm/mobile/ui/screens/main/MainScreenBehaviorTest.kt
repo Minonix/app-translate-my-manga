@@ -136,6 +136,8 @@ class MainScreenBehaviorTest {
         val (_, calls) = setState(mockup)
         // Horloge figee : l'icone qui tourne est une animation infinie.
         composeRule.mainClock.autoAdvance = false
+        // Le bouton rond porte sa legende : sans elle, la synchronisation ne se trouvait pas.
+        composeRule.onNodeWithText("Synchroniser").assertExists()
         composeRule.onNodeWithContentDescription(context.getString(R.string.common_refresh_cd)).performClick()
         assertEquals(listOf<MainEvent>(MainEvent.Refresh), calls.events)
     }

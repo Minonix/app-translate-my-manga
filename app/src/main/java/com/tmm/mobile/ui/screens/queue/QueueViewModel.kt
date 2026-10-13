@@ -92,6 +92,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             transfers = live.sortedBy { it.createdAt }.map { job ->
                 TransferRow(
                     title = built.titleOf(job),
+                    jobId = job.jobId,
                     isUpload = job.phoneState == "UPLOADING",
                     doneBytes = job.transferredBytes,
                     totalBytes = job.transferTotal,
@@ -127,6 +128,25 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                 jobRepository.verifyPage(mihonPath, event.page - 1)
             }
             is QueueEvent.RetryFailedJob -> launchSafely { jobRepository.retry(event.jobId) }
+            // Ids lus a l'instant du clic : JobRepository.cancel ignore un job deja parti plus loin.
+            QueueEvent.CancelAllWaiting -> cancelEach(state.value.waitingJobs.map { it.id })
+            QueueEvent.CancelAllUploads -> cancelEach(state.value.transfers.filter { it.isUpload }.map { it.jobId })
+        }
+    }
+
+    // Une a une dans une seule coroutine (des centaines de suppressions Drive en parallele sinon) ;
+    // un echec n'arrete pas les suivantes.
+    private fun cancelEach(ids: List<String>) {
+        viewModelScope.launch {
+            ids.forEach { id ->
+                try {
+                    jobRepository.cancel(id)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("QueueViewModel", "annulation en echec : ${e.javaClass.simpleName} ${e.message}")
+                }
+            }
         }
     }
 

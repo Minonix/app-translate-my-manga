@@ -4,6 +4,7 @@
 
     <!-- ui/components/RefreshButton.kt (partagé, corrigé en E4.1 : 4.10 impose une ressource) -->
     <string name="common_refresh_cd">Rafraîchir</string>
+    <string name="home_sync">Synchroniser</string>
     <string name="common_refresh_cooldown_cd_fmt">Rafraîchir, disponible dans %1$d secondes</string>
 
     <!-- Main.dc.html (E4.1) -->
@@ -96,6 +97,7 @@
     <string name="series_gap_dismiss">Ignorer</string>
     <string name="series_chapters_title">Chapitres</string>
     <string name="series_select">Sélectionner</string>
+    <string name="series_choose_chapters">Choisir des chapitres</string>
     <string name="series_select_done">Terminer</string>
     <string name="series_chapter_number_fmt">Ch. %1$s</string>
     <string name="series_chapter_unnumbered">Sans numéro</string>
@@ -244,6 +246,8 @@
     <string name="activity_download">Retour</string>
     <string name="activity_focus_cd_fmt">Voir le détail de %1$s</string>
     <string name="activity_next_fmt">Ensuite (%1$d)</string>
+    <string name="activity_cancel_all_waiting">Tout annuler</string>
+    <string name="activity_cancel_uploads_fmt">Annuler les envois en cours (%1$d)</string>
     <string name="activity_waiting_translation">Traduction</string>
     <string name="activity_waiting_verification">Correction des oublis</string>
     <string name="activity_waiting_retranslation">Retraduction</string>

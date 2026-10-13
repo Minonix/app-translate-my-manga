@@ -203,4 +203,12 @@ class SeriesScreenBehaviorTest {
         composeRule.waitForIdle()
         assertEquals(SeriesToast.Deleted(2), getState().toast)
     }
+
+    @Test
+    fun chooseChaptersButton_startsSelection() {
+        val getState = setState(MockupData.seriesDetail)
+        composeRule.onNodeWithText("Choisir des chapitres").performClick()
+        composeRule.waitForIdle()
+        assertTrue(getState().selecting)
+    }
 }
