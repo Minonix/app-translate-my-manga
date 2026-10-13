@@ -190,8 +190,10 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         }
 
         // Ensuite : jobs encore dans la pipeline, ni actifs sur le PC ni en cours d'envoi (ceux-la
-        // sont des lignes « Envoi »).
-        val pipelinePhoneStates = setOf("PREPARING", "SENT", "CANCEL_REQUESTED")
+        // sont des lignes « Envoi »). Pas les annulations demandees : deja annulees pour l'utilisateur,
+        // leur croix ne faisait plus rien (cancel() ignore CANCEL_REQUESTED) et elles restaient
+        // jusqu'a la reponse du PC. Le chapitre reste occupe (deriveStatus), rien n'est renvoye (R13).
+        val pipelinePhoneStates = setOf("PREPARING", "SENT")
         val waitingJobs = r.jobs
             // pc_stalled (R8) : affiche dans Echecs avec « Relancer », pas dans Ensuite.
             .filter { it.isInActivity() && it.phoneState in pipelinePhoneStates && it.jobId !in activeJobIds && !it.isStalled() }

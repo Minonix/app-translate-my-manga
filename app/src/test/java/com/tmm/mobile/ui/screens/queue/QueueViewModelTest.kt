@@ -172,4 +172,21 @@ class QueueViewModelTest {
         val job = env.db.jobDao().observeAll().first { jobs -> jobs.single().phoneState == "CANCEL_REQUESTED" }.single()
         assertEquals("CANCEL_REQUESTED", job.phoneState)
     }
+
+    // Test reel v1.6.0 : chapitres 30 a 32 annules restes dans « Ensuite » (PC sans reponse, aucun
+    // refresh), croix sans effet. Une annulation demandee quitte Ensuite tout de suite.
+    @Test
+    fun removeWaitingJob_leavesEnsuite_withoutWaitingForPcAnswer() = runTest {
+        env.db.jobDao().upsert(baseJob("job-30", "Mihon/invincible/30", "SENT"))
+        env.prefs.setHeartbeatJson(heartbeatJson(emptyList()))
+
+        val vm = QueueViewModel(env.container)
+        vm.state.first { it.waitingJobs.size == 1 }
+
+        vm.onEvent(QueueEvent.RemoveWaitingJob("job-30"))
+
+        val state = vm.state.first { it.waitingJobs.isEmpty() }
+        assertTrue(state.waitingJobs.isEmpty())
+        assertEquals("CANCEL_REQUESTED", env.db.jobDao().get("job-30")!!.phoneState)
+    }
 }
