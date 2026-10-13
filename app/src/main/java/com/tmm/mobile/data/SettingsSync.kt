@@ -195,13 +195,15 @@ class SettingsSync(
             val origin = p.originId ?: id
             val result = settings.lastCommandResult?.takeIf { it.cmdId == id }
             when {
-                settings.lastCommandId == id && (result == null || result.status == "applied") ->
+                settings.lastCommandId == id && (result == null || result.status == "applied") -> {
+                    // R8 : le PC signale les reglages dont la valeur plus ancienne venue de lui est ecrasee.
+                    result?.overwritten?.takeIf { it.isNotEmpty() }?.let { o -> p.trackedIds.forEach { overwrites[it] = o } }
                     resolve(p, SyncBanner.APPLIED)
+                }
                 settings.lastCommandId == id && result?.code == "stale_version" && !p.rebased -> {
                     kept += PendingCommand(
                         command = p.command.copy(
                             cmdId = UUID.randomUUID().toString(),
-                            createdAt = Instant.now().toString(),
                             baseVersion = settings.version,
                         ),
                         rebased = true,
@@ -237,11 +239,15 @@ class SettingsSync(
     // son motif (ErrorCatalog.settingsRejectLabel) ; null si refusee sans accuse explicite.
     fun rejectCode(cmdId: String): String? = rejectCodes[cmdId]
 
+    // R8 : reglages du PC que cette commande a ecrases (vide si aucun), pour le message de l'ecran.
+    fun overwritten(cmdId: String): List<String> = overwrites[cmdId].orEmpty()
+
     // Issue des commandes resolues, par cmdId d'origine (lu par awaitConfirmation()).
     // ponytail: en memoire (SettingsSync est un singleton du conteneur) ; apres un redemarrage l'ecran
     // ne suit de toute facon plus aucune commande.
     private val outcomes = java.util.concurrent.ConcurrentHashMap<String, SyncBanner>()
     private val rejectCodes = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val overwrites = java.util.concurrent.ConcurrentHashMap<String, List<String>>()
 
     // Evite d'attendre le prochain refresh() pour que values() reflete l'etat confirme.
     private suspend fun storeIfNewer(settings: PcSettings) {

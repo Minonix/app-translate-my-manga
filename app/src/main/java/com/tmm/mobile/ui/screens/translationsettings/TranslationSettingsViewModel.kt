@@ -114,9 +114,15 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
             val cmdId = container.settingsSync.change(key, value)
             when (container.settingsSync.awaitConfirmation(cmdId)) {
                 SyncBanner.APPLIED -> {
-                    _state.update { it.copy(syncStatus = TranslationSyncStatus.Applied) }
-                    delay(700)
-                    _state.update { it.copy(syncStatus = TranslationSyncStatus.Synced) }
+                    val overwrote = container.settingsSync.overwritten(cmdId)
+                    if (overwrote.isNotEmpty()) {
+                        // R8 : message qui reste affiche jusqu'au prochain changement.
+                        _state.update { it.copy(syncStatus = TranslationSyncStatus.Overwrote, overwroteKeys = overwrote.joinToString(", ")) }
+                    } else {
+                        _state.update { it.copy(syncStatus = TranslationSyncStatus.Applied) }
+                        delay(700)
+                        _state.update { it.copy(syncStatus = TranslationSyncStatus.Synced) }
+                    }
                 }
                 SyncBanner.WAITING_PC -> _state.update { it.copy(syncStatus = TranslationSyncStatus.WaitingPc) }
                 // R12 : refusee par le PC -> on reaffiche ses valeurs (la commande n'est plus en attente)

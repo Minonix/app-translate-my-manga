@@ -305,6 +305,8 @@
     <string name="error_local_pc_stalled">bloqué sur le PC</string>
     <string name="error_local_protocol_too_new">application trop ancienne pour ce PC</string>
     <string name="error_settings_stale_version">réglages modifiés entre-temps sur le PC</string>
+    <string name="error_settings_superseded">le PC a une valeur plus récente, elle est conservée</string>
+    <string name="settings_overwrote_pc_fmt">Valeur du PC remplacée : %1$s</string>
     <string name="error_settings_invalid_value">valeur refusée par le PC</string>
     <string name="error_settings_bad_request">commande illisible par le PC</string>
     <string name="error_unknown">échec inattendu</string>

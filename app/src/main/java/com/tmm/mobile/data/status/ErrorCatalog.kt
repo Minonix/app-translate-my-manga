@@ -65,6 +65,7 @@ object ErrorCatalog {
     /** Rejets de commande de reglages (§2, `lastCommandResult.code`) : libelle seul, pas d'action par job. */
     val settingsReject: Map<String, Int> = mapOf(
         "stale_version" to R.string.error_settings_stale_version,
+        "superseded" to R.string.error_settings_superseded,
         "invalid_value" to R.string.error_settings_invalid_value,
         "bad_request" to R.string.error_settings_bad_request,
     )

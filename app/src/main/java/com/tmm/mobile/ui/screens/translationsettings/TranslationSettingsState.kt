@@ -99,6 +99,8 @@ enum class TranslationSyncStatus {
     WaitingPc,
     // R12 : commande refusee par le PC (ajoute, meme bandeau que WaitingPc) ; motif dans rejectReason.
     Rejected,
+    // R8 : la modification du telephone a remplace une valeur du PC ; noms dans overwroteKeys.
+    Overwrote,
 }
 
 data class TranslationSettingsState(
@@ -125,6 +127,7 @@ data class TranslationSettingsState(
     val syncStatus: TranslationSyncStatus = TranslationSyncStatus.Synced,
     // Libelle du motif de refus (ErrorCatalog.settingsRejectLabel), affiche avec Rejected.
     @StringRes val rejectReason: Int? = null,
+    val overwroteKeys: String = "",
     // PLAN_GEMINI.md 7.9 : aucun settings_json recu -> controles desactives, alpha 0.45.
     val isReadOnly: Boolean = false,
 )
