@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,21 +35,27 @@ fun Cover(
     color: Color? = null,
 ) {
     val placeholder = color ?: TmmColors.placeholderFor(seriesKey)
+    val context = LocalContext.current
+    // URL reseau, sinon couverture de la source locale Mihon (cover.* dans local/<serie>/).
     val url = remember(coverUrl) { normalizeCoverUrl(coverUrl) }
+    val model: Any? = remember(coverUrl) { url ?: localCoverUri(context, coverUrl) }
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(placeholder)
             .halftone(),
     ) {
-        if (url != null) {
+        if (model != null) {
             // En cas d'echec, rien n'est dessine : le placeholder demi-teinte reste visible.
             AsyncImage(
-                model = url,
+                model = model,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                onError = { error -> AppLog.d("Cover", coverErrorLogLine(url, error.result.throwable)) },
+                onError = { error ->
+                    val t = error.result.throwable
+                    AppLog.d("Cover", if (url != null) coverErrorLogLine(url, t) else "couverture locale non chargee erreur=${t::class.java.simpleName}")
+                },
             )
         }
     }
