@@ -19,6 +19,7 @@ import com.tmm.mobile.ui.screens.series.SeriesSheet
 import com.tmm.mobile.ui.screens.series.actionCounts
 import com.tmm.mobile.ui.screens.series.canCopy
 import com.tmm.mobile.ui.screens.series.canInstall
+import com.tmm.mobile.ui.screens.series.canRedeliver
 import com.tmm.mobile.ui.screens.series.canReprocess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -206,9 +207,14 @@ class LibraryViewModel(
 
     private fun performInstall() {
         viewModelScope.launch {
-            val jobIds = selectedRows().flatMap { (_, rows) -> rows.filter(::canInstall).mapNotNull { it.facts.latestJob?.jobId } }
+            val jobIds = selectedRows().flatMap { (_, rows) ->
+                rows.filter { it.facts.latestJob?.phoneState == "RESULT_READY" }.mapNotNull { it.facts.latestJob?.jobId }
+            }
             container.jobRepository.fetch(jobIds)
-            showToast(LibraryToast.Installing(jobIds.size))
+            // Comme la fiche serie : l'index seul se redemande au PC, sans retraduire (R13).
+            val redelivered = container.jobRepository
+                .createJobs(JobMode.TRANSLATE, collectTargets(::canRedeliver), redeliver = true).createdJobIds.size
+            showToast(LibraryToast.Installing(jobIds.size + redelivered))
         }
     }
 

@@ -92,6 +92,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             transfers = live.sortedBy { it.createdAt }.map { job ->
                 TransferRow(
                     title = built.titleOf(job),
+                    jobId = job.jobId,
                     isUpload = job.phoneState == "UPLOADING",
                     doneBytes = job.transferredBytes,
                     totalBytes = job.transferTotal,
@@ -127,6 +128,25 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                 jobRepository.verifyPage(mihonPath, event.page - 1)
             }
             is QueueEvent.RetryFailedJob -> launchSafely { jobRepository.retry(event.jobId) }
+            // Ids lus a l'instant du clic : JobRepository.cancel ignore un job deja parti plus loin.
+            QueueEvent.CancelAllWaiting -> cancelEach(state.value.waitingJobs.map { it.id })
+            QueueEvent.CancelAllUploads -> cancelEach(state.value.transfers.filter { it.isUpload }.map { it.jobId })
+        }
+    }
+
+    // Une a une dans une seule coroutine (des centaines de suppressions Drive en parallele sinon) ;
+    // un echec n'arrete pas les suivantes.
+    private fun cancelEach(ids: List<String>) {
+        viewModelScope.launch {
+            ids.forEach { id ->
+                try {
+                    jobRepository.cancel(id)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("QueueViewModel", "annulation en echec : ${e.javaClass.simpleName} ${e.message}")
+                }
+            }
         }
     }
 
@@ -190,8 +210,10 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         }
 
         // Ensuite : jobs encore dans la pipeline, ni actifs sur le PC ni en cours d'envoi (ceux-la
-        // sont des lignes « Envoi »).
-        val pipelinePhoneStates = setOf("PREPARING", "SENT", "CANCEL_REQUESTED")
+        // sont des lignes « Envoi »). Pas les annulations demandees : deja annulees pour l'utilisateur,
+        // leur croix ne faisait plus rien (cancel() ignore CANCEL_REQUESTED) et elles restaient
+        // jusqu'a la reponse du PC. Le chapitre reste occupe (deriveStatus), rien n'est renvoye (R13).
+        val pipelinePhoneStates = setOf("PREPARING", "SENT")
         val waitingJobs = r.jobs
             // pc_stalled (R8) : affiche dans Echecs avec « Relancer », pas dans Ensuite.
             .filter { it.isInActivity() && it.phoneState in pipelinePhoneStates && it.jobId !in activeJobIds && !it.isStalled() }

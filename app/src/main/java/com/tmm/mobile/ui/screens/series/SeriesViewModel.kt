@@ -282,9 +282,14 @@ class SeriesViewModel(
 
     private fun performInstall(allSeries: Boolean) {
         viewModelScope.launch {
-            val jobIds = rowsFor(allSeries, ::canInstall).mapNotNull { it.facts.latestJob?.jobId }
+            val rows = rowsFor(allSeries, ::canInstall)
+            val jobIds = rows.filter { it.facts.latestJob?.phoneState == "RESULT_READY" }.mapNotNull { it.facts.latestJob?.jobId }
             container.jobRepository.fetch(jobIds)
-            showToast(SeriesToast.Installing(jobIds.size))
+            // Traduction deja sur le PC sans job ici (index seul) : redemande, jamais une retraduction (R13).
+            val redelivered = container.jobRepository
+                .createJobs(JobMode.TRANSLATE, rows.filter(::canRedeliver).map(::targetOf), redeliver = true)
+                .createdJobIds.size
+            showToast(SeriesToast.Installing(jobIds.size + redelivered))
         }
     }
 
@@ -421,7 +426,12 @@ private fun ChapterJoinRow.active(): Boolean = facts.latestJob?.isActive() == tr
 internal fun canTranslate(row: ChapterJoinRow): Boolean = !row.active() &&
     (row.status == ChapterStatus.TO_SEND || row.status == ChapterStatus.NOT_TRANSLATED || row.status == ChapterStatus.FAILED)
 
-internal fun canInstall(row: ChapterJoinRow): Boolean = row.facts.latestJob?.phoneState == "RESULT_READY"
+internal fun canInstall(row: ChapterJoinRow): Boolean = row.facts.latestJob?.phoneState == "RESULT_READY" || canRedeliver(row)
+
+// « A recuperer » d'apres le seul index du PC (traduit avant le pont, ou job oublie) : aucun resultat
+// a telecharger, il faut le redemander au PC.
+internal fun canRedeliver(row: ChapterJoinRow): Boolean = !row.active() && row.status == ChapterStatus.TO_FETCH &&
+    row.facts.latestJob?.phoneState.let { it != "RESULT_READY" && it != "DOWNLOADING" }
 
 internal fun canReprocess(row: ChapterJoinRow): Boolean =
     !row.active() && row.status == ChapterStatus.UP_TO_DATE && row.facts.index?.original == true

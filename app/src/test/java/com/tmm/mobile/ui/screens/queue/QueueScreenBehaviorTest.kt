@@ -171,4 +171,13 @@ class QueueScreenBehaviorTest {
         composeRule.onNodeWithText("En cours").performClick()
         composeRule.onNodeWithText("Rien ne se traduit en ce moment.").assertExists()
     }
+
+    @Test
+    fun cancelButtons_emitCancelAllEvents() {
+        setState(MockupData.queue)
+        composeRule.onNodeWithText("Annuler les envois en cours (1)").performClick()
+        composeRule.onNodeWithText("Tout annuler").performScrollTo().performClick()
+        assertTrue(QueueEvent.CancelAllUploads in events)
+        assertTrue(QueueEvent.CancelAllWaiting in events)
+    }
 }

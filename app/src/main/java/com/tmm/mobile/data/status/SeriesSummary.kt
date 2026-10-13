@@ -35,8 +35,9 @@ fun deriveSeriesSummary(seriesKey: String, chapters: List<ChapterAggregateInput>
     return SeriesSummary(
         seriesKey = seriesKey,
         toSend = chapters.count { it.status == ChapterStatus.TO_SEND },
-        // ponytail: le TO_FETCH derive du seul index (sans job RESULT_READY) est volontairement exclu
-        // du compteur d'action "Recuperer", cf. plan §5.7.
+        // ponytail: le TO_FETCH derive du seul index (sans job RESULT_READY) est exclu de ce compteur :
+        // une VF supprimee expres ne doit pas relancer le badge. La fiche serie propose quand meme
+        // « Recuperer » (canRedeliver). A revoir si ces chapitres doivent apparaitre a l'accueil.
         toFetch = chapters.count { it.latestJobPhoneState == "RESULT_READY" },
         busy = chapters.count { it.status == ChapterStatus.QUEUED || it.status == ChapterStatus.TRANSLATING },
         frCount = chapters.count { it.status == ChapterStatus.UP_TO_DATE },

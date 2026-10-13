@@ -4,7 +4,9 @@ import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
+import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.autoTranslateTargets
 import com.tmm.mobile.data.db.SeriesSettingsEntity
 import com.tmm.mobile.data.flatten
@@ -169,6 +171,28 @@ class SeriesViewModelTest {
 
         assertEquals(SeriesToast.Translated(1), state.toast)
         assertTrue(env.db.jobDao().observeAll().first().single().translate)
+    }
+
+    // Traduit sur le PC avant le pont : l'index seul le dit, aucun job ici. « Recuperer » le
+    // redemande (redeliver, sans fichier) et ne le renvoie jamais en traduction (R13).
+    @Test fun install_indexOnlyTranslation_redeliversWithoutRetranslation() = runTest {
+        seedSeries()
+        seedToTranslateChapter(number = 1)
+        val flat = mihonPathFor(1, "https://x/$seriesKey-1").flatten()
+        env.db.pcIndexChapterDao().replaceAll(listOf(PcIndexChapterEntity(flat, original = true, fr = true)))
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        val ready = vm.state.first { it.rows.isNotEmpty() && it.seriesCounts.install == 1 }
+        assertEquals(0, ready.seriesCounts.translate)
+        vm.onEvent(SeriesEvent.OpenSeriesMore)
+        vm.state.first { it.sheet == SeriesSheet.More(allSeries = true) }
+        vm.onEvent(SeriesEvent.Install)
+        val state = vm.state.first { it.toast != null }
+
+        assertEquals(SeriesToast.Installing(1), state.toast)
+        val job = env.db.jobDao().observeAll().first().single()
+        assertEquals(JobMode.TRANSLATE, job.mode)
+        assertTrue(job.redeliver)
     }
 
     // A : « Copier sur le PC sans traduire » envoie translate = false.
