@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.8.1] - 2026-10-14
+
+### Corrige
+- Tests : un test instable (coroutines de fond apres fermeture de la base) bloquait la publication de 1.8.0 ; 1.8.1 contient les memes corrections que 1.8.0.
+
 ## [1.8.0] - 2026-10-14
 
 ### Ajoute
