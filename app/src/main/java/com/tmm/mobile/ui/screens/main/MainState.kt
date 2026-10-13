@@ -21,7 +21,6 @@ data class MainQueueJob(
 )
 
 data class MainFollowedSeries(val seriesKey: String, val title: String)
-data class MainGap(val seriesKey: String, val title: String, val numbers: List<Int>)
 
 data class MainRecentChapter(
     val title: String,
@@ -60,7 +59,6 @@ data class MainState(
     val recentChapters: List<MainRecentChapter>,
     val toast: MainToast? = null,
     val followedSeries: List<MainFollowedSeries> = emptyList(),
-    val gaps: List<MainGap> = emptyList(),
     val installTotal: Int = 0,
 ) {
     val isOffline: Boolean get() = pcTone == PcTone.Offline

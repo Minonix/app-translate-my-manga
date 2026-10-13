@@ -22,4 +22,8 @@ class MissingChaptersTest {
     @Test fun empty_hasNoGap() {
         assertEquals(emptyList<Int>(), missingChapters(emptyList(), ignored = emptySet()))
     }
+
+    @Test fun unknownNumber_doesNotStretchRange() {
+        assertEquals(emptyList<Int>(), missingChapters(listOf(-1f, 1f, 2f), ignored = emptySet()))
+    }
 }

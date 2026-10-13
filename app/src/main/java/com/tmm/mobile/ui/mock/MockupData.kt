@@ -4,7 +4,6 @@ import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.screens.library.LibraryState
 import com.tmm.mobile.ui.screens.main.MainFollowedSeries
-import com.tmm.mobile.ui.screens.main.MainGap
 import com.tmm.mobile.ui.screens.main.MainJobType
 import com.tmm.mobile.ui.screens.main.MainQueueJob
 import com.tmm.mobile.ui.screens.main.MainRecentChapter
@@ -119,7 +118,6 @@ object MockupData {
             MainFollowedSeries("kagurabachi", "Kagurabachi"),
             MainFollowedSeries("one-piece", "One Piece"),
         ),
-        gaps = listOf(MainGap("blue-lock", "Blue Lock", listOf(23))),
     )
 
     /** Library.dc.html, etat initial (aucune categorie/vue/selection active). */

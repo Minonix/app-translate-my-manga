@@ -87,6 +87,27 @@ class SeriesSummaryTest {
         assertEquals(listOf(2), summary.missing)
     }
 
+    @Test fun missing_empty_whenNothingOnPhoneNorPc() {
+        val summary = deriveSeriesSummary(
+            "s1",
+            listOf(chapter(1f, ChapterStatus.CATALOG_ONLY), chapter(5f, ChapterStatus.CATALOG_ONLY)),
+            emptySet(),
+        )
+        assertEquals(emptyList<Int>(), summary.missing)
+    }
+
+    @Test fun missing_counted_whenOneChapterOnPcOnly() {
+        val summary = deriveSeriesSummary(
+            "s1",
+            listOf(
+                chapter(1f, ChapterStatus.NOT_TRANSLATED, index = PcIndexChapterEntity("p1", original = true, fr = false)),
+                chapter(3f, ChapterStatus.CATALOG_ONLY),
+            ),
+            emptySet(),
+        )
+        assertEquals(listOf(2), summary.missing)
+    }
+
     @Test fun filters_toTranslate_and_notDownloaded() {
         val busy = deriveSeriesSummary("s1", listOf(chapter(1f, ChapterStatus.TRANSLATING, latestJobPhoneState = "SENT", downloaded = true)), emptySet())
         val absent = deriveSeriesSummary("s2", listOf(chapter(1f, ChapterStatus.CATALOG_ONLY)), emptySet())

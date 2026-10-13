@@ -77,7 +77,6 @@ fun MainScreen(
             if (state.followedSeries.isNotEmpty()) FollowedSection(state.followedSeries, onManageFollowed, onOpenSeries)
             if (state.queueJobs.isNotEmpty() || state.queueCount > 0) OnPcNowSection(state = state, onOpenQueue = onOpenQueue)
             if (state.recentChapters.isNotEmpty()) RecentChaptersSection(state = state, onSeeAll = onOpenQueue, onOpenSeries = onOpenSeries)
-            state.gaps.forEach { gap -> GapRow(gap) { onOpenSeries(gap.seriesKey) } }
         }
         val toastMessage = when (val toast = state.toast) {
             is MainToast.Received -> stringResource(R.string.home_toast_received_fmt, toast.count)
@@ -306,17 +305,6 @@ private fun JobRow(job: MainQueueJob) {
         ProgressBar(fraction = job.progressFraction, fillColor = TmmColors.accent)
         TmmText(if (job.page != null && job.pages != null) stringResource(R.string.home_v2_job_page, label, job.page, job.pages) else label,
             style = TmmType.sans(12), color = TmmColors.textMuted)
-    }
-}
-
-@Composable
-private fun GapRow(gap: MainGap, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).border(1.dp, TmmColors.line, RoundedCornerShape(22.dp))
-        .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        TmmIcon(TmmIconId.V2Warn, tint = TmmColors.C8A5A00)
-        TmmText(pluralStringResource(R.plurals.home_v2_gap, gap.numbers.size, gap.title, gap.numbers.joinToString(", ")),
-            style = TmmType.sans(14, weight = 500), modifier = Modifier.weight(1f))
-        TmmIcon(TmmIconId.V2Chev)
     }
 }
 

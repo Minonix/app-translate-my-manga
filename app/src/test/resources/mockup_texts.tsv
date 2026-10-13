@@ -92,7 +92,7 @@ v2-simplifiee/index.html#serie	Chaque nouveau chapitre téléchargé dans Mihon 
 v2-simplifiee/index.html#serie	Série suivie	STR	series_followed_title
 v2-simplifiee/index.html#serie	Traduire le ch. 214	FMT	series_translate_one_fmt		[214]
 v2-simplifiee/index.html#serie	Ch. 23 manquant partout.	FMT	series_gap_bold_one_fmt		["23"]
-v2-simplifiee/index.html#serie	Téléchargez-le dans Mihon.	STR	series_gap_hint_one
+v2-simplifiee/index.html#serie	Absent de la source Mihon et du PC.	STR	series_gap_hint_one
 v2-simplifiee/index.html#serie	Ignorer	STR	series_gap_dismiss
 v2-simplifiee/index.html#serie	Chapitres	STR	series_chapters_title
 v2-simplifiee/index.html#serie	Sélectionner	STR	series_select
@@ -271,7 +271,6 @@ v2-simplifiee/index.html#accueil	dans Mihon	STR	home_v2_in_mihon
 v2-simplifiee/index.html#accueil	ch. 212 · dans Mihon	FMT	home_v2_recent_status		[ch. 212, dans Mihon]
 v2-simplifiee/index.html#accueil	ch. 1120 · prêt	FMT	home_v2_recent_status		[ch. 1120, prêt]
 v2-simplifiee/index.html#accueil	prêt	STR	home_v2_ready
-v2-simplifiee/index.html#accueil	Blue Lock : ch. 23 manquant partout	PLU	home_v2_gap	1	[Blue Lock, 23]
 v2-simplifiee/index.html#reglages	Réglages	STR	settings_title
 v2-simplifiee/index.html#reglages	PC-BUREAU	DEMO
 v2-simplifiee/index.html#reglages	Allumé · vu il y a 17 s	DEMO

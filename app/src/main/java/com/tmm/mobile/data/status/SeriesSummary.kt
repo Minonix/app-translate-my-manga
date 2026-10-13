@@ -28,6 +28,10 @@ enum class SeriesBadge { BUSY, SEND, GET, ABSENT, OK }
 
 fun deriveSeriesSummary(seriesKey: String, chapters: List<ChapterAggregateInput>, ignoredGaps: Set<Int>): SeriesSummary {
     val present = chapters.filter { it.downloaded || it.localFr || it.inCatalog }.map { it.number }
+    // Un trou n'a de sens que si la serie est suivie concretement : au moins un chapitre sur le
+    // telephone (original ou VF) ou sur le PC. Sinon ce n'est qu'une serie de la bibliotheque Mihon
+    // dont rien n'est telecharge, et les numeros absents de la source ne manquent a personne.
+    val owned = chapters.any { it.downloaded || it.localFr || it.index != null }
     return SeriesSummary(
         seriesKey = seriesKey,
         toSend = chapters.count { it.status == ChapterStatus.TO_SEND },
@@ -39,7 +43,7 @@ fun deriveSeriesSummary(seriesKey: String, chapters: List<ChapterAggregateInput>
         onPhone = chapters.filter { it.downloaded || it.localFr }.map { it.number }.distinct().size,
         verifiable = chapters.count { it.index?.original == true && (it.localFr || it.index.fr) },
         onPc = chapters.count { it.index?.original == true },
-        missing = missingChapters(present, ignoredGaps),
+        missing = if (owned) missingChapters(present, ignoredGaps) else emptyList(),
     )
 }
 

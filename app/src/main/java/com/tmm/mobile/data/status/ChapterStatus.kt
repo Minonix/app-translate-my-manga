@@ -65,10 +65,11 @@ fun translatingPercent(job: JobEntity): Int {
 /**
  * Numeros de chapitre entiers manquants entre le min et le max des numeros presents (entiers
  * uniquement, les hors-serie type 7.5 ne comptent pas comme presence de leur partie entiere),
- * hors numeros ignores.
+ * hors numeros ignores. Les numeros negatifs (-1 = numero inconnu pour Mihon) sont ecartes : ils
+ * etiraient l'intervalle et faisaient apparaitre un faux « ch. 0 manquant ».
  */
 fun missingChapters(present: Collection<Float>, ignored: Set<Int>): List<Int> {
-    val presentInts = present.filter { it == it.toInt().toFloat() }.map { it.toInt() }.toSet()
+    val presentInts = present.filter { it >= 0f && it == it.toInt().toFloat() }.map { it.toInt() }.toSet()
     if (presentInts.isEmpty()) return emptyList()
     val min = presentInts.min()
     val max = presentInts.max()

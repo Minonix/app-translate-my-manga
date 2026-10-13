@@ -91,14 +91,15 @@
     </plurals>
     <string name="series_gap_bold_one_fmt">Ch. %1$s manquant partout.</string>
     <string name="series_gap_bold_many_fmt">Ch. %1$s manquants partout.</string>
-    <string name="series_gap_hint_one">Téléchargez-le dans Mihon.</string>
-    <string name="series_gap_hint_many">Téléchargez-les dans Mihon.</string>
+    <string name="series_gap_hint_one">Absent de la source Mihon et du PC.</string>
+    <string name="series_gap_hint_many">Absents de la source Mihon et du PC.</string>
     <string name="series_gap_dismiss">Ignorer</string>
     <string name="series_chapters_title">Chapitres</string>
     <string name="series_select">Sélectionner</string>
     <string name="series_select_done">Terminer</string>
     <string name="series_chapter_number_fmt">Ch. %1$d</string>
     <string name="series_chapter_range_fmt">Ch. %1$d à %2$d</string>
+    <string name="series_chapter_unnumbered">Sans numéro</string>
     <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$d</string>
     <string name="series_status_to_translate">À traduire</string>
     <string name="series_status_on_pc">Sur le PC, pas traduit</string>

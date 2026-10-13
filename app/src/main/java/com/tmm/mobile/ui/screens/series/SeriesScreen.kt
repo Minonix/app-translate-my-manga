@@ -445,7 +445,9 @@ private fun ChapterRow(
             if (selecting) V2Check(checked = selected, enabled = selectable)
             val dimmed = row.kind == ChapterKind.Missing || row.kind == ChapterKind.NotDownloaded
             TmmText(
-                text = if (row.rangeEnd != null) {
+                text = if (row.number < 0) {
+                    stringResource(R.string.series_chapter_unnumbered)
+                } else if (row.rangeEnd != null) {
                     stringResource(R.string.series_chapter_range_fmt, row.number, row.rangeEnd)
                 } else {
                     stringResource(R.string.series_chapter_number_fmt, row.number)

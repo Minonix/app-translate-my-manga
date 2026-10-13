@@ -21,14 +21,6 @@ import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
-import com.tmm.mobile.data.status.ChapterJoinIndex
-import com.tmm.mobile.data.status.buildChapterJoinRows
-import com.tmm.mobile.data.status.deriveSeriesSummary
-import com.tmm.mobile.data.status.joinInputsFlow
-import com.tmm.mobile.data.status.toAggregateInputs
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +40,6 @@ import kotlinx.coroutines.launch
  * les prefs (heartbeat, dernier rafraichissement/scan) en un MainState pret a afficher ; l'envoi
  * et la recuperation passent par le vrai JobRepository (pas de simulation avec delay()).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(private val container: AppContainer) : ViewModel() {
     private val db = container.db
 
@@ -104,24 +95,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             .map { MainFollowedSeries(it.seriesKey, it.title) }
     }
 
-    // Même calcul que la fiche série ; seuls les trous candidats observent leurs exclusions.
-    private val gaps = combine(joinInputsFlow(db), db.seriesDao().observeAll()) { inputs, series ->
-        val index = ChapterJoinIndex(inputs)
-        series.mapNotNull { item ->
-            val rows = buildChapterJoinRows(item.seriesKey, item.sourceName, item.title, index)
-            val missing = deriveSeriesSummary(item.seriesKey, rows.toAggregateInputs(), emptySet()).missing
-            if (missing.isEmpty()) null else MainGap(item.seriesKey, item.title, missing)
-        }
-    }.flowOn(Dispatchers.Default).distinctUntilChanged().flatMapLatest { candidates ->
-        if (candidates.isEmpty()) flowOf(emptyList()) else combine(candidates.map { gap ->
-            db.ignoredGapDao().observeForSeries(gap.seriesKey).map { ignored ->
-                gap.copy(numbers = gap.numbers - ignored.map { it.number }.toSet())
-            }
-        }) { rows -> rows.filter { it.numbers.isNotEmpty() } }
-    }
-
-    val state: StateFlow<MainState> = combine(derived, ephemeral, followed, gaps) { base, eph, followedSeries, missing ->
-        base.copy(getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast, installTotal = eph.installTotal, followedSeries = followedSeries, gaps = missing)
+    val state: StateFlow<MainState> = combine(derived, ephemeral, followed) { base, eph, followedSeries ->
+        base.copy(getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast, installTotal = eph.installTotal, followedSeries = followedSeries)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainState(
         pcTone = PcTone.Offline, toSendCount = 0, toSendSeriesCount = 0, toGetCount = 0, toGetSummary = "",
         queueCount = 0, queueParallelCount = 0, queueMachineName = "PC", queueNextCount = 0,

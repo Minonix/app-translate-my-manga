@@ -394,7 +394,9 @@ internal fun groupNotDownloaded(sortedDesc: List<SeriesRow>): List<SeriesRow> {
     val out = mutableListOf<SeriesRow>()
     for (row in sortedDesc) {
         val last = out.lastOrNull()
-        if (row.kind == ChapterKind.NotDownloaded && last?.kind == ChapterKind.NotDownloaded && last.number - row.number <= 1) {
+        // Seuls les numeros consecutifs se fusionnent : un doublon (meme numero, autre scantrad) ou un
+        // numero inconnu (-1 chez Mihon) donnait des plages trompeuses comme « Ch. -1 a 0 ».
+        if (row.kind == ChapterKind.NotDownloaded && last?.kind == ChapterKind.NotDownloaded && row.number >= 0 && last.number - row.number == 1) {
             out[out.lastIndex] = SeriesRow(row.number, ChapterKind.NotDownloaded, rangeEnd = last.rangeEnd ?: last.number)
         } else {
             out += row

@@ -39,7 +39,7 @@ class MainScreenBehaviorTest {
     private val empty = mockup.copy(
         toSendCount = 0, toSendSeriesCount = 0, toGetCount = 0, toGetSummary = "",
         queueCount = 0, queueParallelCount = 0, queueNextCount = 0, queueJobs = emptyList(),
-        recentChapters = emptyList(), followedSeries = emptyList(), gaps = emptyList(),
+        recentChapters = emptyList(), followedSeries = emptyList(),
     )
 
     private class Calls {
@@ -87,7 +87,6 @@ class MainScreenBehaviorTest {
             "Kagurabachi · ch. 52", "42 %", "Traduction · page 9 sur 21",
             "+ 5 en attente, 4 traduits en même temps sur PC-BUREAU",
             "Derniers traduits", "Tout voir", "ch. 140 · dans Mihon", "ch. 212 · dans Mihon", "ch. 1120 · prêt",
-            "Blue Lock : ch. 23 manquant partout",
         ).forEach { composeRule.onNodeWithText(it).assertExists() }
         composeRule.onNodeWithContentDescription("À faire").assertExists()
     }
@@ -126,11 +125,10 @@ class MainScreenBehaviorTest {
         composeRule.onNodeWithText("Kagurabachi").performClick()
         composeRule.onNodeWithText("Activité (7)").performScrollTo().performClick()
         composeRule.onNodeWithText("Tout voir").performScrollTo().performClick()
-        composeRule.onNodeWithText("Blue Lock : ch. 23 manquant partout").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertEquals(1, calls.manage)
         assertEquals(2, calls.queue)
-        assertEquals(listOf("kagurabachi", "blue-lock"), calls.series)
+        assertEquals(listOf("kagurabachi"), calls.series)
     }
 
     @Test
