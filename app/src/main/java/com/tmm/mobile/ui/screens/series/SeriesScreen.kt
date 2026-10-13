@@ -839,6 +839,12 @@ private fun SeriesToastHost(
             if (toast.failed > 0) stringResource(R.string.series_toast_delete_failed) else null,
             if (toast.pcUnavailable) stringResource(R.string.series_toast_delete_pc_unavailable) else null,
         ).joinToString(" ")
+        is SeriesToast.PcDeleteResult -> when (toast.outcome) {
+            PcDeleteOutcome.DONE -> stringResource(R.string.series_toast_pc_delete_done)
+            PcDeleteOutcome.PARTIAL -> pluralStringResource(R.plurals.series_toast_pc_delete_partial, toast.failed, toast.failed)
+            PcDeleteOutcome.REJECTED -> stringResource(R.string.series_toast_pc_delete_rejected)
+            PcDeleteOutcome.WAITING -> stringResource(R.string.series_toast_pc_delete_waiting)
+        }
         is SeriesToast.Followed -> if (toast.chapterCount > 0) {
             pluralStringResource(R.plurals.series_toast_followed, toast.chapterCount, title, toast.chapterCount)
         } else {
@@ -856,7 +862,8 @@ private fun SeriesToastHost(
             onAction = { onEvent(SeriesEvent.UndoFollow) },
             durationMs = 7000L,
         )
-        is SeriesToast.Deleted -> V2Toast(visible = true, message = message, onDismiss = dismiss, modifier = modifier, icon = TmmIconId.V2Check)
+        is SeriesToast.Deleted, is SeriesToast.PcDeleteResult ->
+            V2Toast(visible = true, message = message, onDismiss = dismiss, modifier = modifier, icon = TmmIconId.V2Check)
         null -> V2Toast(visible = false, message = message, onDismiss = dismiss, modifier = modifier)
         else -> V2Toast(
             visible = true,

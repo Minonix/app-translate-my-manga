@@ -10,8 +10,13 @@ import com.tmm.mobile.protocol.ReceivedJson
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.RequestOptions
 import com.tmm.mobile.protocol.SeriesRef
+import com.tmm.mobile.protocol.StatusJson
 import com.tmm.mobile.workers.WorkerTestEnvironment
+import androidx.work.WorkManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -130,6 +135,76 @@ class ErrorRecoveryRefreshTest {
         assertNull(updated.resultJson)
         val again = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(JobTarget(MihonPath("MangaSource", "Titre", "Chapitre 1"), null, null, null)))
         assertEquals(1, again.createdJobIds.size)
+    }
+
+    // Un job « fetching » (recuperation de la source) n'est jamais dans heartbeat.activeJobIds, qui ne liste que
+    // les traductions : il ne doit pas etre declare « bloque sur le PC » apres 10 min.
+    @Test fun r8_fetchingJob_isNotDiagnosedStalled() = runTest {
+        val folderId = writeRequest("job-8d")
+        env.db.jobDao().upsert(job("job-8d", "SENT", folderId))
+        env.pc.writeStatus("job-8d", StatusJson(jobId = "job-8d", updatedAt = "2026-01-01T00:00:00Z", mode = "translate", state = "fetching"))
+        env.pc.writeHeartbeat()
+        // Coordinateur dedie dont le delai entre deux refresh tourne en temps virtuel (celui du conteneur
+        // attend 30 s reelles, ce qui rendrait le second refresh sans effet).
+        val coordinator = RefreshCoordinator(
+            env.db, env.prefs, env.router, WorkManager.getInstance(env.context), env.clock,
+            CoroutineScope(UnconfinedTestDispatcher(testScheduler)), autoTranslate = {},
+        )
+        coordinator.refresh()
+        advanceUntilIdle()
+
+        env.clock.millis += PC_STALLED_INACTIVE_MILLIS + 60_000
+        env.pc.writeHeartbeat()
+        coordinator.refresh()
+
+        val updated = env.db.jobDao().get("job-8d")!!
+        assertEquals("fetching", updated.pcState)
+        assertNull(updated.errorCode)
+    }
+
+    // Le resultat est arrive : le diagnostic « bloque sur le PC » pose avant ne doit pas rester sur le job.
+    @Test fun r8_stalledFlag_isClearedWhenResultArrives() = runTest {
+        val folderId = writeRequest("job-8e")
+        env.db.jobDao().upsert(job("job-8e", "SENT", folderId).copy(errorCode = LocalErrorCode.PC_STALLED))
+        env.pc.finish("job-8e", ByteArray(0), fileRef = null)
+
+        env.container.refreshCoordinator.refresh()
+
+        val updated = env.db.jobDao().get("job-8e")!!
+        assertEquals("INSTALLED", updated.phoneState)
+        assertNull(updated.errorCode)
+    }
+
+    // Annulation jamais acquittee par le PC : apres le delai, le job n'est plus « en file » indefiniment
+    // et le chapitre peut etre renvoye.
+    @Test fun cancelWithoutPcAnswer_isClosedLocallyAfterDelay() = runTest {
+        seedDownloaded()
+        val folderId = writeRequest("job-c1")
+        env.db.jobDao().upsert(
+            job("job-c1", "CANCEL_REQUESTED", folderId).copy(cancelWrittenAt = env.clock.millis - CANCEL_UNANSWERED_MILLIS - 1),
+        )
+        env.pc.writeHeartbeat()
+
+        env.container.refreshCoordinator.refresh()
+
+        assertEquals("cancelled", env.db.jobDao().get("job-c1")!!.pcState)
+        val again = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(JobTarget(MihonPath("MangaSource", "Titre", "Chapitre 1"), null, null, null)))
+        assertEquals(1, again.createdJobIds.size)
+    }
+
+    @Test fun cancelWithoutPcAnswer_waitsBeforeDelay_andWhilePcTranslatesIt() = runTest {
+        val folderId = writeRequest("job-c2")
+        env.db.jobDao().upsert(job("job-c2", "CANCEL_REQUESTED", folderId).copy(cancelWrittenAt = env.clock.millis - 60_000))
+        val folderId3 = writeRequest("job-c3")
+        env.db.jobDao().upsert(
+            job("job-c3", "CANCEL_REQUESTED", folderId3).copy(cancelWrittenAt = env.clock.millis - CANCEL_UNANSWERED_MILLIS - 1),
+        )
+        env.pc.writeHeartbeat(active = listOf("job-c3"))
+
+        env.container.refreshCoordinator.refresh()
+
+        assertNull(env.db.jobDao().get("job-c2")!!.pcState)
+        assertNull(env.db.jobDao().get("job-c3")!!.pcState)
     }
 
     // §2 : heartbeat driveOk = false -> bandeau neutre « le PC n'accede plus a Google Drive », sans

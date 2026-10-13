@@ -34,6 +34,8 @@ data class DeleteOutcome(
     val failed: Int,
     val pcChapters: Int,
     val pcUnavailable: Boolean,
+    // Commande « delete » mise en file pour le PC : permet d'attendre et d'afficher son resultat.
+    val pcCmdId: String? = null,
 )
 
 /**
@@ -104,6 +106,7 @@ class ChapterDeleter(
             failed = failed,
             pcChapters = if (cmdId != null) pcPaths.size else 0,
             pcUnavailable = pcPaths.isNotEmpty() && cmdId == null,
+            pcCmdId = cmdId,
         )
     }
 

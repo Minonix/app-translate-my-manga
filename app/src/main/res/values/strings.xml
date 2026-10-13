@@ -197,6 +197,13 @@
     </plurals>
     <string name="series_toast_delete_failed">Certains fichiers n\'ont pas pu être supprimés.</string>
     <string name="series_toast_delete_pc_unavailable">PC jamais synchronisé : rien n\'a été demandé au PC.</string>
+    <string name="series_toast_pc_delete_done">Fichiers supprimés sur le PC.</string>
+    <plurals name="series_toast_pc_delete_partial">
+        <item quantity="one">%1$d fichier n\'a pas pu être supprimé sur le PC.</item>
+        <item quantity="other">%1$d fichiers n\'ont pas pu être supprimés sur le PC.</item>
+    </plurals>
+    <string name="series_toast_pc_delete_rejected">Le PC a refusé la suppression.</string>
+    <string name="series_toast_pc_delete_waiting">Le PC n\'a pas encore répondu : la suppression partira dès qu\'il sera joignable.</string>
     <plurals name="series_toast_followed">
         <item quantity="one">%1$s est suivie. %2$d chapitre part au PC.</item>
         <item quantity="other">%1$s est suivie. %2$d chapitres partent au PC.</item>

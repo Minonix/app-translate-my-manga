@@ -52,11 +52,16 @@ private const val DRIVE_LAYOUT_VERSION = 2
 // R9 : PC « en ligne » si son dernier heartbeat date de moins de 5 min (heure serveur).
 const val PC_ONLINE_MILLIS = 5 * 60_000L
 
-// R8 : aucun status.json 15 min apres l'envoi, ou fetching/translating hors activeJobIds depuis 10 min.
+// R8 : aucun status.json 15 min apres l'envoi, ou translating hors activeJobIds depuis 10 min.
 const val PC_STALLED_NO_STATUS_MILLIS = 15 * 60_000L
 const val PC_STALLED_INACTIVE_MILLIS = 10 * 60_000L
+// Annulation demandee, ecrite (ou non) et jamais acquittee : sans reponse du PC apres ce delai, le job est
+// clos localement (le chapitre ne reste plus « en file » indefiniment, le resultat tardif sera ignore).
+const val CANCEL_UNANSWERED_MILLIS = 15 * 60_000L
 private val PC_TERMINAL_STATES = setOf("done", "failed", "cancelled")
-private val PC_WORKING_STATES = setOf("fetching", "translating")
+// heartbeat.activeJobIds ne liste que les jobs en traduction (processing/paused cote PC) : un job
+// « fetching » (recuperation de la source, parfois longue) n'y figure jamais et ne doit pas etre juge bloque.
+private val PC_WORKING_STATES = setOf("translating")
 
 // PLAN_GEMINI.md 5.15/CdC 11.3. autoTranslate est injectee (pas reimplementee ici) : Startup (5.16)
 // et refresh() appellent la meme etape de traduction automatique sur les memes chapitres TO_SEND.
@@ -231,6 +236,8 @@ class RefreshCoordinator(
                 job.copy(
                     resultJson = ProtocolJson.encodeToString(ResultJson.serializer(), resultJson),
                     resultFileId = resultFileId,
+                    // Le resultat est la : le diagnostic « bloque sur le PC » n'a plus lieu d'etre.
+                    errorCode = if (job.errorCode == LocalErrorCode.PC_STALLED) null else job.errorCode,
                     finishedAt = resultJson.finishedAt,
                     phoneState = nextPhoneState,
                     installedAt = if (nextPhoneState == "INSTALLED") clock.nowMillis() else job.installedAt,
@@ -272,8 +279,10 @@ class RefreshCoordinator(
                 heartbeat.driveOk?.let { prefs.setPcDriveDown(!it) }
             }
         }
-        detectStalledJobs(result.heartbeat ?: prefs.heartbeatJson.first()
-            ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() })
+        val latestHeartbeat = result.heartbeat ?: prefs.heartbeatJson.first()
+            ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() }
+        detectStalledJobs(latestHeartbeat)
+        closeUnansweredCancels(latestHeartbeat)
         result.settings?.let { settings ->
             val known = prefs.settingsJson.first()
                 ?.let { runCatching { ProtocolJson.decodeFromString(PcSettings.serializer(), it) }.getOrNull() }
@@ -321,6 +330,25 @@ class RefreshCoordinator(
             if (noStatus || inactive) {
                 db.jobDao().upsert(job.copy(errorCode = LocalErrorCode.PC_STALLED))
             }
+        }
+    }
+
+    /**
+     * Une annulation que le PC n'acquitte pas (hors ligne, job inconnu, annulation perdue) laissait le
+     * job en CANCEL_REQUESTED, affiche « En file » sans fin. Passe le delai, et si le PC n'est pas en train
+     * de le traduire, le job est clos localement comme annule ; cancel.json reste a ecrire si l'outbox
+     * ne l'a pas encore fait.
+     */
+    private suspend fun closeUnansweredCancels(heartbeat: Heartbeat?) {
+        val now = clock.nowMillis()
+        val seenAt = prefs.heartbeatSeenAt.first()
+        val pcOnline = heartbeat != null && seenAt != null && now - seenAt < PC_ONLINE_MILLIS
+        val activeIds = heartbeat?.activeJobIds.orEmpty().toSet()
+        for (job in db.jobDao().observeAll().first()) {
+            if (job.phoneState != "CANCEL_REQUESTED" || job.pcState in PC_TERMINAL_STATES) continue
+            if (now - (job.cancelWrittenAt ?: job.updatedAt) < CANCEL_UNANSWERED_MILLIS) continue
+            if (pcOnline && job.jobId in activeIds) continue
+            db.jobDao().upsert(job.copy(pcState = "cancelled", updatedAt = now))
         }
     }
 
