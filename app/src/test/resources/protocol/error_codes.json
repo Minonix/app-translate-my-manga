@@ -16,7 +16,7 @@
     {"code": "translation_failed", "retryable": true, "action": "retry"}
   ],
   "directHttp": ["unauthorized", "bad_request", "protocol", "integrity", "not_found", "other_channel", "internal"],
-  "settingsReject": ["stale_version", "invalid_value", "bad_request"],
+  "settingsReject": ["stale_version", "superseded", "invalid_value", "bad_request"],
   "phoneLocal": [
     {"code": "network", "action": "retry"},
     {"code": "auth", "action": "reconnect_drive"},

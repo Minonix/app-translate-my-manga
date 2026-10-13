@@ -204,6 +204,9 @@ data class CommandResult(
     val message: String? = null,
     val deleted: Int? = null,
     val failed: Int? = null,
+    // R8 : reglages ecrases (valeur du PC remplacee) ou conserves (valeur du PC plus recente).
+    val overwritten: List<String>? = null,
+    val kept: List<String>? = null,
 )
 
 @Serializable

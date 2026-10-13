@@ -131,7 +131,7 @@ fun TranslationSettingsScreen(
                 }
 
                 // Carte d'état de synchronisation avec le PC
-                SyncStatusCard(status = state.syncStatus, isReadOnly = state.isReadOnly, pcName = state.pcName, rejectReason = state.rejectReason)
+                SyncStatusCard(status = state.syncStatus, isReadOnly = state.isReadOnly, pcName = state.pcName, rejectReason = state.rejectReason, overwroteKeys = state.overwroteKeys)
 
                 // Groupe 1 : Langues
                 SettingsGroup(title = stringResource(R.string.settings_v2_essential)) {
@@ -304,10 +304,11 @@ fun TranslationSettingsScreen(
 }
 
 @Composable
-private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, pcName: String, @StringRes rejectReason: Int? = null) {
+private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, pcName: String, @StringRes rejectReason: Int? = null, overwroteKeys: String = "") {
     val sending = status == TranslationSyncStatus.Sending
     val rejected = status == TranslationSyncStatus.Rejected && !isReadOnly
-    val waiting = status == TranslationSyncStatus.WaitingPc || isReadOnly || rejected
+    val overwrote = status == TranslationSyncStatus.Overwrote && !isReadOnly
+    val waiting = status == TranslationSyncStatus.WaitingPc || isReadOnly || rejected || overwrote
     // PLAN_GEMINI.md 5.18/7.9 : fond #8A5A00 (ajouté) pour WAITING_PC (timeout 60s ou lecture seule).
     val badgeBg = when {
         waiting -> TmmColors.C8A5A00
@@ -320,6 +321,7 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
         status == TranslationSyncStatus.Applied -> stringResource(R.string.trans_settings_sync_applied_title_fmt, pcName)
         status == TranslationSyncStatus.WaitingPc -> stringResource(R.string.trans_settings_sync_waiting_title)
         rejected -> stringResource(R.string.trans_settings_sync_rejected_title)
+        overwrote -> stringResource(R.string.trans_settings_sync_applied_title_fmt, pcName)
         else -> stringResource(R.string.trans_settings_sync_synced_title_fmt, pcName)
     }
     val hint = when {
@@ -327,6 +329,7 @@ private fun SyncStatusCard(status: TranslationSyncStatus, isReadOnly: Boolean, p
         sending -> stringResource(R.string.trans_settings_sync_sending_hint)
         status == TranslationSyncStatus.WaitingPc -> stringResource(R.string.trans_settings_sync_waiting_hint)
         rejected -> stringResource(rejectReason ?: R.string.error_unknown).replaceFirstChar { it.uppercase() }
+        overwrote -> stringResource(R.string.settings_overwrote_pc_fmt, overwroteKeys)
         else -> stringResource(R.string.trans_settings_sync_synced_hint)
     }
 

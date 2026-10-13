@@ -157,6 +157,50 @@ class SettingsSyncTest {
         assertEquals(SyncBanner.REJECTED, sync.awaitConfirmation(cmdId))
     }
 
+    // R8 : le PC signale la valeur qu'il a ecrasee -> l'ecran peut le dire ; un refus "superseded"
+    // (valeur du PC plus recente) est rejete avec son motif, sans renvoi.
+    @Test fun reconcile_appliedWithOverwrite_exposesOverwrittenKeys() = runTest {
+        seedSettings(version = 3)
+        val sync = env.container.settingsSync
+        val cmdId = sync.change("targetLanguage", "ENG")
+        sync.sendPendingCommands()
+
+        sync.reconcile(pcSettings(version = 4).copy(lastCommandId = cmdId,
+            lastCommandResult = com.tmm.mobile.protocol.CommandResult(cmdId, "applied", overwritten = listOf("targetLanguage"))))
+
+        assertEquals(SyncBanner.APPLIED, sync.awaitConfirmation(cmdId))
+        assertEquals(listOf("targetLanguage"), sync.overwritten(cmdId))
+    }
+
+    @Test fun reconcile_superseded_rejectsWithoutResend() = runTest {
+        seedSettings(version = 3)
+        val sync = env.container.settingsSync
+        val cmdId = sync.change("targetLanguage", "ENG")
+        sync.sendPendingCommands()
+
+        sync.reconcile(pcSettings(version = 4).copy(lastCommandId = cmdId,
+            lastCommandResult = com.tmm.mobile.protocol.CommandResult(cmdId, "rejected", "superseded")))
+
+        assertTrue(pending().isEmpty())
+        assertEquals(SyncBanner.REJECTED, sync.awaitConfirmation(cmdId))
+        assertEquals("superseded", sync.rejectCode(cmdId))
+    }
+
+    // R8 : un renvoi apres stale_version garde la date de la modification (c'est elle qui departage cote PC).
+    @Test fun reconcile_staleVersion_rebaseKeepsCreatedAt() = runTest {
+        seedSettings(version = 3)
+        val sync = env.container.settingsSync
+        val cmdId = sync.change("targetLanguage", "ENG")
+        val createdAt = pending().single().command.createdAt
+        sync.sendPendingCommands()
+
+        sync.reconcile(pcSettings(version = 5).copy(lastCommandId = cmdId,
+            lastCommandResult = com.tmm.mobile.protocol.CommandResult(cmdId, "rejected", "stale_version")))
+
+        val rebased = pending().single()
+        assertEquals(createdAt, rebased.command.createdAt)
+    }
+
     // R12 : invalid_value -> rejetee sans renvoi, jamais consideree appliquee.
     @Test fun reconcile_invalidValue_rejectsWithoutResend() = runTest {
         seedSettings(version = 3)
