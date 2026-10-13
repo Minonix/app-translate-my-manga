@@ -30,6 +30,8 @@ Tests are JVM-only (Robolectric), no emulator/device needed. On Windows, if `use
 
 No DI framework (no Hilt), no Retrofit, no Material Icons — these are deliberate constraints from the original spec, enforced by guard tests (see below). Dependencies are manual lazy singletons via `AppContainer`/`DefaultAppContainer` ([core/AppContainer.kt](app/src/main/java/com/tmm/mobile/core/AppContainer.kt)), exposed through `(applicationContext as TmmApp).container`. WorkManager workers fetch dependencies the same way rather than via constructor injection or a custom `WorkerFactory`.
 
+Startup flow: `Startup.kt` (root package) is the startup orchestrator, re-run on every `ON_START` and by the Home "Refresh" action, serialized by a `Mutex`. It gates on onboarding/Mihon SAF permission (`StartupResult`), imports the `.tachibk` backup if needed, then scans Mihon's `downloads/`. Results are also broadcast through `results: SharedFlow` so the root UI can redirect to Permission when Mihon access is revoked.
+
 Package layout under `com.tmm.mobile`:
 - `core` — `AppContainer`, `AppLog` (rolling log file with PII redaction), `Clock`, `Formatters`, `ReducedMotion`.
 - `ui.theme` — closed color palette (`TmmColors`), typography (Bricolage Grotesque / IBM Plex Sans / IBM Plex Mono), `TmmTheme`, motion curves.
@@ -47,7 +49,7 @@ Package layout under `com.tmm.mobile`:
 Test code mirrors this under `app/src/test/java/com/tmm/mobile/`, plus:
 - `fake` — `FakeDrive` (MockWebServer-backed Google Drive double) and `FakePc` (desktop daemon simulator), used for hermetic end-to-end job-flow tests without any network access.
 - `ui/theme/NoRawColorTest.kt`, `ui/icons/NoMaterialIconsTest.kt` — architectural guard tests enforcing the closed palette and the Material-Icons ban; keep these passing when touching theming/icons.
-- `*ScreenshotTest` — Roborazzi captures. There is no Roborazzi Gradle plugin, so no `verify`/`record` tasks and no automatic comparison: captures are only written with `-Proborazzi.test.record=true`, into `app/build/outputs/roborazzi/` (unversioned), then compared by eye with the mockup. Copy the v2 ones into `maquettes/v2-simplifiee/captures/`.
+- `screenshots/*ScreenshotTest` — Roborazzi captures, one class per screen. There is no Roborazzi Gradle plugin, so no `verify`/`record` tasks and no automatic comparison: captures are only written with `-Proborazzi.test.record=true`, into `app/build/outputs/roborazzi/` (unversioned), then compared by eye with the mockup. Copy the v2 ones into `maquettes/v2-simplifiee/captures/`.
 
 `maquettes/v2-simplifiee/index.html` is the authoritative mockup for the main screens (Home, Library, Series, Translate sheet, Activity, Settings, Translation settings); `maquettes/*.dc.html` at the root still apply to Onboarding, Permission, Empty and Offline; `maquettes/v1/` is archived (see `maquettes/README.md`). Every screen must match its mockup; when a screen's visuals are in question, check the corresponding mockup before guessing.
 
