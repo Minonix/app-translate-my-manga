@@ -110,6 +110,15 @@ fun SeriesScreen(
                                 icon = TmmIconId.V2Translate,
                             )
                         }
+                        // « Sélectionner » seul, petit lien rouge, passait inapercu : traduire, retraduire ou
+                        // verifier certains chapitres passe par ce bouton puis « Que faire ? ».
+                        V2Button(
+                            label = stringResource(R.string.series_choose_chapters),
+                            onClick = { onEvent(SeriesEvent.StartSelection) },
+                            modifier = Modifier.padding(top = 10.dp),
+                            style = V2ButtonStyle.Ghost,
+                            size = V2ButtonSize.Block,
+                        )
                         if (state.showGap && state.missing.isNotEmpty()) GapBanner(state.missing) { onEvent(SeriesEvent.DismissGap) }
                     }
                     SectionHeader(

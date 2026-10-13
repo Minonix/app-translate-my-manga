@@ -29,6 +29,7 @@ data class ActiveJob(
 /** Transfert en cours : envoi vers le PC ou retour vers Mihon. */
 data class TransferRow(
     val title: String,
+    val jobId: String = "",
     val isUpload: Boolean,
     val doneBytes: Long,
     val totalBytes: Long,
@@ -111,6 +112,7 @@ data class QueueState(
     val doneCount: Int get() = doneJobs.size
     val failCount: Int get() = failedJobs.size
     val focused: ActiveJob? get() = activeJobs.getOrNull(focusedJobIndex)
+    val uploadCount: Int get() = transfers.count { it.isUpload }
 }
 
 sealed interface QueueEvent {
@@ -120,4 +122,10 @@ sealed interface QueueEvent {
     data class ToggleDoneJobDetails(val index: Int) : QueueEvent
     data class VerifyPage(val doneIndex: Int, val page: Int) : QueueEvent
     data class RetryFailedJob(val jobId: String) : QueueEvent
+
+    /** « Tout annuler » sur « Ensuite » : chaque chapitre en attente, comme la croix de sa ligne. */
+    data object CancelAllWaiting : QueueEvent
+
+    /** Annule les envois vers le PC en cours (pas les retours vers Mihon). */
+    data object CancelAllUploads : QueueEvent
 }

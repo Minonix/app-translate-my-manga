@@ -219,7 +219,13 @@ private fun LazyListScope.activeItems(state: QueueState, onEvent: (QueueEvent) -
     // Jobs actifs et transferts : bornes par les emplacements du PC et les workers, une seule carte.
     item(key = "running", contentType = "running") { Column { RunningCards(state, onEvent) } }
     if (state.waitingJobs.isNotEmpty()) {
-        item(key = "nextTitle", contentType = "title") { SectionTitle(stringResource(R.string.activity_next_fmt, state.waitingJobs.size)) }
+        item(key = "nextTitle", contentType = "title") {
+            SectionTitle(
+                text = stringResource(R.string.activity_next_fmt, state.waitingJobs.size),
+                action = stringResource(R.string.activity_cancel_all_waiting),
+                onAction = { onEvent(QueueEvent.CancelAllWaiting) },
+            )
+        }
         val waiting = state.waitingJobs
         items(waiting.size, key = { "w:" + waiting[it].id }, contentType = { "waiting" }) { i ->
             Box(Modifier.fillMaxWidth().v2CardItem(isFirst = i == 0, isLast = i == waiting.lastIndex)) {
@@ -277,6 +283,19 @@ private fun RunningCards(state: QueueState, onEvent: (QueueEvent) -> Unit) {
                 first = false
             }
         }
+    }
+    if (state.uploadCount > 0) {
+        TmmText(
+            text = stringResource(R.string.activity_cancel_uploads_fmt, state.uploadCount),
+            style = TmmType.sans(14, weight = 600),
+            color = C.red,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { onEvent(QueueEvent.CancelAllUploads) }
+                .padding(vertical = 8.dp),
+        )
     }
     if (focused == null && state.transfers.isEmpty() && state.waitingJobs.isEmpty()) {
         EmptyCard(stringResource(R.string.activity_nothing_running))
@@ -656,13 +675,27 @@ private fun RowDesc(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    TmmText(
-        text = text,
-        style = TmmType.display(22, weight = 800, letterSpacingEm = -0.3f / 22f),
-        color = C.ink,
-        modifier = Modifier.padding(top = 26.dp, bottom = 12.dp).semantics { heading() },
-    )
+private fun SectionTitle(text: String, action: String? = null, onAction: () -> Unit = {}) {
+    Row(
+        Modifier.padding(top = 26.dp, bottom = 12.dp).fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        TmmText(
+            text = text,
+            style = TmmType.display(22, weight = 800, letterSpacingEm = -0.3f / 22f),
+            color = C.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        if (action != null) {
+            TmmText(
+                text = action,
+                style = TmmType.sans(14, weight = 600),
+                color = C.red,
+                modifier = Modifier.clickable(role = Role.Button, onClick = onAction),
+            )
+        }
+    }
 }
 
 @Composable

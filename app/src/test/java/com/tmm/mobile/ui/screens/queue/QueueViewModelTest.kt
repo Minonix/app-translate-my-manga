@@ -172,4 +172,37 @@ class QueueViewModelTest {
         val job = env.db.jobDao().observeAll().first { jobs -> jobs.single().phoneState == "CANCEL_REQUESTED" }.single()
         assertEquals("CANCEL_REQUESTED", job.phoneState)
     }
+
+    @Test
+    fun cancelAllWaiting_cancelsEveryWaitingJob_butNotActiveOnes() = runTest {
+        env.db.jobDao().upsert(baseJob("active", "Mihon/s/1", "SENT"))
+        env.db.jobDao().upsert(baseJob("wait-1", "Mihon/s/2", "SENT"))
+        env.db.jobDao().upsert(baseJob("wait-2", "Mihon/s/3", "PREPARING"))
+        env.prefs.setHeartbeatJson(heartbeatJson(listOf("active")))
+
+        val vm = QueueViewModel(env.container)
+        vm.state.first { it.waitingJobs.size == 2 && it.activeJobs.size == 1 }
+
+        vm.onEvent(QueueEvent.CancelAllWaiting)
+
+        val jobs = env.db.jobDao().observeAll().first { jobs -> jobs.count { it.phoneState == "CANCEL_REQUESTED" } == 2 }
+        assertEquals("SENT", jobs.single { it.jobId == "active" }.phoneState)
+        // Un job pas encore envoye est clos tout de suite : le PC n'en a jamais entendu parler (R3).
+        assertEquals("cancelled", jobs.single { it.jobId == "wait-2" }.pcState)
+    }
+
+    @Test
+    fun cancelAllUploads_cancelsUploads_butNotReturnsToMihon() = runTest {
+        env.db.jobDao().upsert(baseJob("up-1", "Mihon/s/1", "UPLOADING"))
+        env.db.jobDao().upsert(baseJob("up-2", "Mihon/s/2", "UPLOADING"))
+        env.db.jobDao().upsert(baseJob("down", "Mihon/s/3", "DOWNLOADING"))
+
+        val vm = QueueViewModel(env.container)
+        vm.state.first { it.uploadCount == 2 && it.transfers.size == 3 }
+
+        vm.onEvent(QueueEvent.CancelAllUploads)
+
+        val jobs = env.db.jobDao().observeAll().first { jobs -> jobs.count { it.phoneState == "CANCEL_REQUESTED" } == 2 }
+        assertEquals("DOWNLOADING", jobs.single { it.jobId == "down" }.phoneState)
+    }
 }

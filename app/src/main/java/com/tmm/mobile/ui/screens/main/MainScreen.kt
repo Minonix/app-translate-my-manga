@@ -129,7 +129,11 @@ private fun MainHeader(state: MainState, onEvent: (MainEvent) -> Unit) {
                     )
                 }
             }
-            RefreshButton(onRefresh = { onEvent(MainEvent.Refresh) }, onSpinComplete = { onEvent(MainEvent.RefreshFinished) })
+            // Le bouton rond seul ne se reconnaissait pas comme la synchronisation avec le PC : legende dessous.
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                RefreshButton(onRefresh = { onEvent(MainEvent.Refresh) }, onSpinComplete = { onEvent(MainEvent.RefreshFinished) })
+                TmmText(text = stringResource(R.string.home_sync), style = TmmType.sans(12, weight = 600), color = TmmColors.textMuted)
+            }
         }
     }
 }
