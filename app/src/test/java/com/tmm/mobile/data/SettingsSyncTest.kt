@@ -7,7 +7,6 @@ import com.tmm.mobile.protocol.SettingsValues
 import com.tmm.mobile.workers.WorkerTestEnvironment
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -192,13 +191,13 @@ class SettingsSyncTest {
         seedSettings(version = 3)
         val sync = env.container.settingsSync
         val cmdId = sync.change("targetLanguage", "ENG")
-        val createdAt = pending().let { ProtocolJson.decodeFromString(ListSerializer(PendingCommand.serializer()), it!!) }.single().command.createdAt
+        val createdAt = pending().single().command.createdAt
         sync.sendPendingCommands()
 
         sync.reconcile(pcSettings(version = 5).copy(lastCommandId = cmdId,
             lastCommandResult = com.tmm.mobile.protocol.CommandResult(cmdId, "rejected", "stale_version")))
 
-        val rebased = ProtocolJson.decodeFromString(ListSerializer(PendingCommand.serializer()), pending()!!).single()
+        val rebased = pending().single()
         assertEquals(createdAt, rebased.command.createdAt)
     }
 
