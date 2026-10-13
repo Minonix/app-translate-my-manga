@@ -35,13 +35,16 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 
 // PLAN_GEMINI.md 5.12 (E8) : environnement de test partage par les tests de workers/JobRepository/
@@ -123,6 +126,9 @@ class WorkerTestEnvironment {
         watchdog.interrupt()
         Dispatchers.resetMain()
         drive.shutdown()
+        // Arreter les coroutines de fond (cache bibliotheque, rafraichissement) avant de fermer la base :
+        // sinon une requete en vol leve « already-closed » pendant le test suivant (UncaughtExceptionsBeforeTest).
+        if (::container.isInitialized) container.close()
         db.close()
     }
 }
@@ -137,7 +143,9 @@ class FakeAppContainer(
 ) : AppContainer {
     override val transport: JobTransport get() = router.drive
     override val workManager: WorkManager by lazy { WorkManager.getInstance(context) }
-    private val scope: CoroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    private val scopeJob = SupervisorJob()
+    private val scope: CoroutineScope by lazy { CoroutineScope(scopeJob + Dispatchers.Default) }
+    fun close() = runBlocking { withTimeoutOrNull(5_000) { scopeJob.cancelAndJoin() } }
     override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, router, workManager, clock) }
     override val refreshCoordinator: RefreshCoordinator by lazy {
         RefreshCoordinator(
