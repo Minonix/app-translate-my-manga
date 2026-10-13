@@ -11,6 +11,13 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.5.3] - 2026-10-13
+
+### Corrige
+- Chapitres telecharges d'une serie absente de la sauvegarde Mihon (ajoutee apres la derniere sauvegarde, ou autre source) : la serie apparait dans la Bibliotheque avec ses chapitres, au lieu de tout marquer "Pas telecharge".
+- Bibliotheque et Fiche serie comptent le meme total de chapitres (les doublons du catalogue ne comptent qu'une fois).
+- Traduire : quand plusieurs scantrads fournissent le meme numero, une seule copie est cochee par defaut (la scantrad la plus presente) ; la scantrad s'affiche sur les doublons pour choisir, ou cocher les deux. Une copie dont le numero est deja envoye ou traduit n'est plus precochee.
+
 ## [1.5.2] - 2026-10-13
 
 ### Corrige
