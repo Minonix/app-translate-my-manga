@@ -238,7 +238,15 @@ private fun ChapterItem(chapter: TranslateChapter, checked: Boolean, onEvent: (T
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             V2Check(checked = checked)
-            TmmText(text = label, style = TmmType.mono(14), color = C.ink, modifier = Modifier.weight(1f))
+            TmmText(text = label, style = TmmType.mono(14), color = C.ink)
+            // Plusieurs scantrads pour ce numéro : on la montre pour choisir laquelle traduire (ou les deux).
+            TmmText(
+                text = if (chapter.duplicate) chapter.scanlator ?: stringResource(R.string.translate_unknown_scanlator) else "",
+                style = TmmType.sans(13),
+                color = C.muted,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
             TmmText(
                 text = stringResource(R.string.translate_pages_fmt, chapter.pages),
                 style = TmmType.sans(13),
@@ -269,19 +277,26 @@ private fun TriCheck(check: SeriesCheck, modifier: Modifier = Modifier) {
     }
 }
 
-/** « Ch. 7 à 11 · 5 ch. », « Ch. 118, 119 », « Ch. 214 » ou « 2 sur 3 cochés » si partiel. */
+/**
+ * « Ch. 7 à 11 · 5 ch. », « Ch. 118, 119 », « Ch. 214 » ou « 2 sur 3 cochés » si partiel, suivi de
+ * « · 15 en double » quand d'autres scantrads fournissent les mêmes numéros.
+ */
 @Composable
 private fun describe(series: TranslateSeries, state: TranslateState): String {
     val chapters = series.chapters
-    if (state.checkOf(series) == SeriesCheck.Partial) {
+    val base = if (state.checkOf(series) == SeriesCheck.Partial) {
         val n = chapters.count { it.mihonPath in state.selected }
-        return stringResource(R.string.translate_desc_partial_fmt, n, chapters.size)
+        stringResource(R.string.translate_desc_partial_fmt, n, chapters.size)
+    } else {
+        val labels = chapters.map { it.numberLabel }.distinct()
+        when (labels.size) {
+            1 -> stringResource(R.string.translate_chapter_fmt, labels[0])
+            2 -> stringResource(R.string.translate_desc_two_fmt, labels[0], labels[1])
+            else -> stringResource(R.string.translate_desc_range_fmt, labels.first(), labels.last(), series.numberCount)
+        }
     }
-    return when (chapters.size) {
-        1 -> stringResource(R.string.translate_chapter_fmt, chapters[0].numberLabel)
-        2 -> stringResource(R.string.translate_desc_two_fmt, chapters[0].numberLabel, chapters[1].numberLabel)
-        else -> stringResource(R.string.translate_desc_range_fmt, chapters.first().numberLabel, chapters.last().numberLabel, chapters.size)
-    }
+    val dupes = series.duplicateCount
+    return if (dupes == 0) base else stringResource(R.string.translate_desc_dupes_fmt, base, dupes)
 }
 
 @Composable

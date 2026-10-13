@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -153,5 +154,82 @@ class TranslateViewModelTest {
             holder.join(10_000)
         }
         assertEquals(TranslatePhase.Done(3, translate = true), vm.state.first { it.phase is TranslatePhase.Done }.phase)
+    }
+
+    // Meme serie chez deux scantrads (cas reel de The Garden of Secrets) : Rinko 29-31, Nyx 29-30.
+    private suspend fun openDupes(request: TranslateRequest): TranslateViewModel {
+        env.db.seriesDao().upsertAll(listOf(series("garden", "Garden")))
+        listOf("Rinko Comics_Chapter 29_aaaaaa.cbz" to 29f, "Rinko Comics_Chapter 30_bbbbbb.cbz" to 30f,
+            "Rinko Comics_Chapter 31_cccccc.cbz" to 31f, "Nyx Scans_Chapter 29_dddddd.cbz" to 29f,
+            "Nyx Scans_Chapter 30_eeeeee.cbz" to 30f, "Extra_ffffff.cbz" to null)
+            .forEach { (dir, n) -> env.db.downloadedChapterDao().upsert(downloaded("garden", dir, n ?: 0f, 10).copy(number = n)) }
+        val vm = TranslateViewModel(env.container)
+        vm.onEvent(TranslateEvent.Open(request))
+        vm.state.first { it.totalCount == 6 }
+        return vm
+    }
+
+    private fun TranslateState.selectedDirs() =
+        series.flatMap { it.chapters }.filter { it.mihonPath in selected }.map { it.mihonPath.substringAfterLast('/') }.toSet()
+
+    @Test
+    fun duplicates_onlyPreferredScanlatorPreselected_withScanlatorShown() = runTest {
+        val vm = openDupes(TranslateRequest(preselectAll = true))
+        val state = vm.state.value
+        val garden = state.series.single()
+
+        assertEquals(
+            setOf("Rinko Comics_Chapter 29_aaaaaa.cbz", "Rinko Comics_Chapter 30_bbbbbb.cbz",
+                "Rinko Comics_Chapter 31_cccccc.cbz", "Extra_ffffff.cbz"),
+            state.selectedDirs(),
+        )
+        assertEquals(SeriesCheck.All, state.checkOf(garden))
+        assertEquals(2, garden.duplicateCount)
+        val nyx29 = garden.chapters.single { it.mihonPath.endsWith("Nyx Scans_Chapter 29_dddddd.cbz") }
+        assertEquals("Nyx Scans", nyx29.scanlator)
+        assertTrue(nyx29.duplicate)
+        // Sans numero, pas de dedoublonnage.
+        assertFalse(garden.chapters.single { it.mihonPath.endsWith("Extra_ffffff.cbz") }.duplicate)
+    }
+
+    @Test
+    fun duplicates_toggleOtherCopy_thenToggleSeriesBackToDefault() = runTest {
+        val vm = openDupes(TranslateRequest(preselectAll = true))
+
+        vm.onEvent(TranslateEvent.ToggleChapter("Mihon/garden/Nyx Scans_Chapter 29_dddddd.cbz"))
+        val both = vm.state.first { it.selectedCount == 5 }
+        assertEquals(SeriesCheck.All, both.checkOf(both.series.single()))
+
+        // Serie complete -> decochee, puis recochee : retour a une copie par numero.
+        vm.onEvent(TranslateEvent.ToggleSeries("garden"))
+        vm.state.first { it.selectedCount == 0 }
+        vm.onEvent(TranslateEvent.ToggleSeries("garden"))
+        assertEquals(4, vm.state.first { it.selectedCount == 4 }.selectedDirs().size)
+        assertTrue(vm.state.value.selectedDirs().none { it.startsWith("Nyx") })
+    }
+
+    @Test
+    fun duplicates_fromActivity_toggleSeriesSelectsOnePerNumber() = runTest {
+        val vm = openDupes(TranslateRequest(preselectAll = false))
+        vm.onEvent(TranslateEvent.ToggleSeries("garden"))
+        val state = vm.state.first { it.selectedCount > 0 }
+        assertEquals(4, state.selectedCount)
+    }
+
+    @Test
+    fun duplicates_numberAlreadySent_otherCopyNotPreselected() = runTest {
+        val vm = openDupes(TranslateRequest(preselectAll = true))
+        vm.onEvent(TranslateEvent.Send(translate = true))
+        vm.state.first { it.phase is TranslatePhase.Done }
+
+        // Rinko 29-31 et Extra sont partis : Nyx 29-30 restent, decoches par defaut.
+        vm.onEvent(TranslateEvent.Open(TranslateRequest(preselectAll = true)))
+        val state = vm.state.first { it.totalCount == 2 }
+        assertEquals(0, state.selectedCount)
+        assertEquals(2, state.series.single().duplicateCount)
+
+        // Cocher la serie quand meme : une copie par numero.
+        vm.onEvent(TranslateEvent.ToggleSeries("garden"))
+        assertEquals(2, vm.state.first { it.selectedCount > 0 }.selectedCount)
     }
 }

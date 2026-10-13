@@ -458,6 +458,8 @@
     <string name="translate_desc_range_fmt">Ch. %1$s à %2$s · %3$d ch.</string>
     <string name="translate_desc_partial_fmt">%1$d sur %2$d cochés</string>
     <string name="translate_pages_fmt">%1$d p.</string>
+    <string name="translate_desc_dupes_fmt">%1$s · %2$d en double</string>
+    <string name="translate_unknown_scanlator">Autre version</string>
     <plurals name="translate_button">
         <item quantity="one">Traduire %1$d chapitre</item>
         <item quantity="other">Traduire %1$d chapitres</item>

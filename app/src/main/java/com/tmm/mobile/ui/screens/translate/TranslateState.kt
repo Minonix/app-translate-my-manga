@@ -2,11 +2,18 @@ package com.tmm.mobile.ui.screens.translate
 
 import androidx.compose.ui.graphics.Color
 
-/** Un chapitre téléchargé, jamais traduit (statut TO_SEND). `mihonPath` sert d'identifiant de sélection. */
+/**
+ * Un chapitre téléchargé, jamais traduit (statut TO_SEND). `mihonPath` sert d'identifiant de sélection.
+ * Plusieurs scantrads peuvent fournir le même numéro : `duplicate` affiche la scantrad sur la ligne,
+ * et `defaultSelected` ne précoche qu'une copie par numéro (aucune si le numéro est déjà traité).
+ */
 data class TranslateChapter(
     val mihonPath: String,
     val number: Float,
     val pages: Int,
+    val scanlator: String? = null,
+    val duplicate: Boolean = false,
+    val defaultSelected: Boolean = true,
 ) {
     /** "52" ou "10.5" (pas de décimale inutile). */
     val numberLabel: String get() = if (number == number.toInt().toFloat()) number.toInt().toString() else number.toString()
@@ -18,7 +25,12 @@ data class TranslateSeries(
     val coverUrl: String?,
     val color: Color,
     val chapters: List<TranslateChapter>,
-)
+) {
+    /** Numéros distincts : les copies d'un même numéro comptent pour un. */
+    val numberCount: Int get() = chapters.distinctBy { if (it.duplicate) it.number.toString() else it.mihonPath }.size
+    /** Copies en double non précochées (autre scantrad du même numéro, à traduire ou déjà traitée). */
+    val duplicateCount: Int get() = chapters.count { it.duplicate && !it.defaultSelected }
+}
 
 /** Case de série à 3 états (maquette v2, écran 6 : tiret quand la sélection est partielle). */
 enum class SeriesCheck { All, Partial, None }
@@ -51,11 +63,12 @@ data class TranslateState(
             return if (q.isEmpty()) series else series.filter { it.title.lowercase().contains(q) }
         }
 
+    /** All dès que chaque numéro a une copie cochée : une seule scantrad par numéro suffit. */
     fun checkOf(series: TranslateSeries): SeriesCheck {
-        val n = series.chapters.count { it.mihonPath in selected }
-        return when (n) {
-            0 -> SeriesCheck.None
-            series.chapters.size -> SeriesCheck.All
+        val checked = series.chapters.filter { it.mihonPath in selected }
+        return when {
+            checked.isEmpty() -> SeriesCheck.None
+            series.chapters.all { c -> c.mihonPath in selected || (c.duplicate && checked.any { it.duplicate && it.number == c.number }) } -> SeriesCheck.All
             else -> SeriesCheck.Partial
         }
     }
