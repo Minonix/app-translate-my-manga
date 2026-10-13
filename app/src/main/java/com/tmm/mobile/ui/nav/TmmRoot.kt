@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -93,6 +94,17 @@ fun TmmRoot() {
                         navController.navigateSingleTop(HomeRoute)
                     }
                 }
+            }
+        }
+    }
+
+    // N16 : app ouverte, l'etat se rafraichit seul, une fois l'onboarding et la permission passes.
+    val rootLifecycleOwner = LocalLifecycleOwner.current
+    val startupDone = startupResult == StartupResult.DONE
+    androidx.compose.runtime.LaunchedEffect(startupDone) {
+        if (startupDone) {
+            rootLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                container.refreshCoordinator.refreshWhileForeground()
             }
         }
     }

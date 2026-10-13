@@ -58,6 +58,8 @@ const val PC_STALLED_INACTIVE_MILLIS = 10 * 60_000L
 // Annulation demandee, ecrite (ou non) et jamais acquittee : sans reponse du PC apres ce delai, le job est
 // clos localement (le chapitre ne reste plus « en file » indefiniment, le resultat tardif sera ignore).
 const val CANCEL_UNANSWERED_MILLIS = 15 * 60_000L
+// N16 : app ouverte, etat relu toutes les minutes (le PC ecrit son heartbeat toutes les 60 s).
+const val FOREGROUND_REFRESH_MILLIS = 60_000L
 private val PC_TERMINAL_STATES = setOf("done", "failed", "cancelled")
 // heartbeat.activeJobIds ne liste que les jobs en traduction (processing/paused cote PC) : un job
 // « fetching » (recuperation de la source, parfois longue) n'y figure jamais et ne doit pas etre juge bloque.
@@ -153,6 +155,18 @@ class RefreshCoordinator(
         } finally {
             mutex.unlock()
             startCooldown()
+        }
+    }
+
+    /**
+     * N16 : refresh() ne tournait qu'a ON_START et sur Actualiser ; app ouverte, « PC vu il y a 6 min »,
+     * resultats et annulations restaient figes. Lance sous repeatOnLifecycle(STARTED) : s'arrete en
+     * arriere-plan. Un tick pendant le cooldown est ignore par refresh().
+     */
+    suspend fun refreshWhileForeground(intervalMillis: Long = FOREGROUND_REFRESH_MILLIS) {
+        while (true) {
+            delay(intervalMillis)
+            refresh()
         }
     }
 

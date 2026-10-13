@@ -16,7 +16,13 @@ import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -203,5 +209,27 @@ class RefreshCoordinatorTest {
         assertEquals(1, jobs.size)
         assertEquals("MangaSource/Titre/Chapitre 2", jobs.single().mihonPath)
         assertEquals(JobMode.TRANSLATE, jobs.single().mode)
+    }
+
+    // Test reel v1.6.0 : app ouverte en continu, « PC vu il y a 6 min » alors que le PC ecrit son
+    // heartbeat chaque minute. Sans ON_START ni Actualiser, le heartbeat doit quand meme etre relu.
+    @Test fun refreshWhileForeground_picksUpNewHeartbeat_withoutUserAction() = runTest {
+        // Scope jamais avance : le cooldown (secondes reelles) ne bloque pas les ticks rapproches du test.
+        val coordinator = RefreshCoordinator(
+            env.db, env.prefs, env.router, env.container.workManager, env.clock,
+            CoroutineScope(StandardTestDispatcher()),
+        ) {}
+        env.pc.writeHeartbeat()
+        val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20) }
+        try {
+            withContext(Dispatchers.Default) {
+                withTimeout(20_000) { env.prefs.heartbeatSeenAt.first { it != null } }
+                env.clock.millis += 6 * 60_000L
+                env.pc.writeHeartbeat()
+                withTimeout(20_000) { env.prefs.heartbeatSeenAt.first { it != null && it >= env.clock.millis - 60_000L } }
+            }
+        } finally {
+            loop.cancel()
+        }
     }
 }
