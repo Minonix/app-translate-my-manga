@@ -115,6 +115,30 @@ class JobRepositoryTest {
         assertEquals(1, repo.createJobs(JobMode.TRANSLATE, listOf(b), translate = false).createdJobIds.size)
     }
 
+    // Le PC a deja l'original (index) : « Traduire » ne renvoie pas le CBZ, il demande une retraduction
+    // depuis la copie du PC. Un simple envoi (translate = false) reste refuse.
+    @Test fun createJobs_translateBecomesRetranslate_whenPcHasOriginal() = runTest {
+        seedDownloaded()
+        val flatPath = MihonPath("MangaSource", "Titre", "Chapitre 1").flatten()
+        env.db.pcIndexChapterDao().insertAll(listOf(PcIndexChapterEntity(flatPath, original = true, fr = false)))
+
+        val copy = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(target()), translate = false)
+        assertEquals(1, copy.refused)
+
+        val result = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(target()))
+        assertEquals(1, result.createdJobIds.size)
+        assertEquals(JobMode.RETRANSLATE, env.db.jobDao().get(result.createdJobIds.single())!!.mode)
+    }
+
+    // Sans chapitre telecharge non plus : l'original du PC suffit.
+    @Test fun createJobs_translateWithoutDownload_retranslatesFromPcOriginal() = runTest {
+        val flatPath = MihonPath("MangaSource", "Titre", "Chapitre 1").flatten()
+        env.db.pcIndexChapterDao().insertAll(listOf(PcIndexChapterEntity(flatPath, original = true, fr = true)))
+
+        val result = env.container.jobRepository.createJobs(JobMode.TRANSLATE, listOf(target()))
+        assertEquals(JobMode.RETRANSLATE, env.db.jobDao().get(result.createdJobIds.single())!!.mode)
+    }
+
     @Test fun createJobs_refusesVerify_whenIndexHasNoOriginal() = runTest {
         val flatPath = MihonPath("MangaSource", "Titre", "Chapitre 1").flatten()
         env.db.pcIndexChapterDao().insertAll(listOf(PcIndexChapterEntity(flatPath, original = false, fr = false)))
