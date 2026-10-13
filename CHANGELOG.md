@@ -11,6 +11,12 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.5.2] - 2026-10-13
+
+### Corrige
+- Fiche serie : une ligne par chapitre, plus de plages trompeuses (« Ch. 1 a 2 », « 2 a 3 »...) quand un numero existe en double ; l'exemplaire telecharge masque ses doublons du catalogue.
+- Chapitres telecharges detectes sur la bonne serie quand elle est deux fois dans la bibliotheque (FR et EN d'une meme source, ou ajoutee en double).
+
 ## [1.5.1] - 2026-10-13
 
 ### Corrige
