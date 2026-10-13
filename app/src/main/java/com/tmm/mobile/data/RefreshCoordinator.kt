@@ -290,8 +290,14 @@ class RefreshCoordinator(
                 prefs.setHeartbeatSeenAt(heartbeatSeenAt(result))
                 // §2 : driveOk == false signale une panne du Drive du PC (lastErrorCode null ou drive_quota,
                 // jamais auth) : bandeau neutre, sans toucher au drapeau Drive plein ni a l'auth du telephone.
-                heartbeat.driveOk?.let { prefs.setPcDriveDown(!it) }
+                // driveOk absent (PC qui demarre, Drive non configure) : etat inconnu, pas une panne.
+                prefs.setPcDriveDown(heartbeat.driveOk == false)
             }
+        }
+        // PC hors ligne : son dernier avis sur Drive est perime, le bandeau ne doit pas rester affiche.
+        val heartbeatSeenAt = prefs.heartbeatSeenAt.first()
+        if (heartbeatSeenAt == null || clock.nowMillis() - heartbeatSeenAt >= PC_ONLINE_MILLIS) {
+            prefs.setPcDriveDown(false)
         }
         val latestHeartbeat = result.heartbeat ?: prefs.heartbeatJson.first()
             ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() }

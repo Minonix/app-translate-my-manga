@@ -217,4 +217,42 @@ class ErrorRecoveryRefreshTest {
         assertFalse(env.prefs.driveFull.first())
         assertFalse(env.prefs.authExpired.first())
     }
+
+    // Retour v1.7.0 : le PC qui demarre publie driveOk avant son premier cycle Drive. Un avis absent
+    // est inconnu, pas une panne, et efface le bandeau laisse par un ancien heartbeat.
+    @Test fun heartbeat_driveOkUnknown_clearsPcBanner() = runTest {
+        val coordinator = virtualTimeCoordinator()
+        env.pc.writeHeartbeat(driveOk = false)
+        coordinator.refresh()
+        advanceUntilIdle()
+        assertTrue(env.prefs.pcDriveDown.first())
+
+        env.clock.millis += 10_000
+        env.pc.writeHeartbeat(driveOk = null)
+        coordinator.refresh()
+        advanceUntilIdle()
+
+        assertFalse(env.prefs.pcDriveDown.first())
+    }
+
+    // Retour v1.7.0 : PC eteint avec un dernier heartbeat driveOk = false -> pas de faux bandeau Drive.
+    @Test fun pcOffline_dropsStalePcDriveBanner() = runTest {
+        val coordinator = virtualTimeCoordinator()
+        env.pc.writeHeartbeat(driveOk = false)
+        coordinator.refresh()
+        advanceUntilIdle()
+        assertTrue(env.prefs.pcDriveDown.first())
+
+        env.clock.millis += PC_ONLINE_MILLIS + 1
+        coordinator.refresh()
+        advanceUntilIdle()
+
+        assertFalse(env.prefs.pcDriveDown.first())
+    }
+
+    // Delai entre deux refresh en temps virtuel (celui du conteneur attend 30 s reelles).
+    private fun kotlinx.coroutines.test.TestScope.virtualTimeCoordinator() = RefreshCoordinator(
+        env.db, env.prefs, env.router, WorkManager.getInstance(env.context), env.clock,
+        CoroutineScope(UnconfinedTestDispatcher(testScheduler)), autoTranslate = {},
+    )
 }
