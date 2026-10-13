@@ -175,7 +175,7 @@ class SeriesViewModel(
             SeriesEvent.Translate -> performTranslate(allSeries = isAllSeriesSheet())
             SeriesEvent.Install -> performInstall(allSeries = isAllSeriesSheet())
             SeriesEvent.Verify -> performJobs(isAllSeriesSheet(), ::canReprocess, JobMode.VERIFY) { SeriesToast.Verified(it) }
-            SeriesEvent.Retranslate -> performJobs(isAllSeriesSheet(), ::canReprocess, JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
+            SeriesEvent.Retranslate -> performJobs(isAllSeriesSheet(), ::canRetranslate, JobMode.RETRANSLATE) { SeriesToast.Retranslated(it) }
             SeriesEvent.CopyToPc -> performJobs(isAllSeriesSheet(), ::canCopy, JobMode.TRANSLATE, translate = false) { SeriesToast.Copied(it) }
             SeriesEvent.RequestDelete -> requestDelete()
             is SeriesEvent.ToggleDeleteTarget -> ui.update {
@@ -436,13 +436,18 @@ internal fun canRedeliver(row: ChapterJoinRow): Boolean = !row.active() && row.s
 internal fun canReprocess(row: ChapterJoinRow): Boolean =
     !row.active() && row.status == ChapterStatus.UP_TO_DATE && row.facts.index?.original == true
 
+// Retraduire depuis l'original du PC vaut aussi pour un chapitre « Pret a installer » : sinon le seul
+// choix etait d'installer l'ancienne traduction.
+internal fun canRetranslate(row: ChapterJoinRow): Boolean = !row.active() && row.facts.index?.original == true &&
+    (row.status == ChapterStatus.UP_TO_DATE || row.status == ChapterStatus.TO_FETCH)
+
 internal fun canCopy(row: ChapterJoinRow): Boolean = !row.active() && row.status == ChapterStatus.TO_SEND
 
 internal fun actionCounts(rows: List<ChapterJoinRow>) = ActionCounts(
     translate = rows.count(::canTranslate),
     install = rows.count(::canInstall),
     verify = rows.count(::canReprocess),
-    retranslate = rows.count(::canReprocess),
+    retranslate = rows.count(::canRetranslate),
     copy = rows.count(::canCopy),
 )
 

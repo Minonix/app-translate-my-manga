@@ -21,6 +21,7 @@ import com.tmm.mobile.ui.screens.series.canCopy
 import com.tmm.mobile.ui.screens.series.canInstall
 import com.tmm.mobile.ui.screens.series.canRedeliver
 import com.tmm.mobile.ui.screens.series.canReprocess
+import com.tmm.mobile.ui.screens.series.canRetranslate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -118,7 +119,7 @@ class LibraryViewModel(
             LibraryEvent.CloseMore -> ui.update { it.copy(moreOpen = false, actions = null) }
             LibraryEvent.Install -> performInstall()
             LibraryEvent.Verify -> performJobs(::canReprocess, JobMode.VERIFY) { LibraryToast.Verified(it) }
-            LibraryEvent.Retranslate -> performJobs(::canReprocess, JobMode.RETRANSLATE) { LibraryToast.Retranslated(it) }
+            LibraryEvent.Retranslate -> performJobs(::canRetranslate, JobMode.RETRANSLATE) { LibraryToast.Retranslated(it) }
             // A : « Copier sur le PC sans traduire » part avec translate = false.
             LibraryEvent.CopyToPc -> performJobs(::canCopy, JobMode.TRANSLATE, translate = false) { LibraryToast.Copied(it) }
             LibraryEvent.Follow -> performFollow()
