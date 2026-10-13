@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.first
 // contient jamais de "/", donc aucune collision avec les vrais dossiers de downloads/.
 internal const val LOCAL_SCAN_SOURCE = "local/"
 
+// Nom des fichiers poses par le PC dans local/ : "c0033 - Ch. 33.cbz", "c0014.1 - Ch. 14.1.cbz".
+private val LOCAL_CHAPTER_NUMBER = Regex("""^c(\d+(?:\.\d+)?)""")
+
 // CAHIER_DES_CHARGES.md 8.2 : parcours downloads/<source>/<serie>/<chapitre>, cache par date de
 // modification du dossier serie, dossiers incomplets ignores. Deuxieme parcours de local/ pour
 // local_fr_chapter, en preservant jobId/mihonPath des lignes deja connues (poses par
@@ -188,7 +191,33 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 }
             }
         }
+        linkOrphanLocalFr()
     }
+
+    /**
+     * Rattache au chapitre telecharge les fichiers FR presents dans local/ sans mihonPath (installes avant
+     * le suivi par TMM, ou ligne perdue). Sans ce lien, le statut retombait sur l'index du PC et
+     * affichait « Pret a installer » pour un chapitre deja lisible dans Mihon. Passe hors du cache de
+     * dossier : un dossier inchange depuis la mise a jour doit aussi etre rattache. Ne lie que sur une
+     * correspondance unique (titre normalise + numero) : plusieurs editions telechargees restent ambigues.
+     */
+    private suspend fun linkOrphanLocalFr() {
+        val all = db.localFrChapterDao().observeAll().first()
+        val orphans = all.filter { it.mihonPath == null }
+        if (orphans.isEmpty()) return
+        val linked = all.mapNotNullTo(HashSet()) { it.mihonPath }
+        val bySeries = db.downloadedChapterDao().observeAll().first().groupBy { looseTitle(it.seriesDir) }
+        val updates = orphans.mapNotNull { row ->
+            val number = LOCAL_CHAPTER_NUMBER.find(row.fileName)?.groupValues?.get(1)?.toFloatOrNull() ?: return@mapNotNull null
+            val match = bySeries[looseTitle(row.folderName)].orEmpty().filter { it.number == number }
+            val chapter = match.singleOrNull()?.takeIf { it.mihonPath !in linked } ?: return@mapNotNull null
+            linked += chapter.mihonPath
+            row.copy(mihonPath = chapter.mihonPath)
+        }
+        if (updates.isNotEmpty()) db.localFrChapterDao().upsertAll(updates)
+    }
+
+    private fun looseTitle(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
 
     private suspend fun matchFolder(
         sourceDir: String,

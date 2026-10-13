@@ -128,4 +128,10 @@ sealed interface QueueEvent {
 
     /** Annule les envois vers le PC en cours (pas les retours vers Mihon). */
     data object CancelAllUploads : QueueEvent
+
+    /** « Vider » sur « Terminées » : supprime les chapitres deja installes dans Mihon. */
+    data object ClearDone : QueueEvent
+
+    /** « Vider » sur « Échecs » : supprime les échecs ; un job bloqué (pc_stalled) est annulé côté PC. */
+    data object ClearFailed : QueueEvent
 }

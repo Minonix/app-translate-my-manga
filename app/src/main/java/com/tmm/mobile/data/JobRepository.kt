@@ -97,14 +97,22 @@ class JobRepository(
                                 }
                             )
                         val indexEntry = db.pcIndexChapterDao().get(flatPath)
+                        // Le PC a deja l'original : on ne le renvoie jamais, on lui demande de le retraduire
+                        // depuis sa copie. Vaut pour tous les appelants (Bibliotheque, feuille Traduire, suivi).
+                        val jobMode = if (!redeliver && translate && mode == JobMode.TRANSLATE && indexEntry?.original == true) {
+                            JobMode.RETRANSLATE
+                        } else {
+                            mode
+                        }
                         val refuse = if (redeliver) {
                             // Redemande sans fichier (docs/ERREURS_PROTOCOLE.md 2) : rien a lire localement.
                             hasActive
-                        } else if (mode == JobMode.TRANSLATE) {
+                        } else if (jobMode == JobMode.TRANSLATE) {
                             // Sans chapitre telecharge, SendJobWorker.prepareCbz echouerait ("chapitre
                             // telecharge introuvable"). Lu en base et non dans target.downloaded : Serie et
                             // Bibliotheque passent null pour les lignes catalogue, et c'est cette meme
                             // ligne que le worker relira.
+                            // Un simple envoi (translate = false) d'un original deja sur le PC reste refuse.
                             hasActive || indexEntry?.original == true || db.downloadedChapterDao().get(flatPath) == null
                         } else {
                             hasActive || indexEntry?.original != true
@@ -119,7 +127,7 @@ class JobRepository(
                         db.jobDao().upsert(
                             JobEntity(
                                 jobId = id,
-                                mode = mode,
+                                mode = jobMode,
                                 pages = pages,
                                 translate = translate,
                                 mihonPath = flatPath,
