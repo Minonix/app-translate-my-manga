@@ -2,6 +2,7 @@ package com.tmm.mobile.mihon
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import java.io.File
@@ -184,6 +185,36 @@ class DownloadScannerTest {
         DownloadScanner(FakeMihonFs(root), db).scanDownloads(root.absolutePath)
 
         assertEquals("sk1", db.downloadedChapterDao().observeAll().first().single().seriesKey)
+    }
+
+    // Meme serie deux fois dans la bibliotheque (FR et EN d'une meme source, ou ajout en double) :
+    // un seul dossier Mihon, chaque chapitre va a la copie dont l'URL donne son suffixe de hachage.
+    @Test fun scanDownloads_duplicateSeries_chaptersGoToSeriesOwningTheirUrl() = runTest {
+        db.seriesDao().upsert(SeriesEntity("fr", "42", "/manga/fr", "One Piece", null, 0, null, "MangaSource", 0L, null))
+        db.seriesDao().upsert(SeriesEntity("en", "43", "/manga/en", "One Piece", null, 0, null, "MangaSource", 0L, null))
+        db.chapterDao().upsertAll(
+            listOf(
+                ChapterEntity("fr|1", "fr", "/ch/fr-1", "Chapitre 1", 1f, null, false, 0L),
+                ChapterEntity("en|1", "en", "/ch/en-1", "Chapitre 1", 1f, null, false, 0L),
+                ChapterEntity("en|2", "en", "/ch/en-2", "Chapitre 2", 2f, null, false, 0L),
+            ),
+        )
+        val seriesDir = File(File(root, "MangaSource (EN)"), "One Piece").apply { mkdirs() }
+        chapter(seriesDir, MihonNaming.getChapterDirName("Chapitre 1", null, "/ch/en-1"))
+        chapter(seriesDir, MihonNaming.getChapterDirName("Chapitre 2", null, "/ch/en-2"))
+        chapter(seriesDir, "Chapitre 3 inconnu")
+        val scanner = DownloadScanner(FakeMihonFs(root), db)
+
+        scanner.scanDownloads(root.absolutePath)
+        val rows = db.downloadedChapterDao().observeAll().first()
+        assertEquals(listOf("en", "en", "en"), rows.map { it.seriesKey })
+        assertEquals(setOf("en|1", "en|2", null), rows.map { it.chapterKey }.toSet())
+
+        // Telechargements deja rattaches a la mauvaise copie par une version precedente.
+        db.downloadedChapterDao().upsertAll(rows.map { it.copy(seriesKey = "fr", chapterKey = null) })
+        scanner.rematch()
+        assertEquals(setOf("en|1", "en|2", null), db.downloadedChapterDao().observeAll().first().map { it.chapterKey }.toSet())
+        assertEquals(setOf("en"), db.downloadedChapterDao().observeAll().first().map { it.seriesKey }.toSet())
     }
 
     @Test fun scanLocal_removesDeletedFiles_keepsUnchangedFolderViaCache() = runTest {

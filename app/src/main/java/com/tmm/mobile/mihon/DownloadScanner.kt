@@ -40,20 +40,19 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 val allSeries = series
                     ?: db.seriesDao().observeAll().first().map { MatchableSeries(it.seriesKey, it.sourceName, it.title) }
                         .also { series = it }
-                val matchedSeries = Matcher.findSeries(sourceDir.name, seriesDirEntry.name, allSeries)
-                val matchableChapters = matchableChapters(matchedSeries)
-
-                val rows = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
-                    val chapterDirName = chapterEntry.name.removeSuffix(".cbz")
-                    if (MihonNaming.isIncompleteChapterDirName(chapterDirName)) return@mapNotNull null
-
+                // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
+                // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
+                val entries = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
+                    if (MihonNaming.isIncompleteChapterDirName(chapterEntry.name.removeSuffix(".cbz"))) return@mapNotNull null
                     val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
-                    // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
-                    // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
                     if (!chapterEntry.isDirectory && !isCbz) return@mapNotNull null
                     val pageCount = CbzPacker.pageCount(entryNames(chapterEntry, isCbz))
-                    if (pageCount == 0) return@mapNotNull null
-                    val matchedChapter = Matcher.findChapter(chapterDirName, matchableChapters)
+                    if (pageCount == 0) null else ScannedChapter(chapterEntry, isCbz, pageCount)
+                }
+                val matches = matchFolder(sourceDir.name, seriesDirEntry.name, entries.map { it.entry.name.removeSuffix(".cbz") }, allSeries)
+
+                val rows = entries.map { (chapterEntry, isCbz, pageCount) ->
+                    val match = matches[chapterEntry.name.removeSuffix(".cbz")]
                     DownloadedChapterEntity(
                         mihonPath = "${sourceDir.name}/${seriesDirEntry.name}/${chapterEntry.name}",
                         sourceDir = sourceDir.name,
@@ -64,9 +63,9 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                         sizeBytes = chapterEntry.size,
                         lastModified = chapterEntry.lastModified,
                         pageCount = pageCount,
-                        seriesKey = matchedSeries?.seriesKey,
-                        chapterKey = matchedChapter?.chapterKey,
-                        number = matchedChapter?.number,
+                        seriesKey = match?.series?.seriesKey,
+                        chapterKey = match?.chapter?.chapterKey,
+                        number = match?.chapter?.number,
                     )
                 }
 
@@ -103,11 +102,10 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
         val updated = db.downloadedChapterDao().observeAll().first()
             .groupBy { it.sourceDir to it.seriesDir }
             .flatMap { (dir, rows) ->
-                val matchedSeries = Matcher.findSeries(dir.first, dir.second, series)
-                val chapters = matchableChapters(matchedSeries)
+                val matches = matchFolder(dir.first, dir.second, rows.map { it.chapterDir.removeSuffix(".cbz") }, series)
                 rows.map { row ->
-                    val matchedChapter = Matcher.findChapter(row.chapterDir.removeSuffix(".cbz"), chapters)
-                    row.copy(seriesKey = matchedSeries?.seriesKey, chapterKey = matchedChapter?.chapterKey, number = matchedChapter?.number)
+                    val match = matches[row.chapterDir.removeSuffix(".cbz")]
+                    row.copy(seriesKey = match?.series?.seriesKey, chapterKey = match?.chapter?.chapterKey, number = match?.chapter?.number)
                 }.filterIndexed { i, row -> row != rows[i] }
             }
         if (updated.isNotEmpty()) db.downloadedChapterDao().upsertAll(updated)
@@ -161,10 +159,20 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
         }
     }
 
-    private suspend fun matchableChapters(series: MatchableSeries?): List<MatchableChapter> =
-        series?.let { db.chapterDao().getForSeries(it.seriesKey) }
-            ?.map { MatchableChapter(it.chapterKey, it.name, it.scanlator, it.url, it.number) }
-            .orEmpty()
+    private suspend fun matchFolder(
+        sourceDir: String,
+        seriesDir: String,
+        chapterDirNames: List<String>,
+        series: List<MatchableSeries>,
+    ): Map<String, ChapterMatch> {
+        val candidates = Matcher.findSeriesCandidates(sourceDir, seriesDir, series).map { candidate ->
+            candidate to db.chapterDao().getForSeries(candidate.seriesKey)
+                .map { MatchableChapter(it.chapterKey, it.name, it.scanlator, it.url, it.number) }
+        }
+        return Matcher.assignChapters(chapterDirNames, candidates)
+    }
+
+    private data class ScannedChapter(val entry: MihonDocEntry, val isCbz: Boolean, val pageCount: Int)
 
     private fun entryNames(entry: MihonDocEntry, isCbz: Boolean): List<String> = when {
         entry.isDirectory -> fs.children(entry.docId).filter { !it.isDirectory }.map { it.name }

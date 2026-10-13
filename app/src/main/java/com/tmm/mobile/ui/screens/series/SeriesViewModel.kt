@@ -325,7 +325,7 @@ class SeriesViewModel(
         val joinRows = buildChapterJoinRows(seriesKey, series.sourceName, series.title, c.joinInputs)
         val missing = deriveSeriesSummary(seriesKey, joinRows.toAggregateInputs(), c.ignoredGaps).missing
         val qualityByPath = c.qualities.associateBy { it.mihonPath }
-        val chapterRows = joinRows.map { row -> row.toSeriesRow(qualityByPath[row.flatPath]) }
+        val chapterRows = dedupeCatalogOnly(joinRows).map { row -> row.toSeriesRow(qualityByPath[row.flatPath]) }
         val gapRows = missing.map { SeriesRow(it, ChapterKind.Missing) }
         val categoryNameByOrder = categories.associate { it.order to it.name }
         val primaryOrder = links.filter { it.seriesKey == seriesKey }.minOfOrNull { it.categoryOrder }
@@ -335,7 +335,7 @@ class SeriesViewModel(
             subtitle = subtitleFor(series, c.settingsJson),
             followed = followed,
             joinRows = joinRows,
-            rows = groupNotDownloaded((chapterRows + gapRows).sortedByDescending { it.number }),
+            rows = (chapterRows + gapRows).sortedByDescending { it.number },
             progress = progressOf(chapterRows),
             missing = missing,
         )
@@ -389,20 +389,19 @@ private fun progressOf(rows: List<SeriesRow>) = SeriesProgress(
     total = rows.size,
 )
 
-/** Regroupe les chapitres non telecharges consecutifs (liste triee par numero decroissant) : « Ch. 1 à 4 ». */
-internal fun groupNotDownloaded(sortedDesc: List<SeriesRow>): List<SeriesRow> {
-    val out = mutableListOf<SeriesRow>()
-    for (row in sortedDesc) {
-        val last = out.lastOrNull()
-        // Seuls les numeros consecutifs se fusionnent : un doublon (meme numero, autre scantrad) ou un
-        // numero inconnu (-1 chez Mihon) donnait des plages trompeuses comme « Ch. -1 a 0 ».
-        if (row.kind == ChapterKind.NotDownloaded && last?.kind == ChapterKind.NotDownloaded && row.number >= 0 && last.number - row.number == 1) {
-            out[out.lastIndex] = SeriesRow(row.number, ChapterKind.NotDownloaded, rangeEnd = last.rangeEnd ?: last.number)
-        } else {
-            out += row
-        }
+/**
+ * Une ligne par numero de chapitre : un exemplaire present (telecharge, sur le PC, traduit) masque
+ * ses doublons seulement au catalogue (autre scantrad, serie ajoutee deux fois), et un seul de ces
+ * doublons reste quand aucun n'est present. Les numeros inconnus (-1 chez Mihon) restent tous.
+ */
+internal fun dedupeCatalogOnly(rows: List<ChapterJoinRow>): List<ChapterJoinRow> {
+    fun exactNumber(row: ChapterJoinRow): Float? = row.chapter?.number ?: row.downloaded?.number
+    val present = rows.filter { it.status != ChapterStatus.CATALOG_ONLY }.mapNotNullTo(HashSet(), ::exactNumber)
+    val keptCatalog = HashSet<Float>()
+    return rows.filter { row ->
+        val number = exactNumber(row)
+        row.status != ChapterStatus.CATALOG_ONLY || number == null || number < 0 || (number !in present && keptCatalog.add(number))
     }
-    return out.map { if (it.rangeEnd == it.number) it.copy(rangeEnd = null) else it }
 }
 
 private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?): SeriesRow {

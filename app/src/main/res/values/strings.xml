@@ -98,7 +98,6 @@
     <string name="series_select">Sélectionner</string>
     <string name="series_select_done">Terminer</string>
     <string name="series_chapter_number_fmt">Ch. %1$d</string>
-    <string name="series_chapter_range_fmt">Ch. %1$d à %2$d</string>
     <string name="series_chapter_unnumbered">Sans numéro</string>
     <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$d</string>
     <string name="series_status_to_translate">À traduire</string>
@@ -110,7 +109,6 @@
     <string name="series_status_ready">Prête à installer</string>
     <string name="series_status_in_mihon">Dans Mihon</string>
     <string name="series_status_not_downloaded_one">Pas téléchargé</string>
-    <string name="series_status_not_downloaded_many">Pas téléchargés</string>
     <string name="series_status_missing">Manquant</string>
     <string name="series_chip_pages_fmt">%1$d/%2$d pages</string>
     <plurals name="series_chip_bubbles">

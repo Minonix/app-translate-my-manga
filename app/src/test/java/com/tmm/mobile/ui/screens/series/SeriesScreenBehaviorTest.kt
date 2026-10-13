@@ -105,8 +105,8 @@ class SeriesScreenBehaviorTest {
         composeRule.onNodeWithText("205 chapitres en VF sur 214").assertExists()
         composeRule.onNodeWithText("Traduire le ch. 214").assertExists()
         // Liste paresseuse : la ligne n'existe qu'une fois amenee a l'ecran.
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ch. 1 à 4"))
-        composeRule.onNodeWithText("Ch. 1 à 4").assertExists()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ch. 1"))
+        composeRule.onNodeWithText("Ch. 1").assertExists()
     }
 
     @Test

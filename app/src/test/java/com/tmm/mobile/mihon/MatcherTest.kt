@@ -50,4 +50,18 @@ class MatcherTest {
         assertEquals("sk3", Matcher.findSeries("Source (beta)", "One Piece", withParens)?.seriesKey)
         assertEquals("sk3", Matcher.findSeries("Source (beta) (FR)", "One Piece", withParens)?.seriesKey)
     }
+
+    @Test fun assignChapters_unmatchedFolderGoesToCandidateWithMostMatches() {
+        val a = MatchableSeries("a", "MangaSource", "One Piece")
+        val b = MatchableSeries("b", "MangaSource", "One Piece")
+        val chB = MatchableChapter("b1", "Chapitre 1", null, "/b/1", 1f)
+        val dir = MihonNaming.getChapterDirName("Chapitre 1", null, "/b/1")
+        val result = Matcher.assignChapters(listOf(dir, "inconnu"), listOf(a to emptyList(), b to listOf(chB)))
+        assertEquals(ChapterMatch(b, chB), result[dir])
+        assertEquals(ChapterMatch(b, null), result["inconnu"])
+    }
+
+    @Test fun assignChapters_noCandidate_horsCatalogue() {
+        assertEquals(ChapterMatch(null, null), Matcher.assignChapters(listOf("x"), emptyList())["x"])
+    }
 }

@@ -148,7 +148,7 @@ object MockupData {
             SeriesRow(209, ChapterKind.OnPc),
             SeriesRow(208, ChapterKind.Failed(12)),
             SeriesRow(23, ChapterKind.Missing),
-            SeriesRow(1, ChapterKind.NotDownloaded, rangeEnd = 4),
+            SeriesRow(1, ChapterKind.NotDownloaded),
         ),
         missing = listOf(23),
         nextExpected = 215,

@@ -146,4 +146,5 @@ class Startup(
 }
 
 // 1 : Matcher tolere le suffixe de langue des dossiers source Mihon ("MangaDex (EN)").
-private const val MATCHER_VERSION = 1
+// 2 : une serie en double (ajoutee deux fois, ou FR + EN sur une meme source) recoit ses propres chapitres.
+private const val MATCHER_VERSION = 2

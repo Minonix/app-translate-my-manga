@@ -447,8 +447,6 @@ private fun ChapterRow(
             TmmText(
                 text = if (row.number < 0) {
                     stringResource(R.string.series_chapter_unnumbered)
-                } else if (row.rangeEnd != null) {
-                    stringResource(R.string.series_chapter_range_fmt, row.number, row.rangeEnd)
                 } else {
                     stringResource(R.string.series_chapter_number_fmt, row.number)
                 },
@@ -505,9 +503,7 @@ private fun statusOf(row: SeriesRow): Pair<PillTone, String> = when (val kind = 
         )
     ChapterKind.Ready -> PillTone.Get to stringResource(R.string.series_status_ready)
     ChapterKind.InMihon -> PillTone.Ok to stringResource(R.string.series_status_in_mihon)
-    ChapterKind.NotDownloaded -> PillTone.Absent to stringResource(
-        if (row.rangeEnd != null) R.string.series_status_not_downloaded_many else R.string.series_status_not_downloaded_one,
-    )
+    ChapterKind.NotDownloaded -> PillTone.Absent to stringResource(R.string.series_status_not_downloaded_one)
     ChapterKind.Missing -> PillTone.Gap to stringResource(R.string.series_status_missing)
 }
 

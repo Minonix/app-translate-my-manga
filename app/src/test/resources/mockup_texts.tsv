@@ -98,14 +98,12 @@ v2-simplifiee/index.html#serie	Chapitres	STR	series_chapters_title
 v2-simplifiee/index.html#serie	Sélectionner	STR	series_select
 v2-simplifiee/index.html#serie	Terminer	STR	series_select_done
 v2-simplifiee/index.html#serie	Ch. 214	FMT	series_chapter_number_fmt		[214]
-v2-simplifiee/index.html#serie	Ch. 1 à 4	FMT	series_chapter_range_fmt		[1, 4]
 v2-simplifiee/index.html#serie	À traduire	STR	series_status_to_translate
 v2-simplifiee/index.html#serie	Sur le PC, pas traduit	STR	series_status_on_pc
 v2-simplifiee/index.html#serie	Traduction 45 %	FMT	series_status_translating_fmt		[45]
 v2-simplifiee/index.html#serie	Échec page 12	FMT	series_status_failed_page_fmt		[12]
 v2-simplifiee/index.html#serie	Prête à installer	STR	series_status_ready
 v2-simplifiee/index.html#serie	Dans Mihon	STR	series_status_in_mihon
-v2-simplifiee/index.html#serie	Pas téléchargés	STR	series_status_not_downloaded_many
 v2-simplifiee/index.html#serie	Manquant	STR	series_status_missing
 v2-simplifiee/index.html#serie	22/22 pages	FMT	series_chip_pages_fmt		[22, 22]
 v2-simplifiee/index.html#serie	184 bulles	PLU	series_chip_bubbles	184	[184]

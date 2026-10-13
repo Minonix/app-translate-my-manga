@@ -25,14 +25,10 @@ sealed interface ChapterKind {
     data object Missing : ChapterKind
 }
 
-/**
- * Ligne de la liste « Chapitres ». `rangeEnd` regroupe les chapitres non telecharges qui se suivent
- * (« Ch. 1 à 4 ») ; la ligne porte alors le plus petit numero et represente tout l'intervalle.
- */
+/** Ligne de la liste « Chapitres » : un chapitre, jamais un intervalle. */
 data class SeriesRow(
     val number: Int,
     val kind: ChapterKind,
-    val rangeEnd: Int? = null,
     val stats: SeriesChapterStats? = null,
 ) {
     /** En cours (file ou traduction) et manquant : rien a faire dessus. */

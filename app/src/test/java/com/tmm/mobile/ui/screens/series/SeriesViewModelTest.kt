@@ -123,6 +123,25 @@ class SeriesViewModelTest {
         assertEquals(ChapterKind.Missing, state.rows.single { it.number == 2 }.kind)
     }
 
+    // Meme numero chez deux scantrads : plus de plages « Ch. 1 a 2 », une ligne par chapitre, et
+    // l'exemplaire telecharge masque son doublon reste au catalogue.
+    @Test fun state_duplicateCatalogNumbers_oneRowPerChapter_downloadedWins() = runTest {
+        seedSeries()
+        seedToTranslateChapter(number = 1)
+        addCatalogChapter(number = 2)
+        env.db.chapterDao().upsertAll(
+            (1..2).map { n ->
+                ChapterEntity(chapterKey = "$seriesKey-$n-bis", seriesKey = seriesKey, url = "https://x/$seriesKey-$n-bis", name = "Chapitre $n", number = n.toFloat(), scanlator = "Autre", read = false, dateUpload = 0L)
+            },
+        )
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        val state = vm.state.first { it.rows.size >= 2 }
+
+        assertEquals(listOf(2 to ChapterKind.NotDownloaded, 1 to ChapterKind.ToTranslate), state.rows.map { it.number to it.kind })
+        assertEquals(2, state.progress.total)
+    }
+
     @Test fun dismissGap_persistsIgnoredGap() = runTest {
         seedSeries()
         seedToTranslateChapter(number = 1)
