@@ -270,17 +270,6 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                 dao.observe(event.seriesKey).first()?.let { dao.upsert(it.copy(autoTranslate = false)) }
             }
             SettingsEvent.Reimport -> reimport()
-            SettingsEvent.RecoverFromDrive -> viewModelScope.launch {
-                val toast = try {
-                    SettingsToast.Recovered(container.jobRepository.recoverFromDrive())
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    AppLog.d("SettingsViewModel", "recuperation Drive impossible : ${e.javaClass.simpleName} ${e.message}")
-                    SettingsToast.RecoverFailed
-                }
-                showToast(toast)
-            }
             // BLOQUÉ (E10) : re-authentifier un autre compte Google necessite GoogleAuth, non expose
             // par AppContainer (interface figee) - reste un stub visuel jusqu'a exposition explicite.
             SettingsEvent.ChangeGoogleAccount -> showToast(SettingsToast.ChooseAccount)

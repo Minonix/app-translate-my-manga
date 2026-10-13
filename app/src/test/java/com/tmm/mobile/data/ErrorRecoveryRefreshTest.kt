@@ -6,7 +6,6 @@ import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.protocol.ChapterRef
 import com.tmm.mobile.protocol.FileRef
 import com.tmm.mobile.protocol.MihonPath
-import com.tmm.mobile.protocol.ReceivedJson
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.RequestOptions
 import com.tmm.mobile.protocol.SeriesRef
@@ -142,28 +141,5 @@ class ErrorRecoveryRefreshTest {
         assertTrue(env.prefs.pcDriveDown.first())
         assertFalse(env.prefs.driveFull.first())
         assertFalse(env.prefs.authExpired.first())
-    }
-
-    // R14 : dossier avec result.json sans received.json -> job RESULT_READY recree ; dossier deja accuse
-    // ignore ; un second passage ne recree rien.
-    @Test fun r14_recoverFromDrive_recreatesUnreceivedResults_once() = runTest {
-        val folderId = writeRequest("job-14")
-        val fileId = env.pc.finish("job-14", "cbz".toByteArray(), fileRef = FileRef("result.cbz", 3, "0".repeat(64)))
-        val doneFolder = writeRequest("job-14b")
-        env.pc.finish("job-14b", "cbz".toByteArray(), fileRef = FileRef("result.cbz", 3, "0".repeat(64)))
-        env.container.transport.writeReceived(
-            job("job-14b", "INSTALLED", doneFolder),
-            ReceivedJson(jobId = "job-14b", receivedAt = "2026-01-01T00:00:00Z", installedPath = "Titre/Chapitre 1.cbz"),
-        )
-
-        assertEquals(1, env.container.jobRepository.recoverFromDrive())
-
-        val recovered = env.db.jobDao().get("job-14")!!
-        assertEquals("RESULT_READY", recovered.phoneState)
-        assertEquals(fileId, recovered.resultFileId)
-        assertEquals(folderId, recovered.driveFolderId)
-        assertEquals("MangaSource/Titre/Chapitre 1", recovered.mihonPath)
-        assertNull(env.db.jobDao().get("job-14b"))
-        assertEquals(0, env.container.jobRepository.recoverFromDrive())
     }
 }

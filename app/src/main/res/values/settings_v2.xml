@@ -59,9 +59,8 @@
     <string name="settings_v2_recommended">Recommandé</string>
     <string name="settings_v2_pile_hint_fmt">%1$d · plus de contexte si élevé</string>
     <string name="settings_v2_gpu">Carte graphique</string>
-    <string name="settings_v2_font">Police</string>
     <string name="settings_v2_ocr">Reconnaissance du texte (OCR)</string>
-    <string name="settings_v2_rendering_hint_fmt">Police %1$s · effacement %2$s</string>
+    <string name="settings_v2_rendering_hint_fmt">Effacement %1$s</string>
     <string name="settings_v2_reading_hint_auto">Détecteur et OCR automatiques</string>
     <string name="settings_v2_footer_note">Les clés API restent sur le PC. Un changement s’applique aux pages suivantes, sans interrompre les chapitres en cours.</string>
 </resources>

@@ -53,7 +53,7 @@ class SettingsScreenBehaviorTest {
                             is SettingsEvent.DirectUrlChanged -> state.copy(directUrl = event.url)
                             is SettingsEvent.PairingCodeChanged -> state.copy(pairingCode = event.code)
                             SettingsEvent.ChangeMihonFolder, SettingsEvent.ExportLogs,
-                            SettingsEvent.Pair, SettingsEvent.ForgetPc, SettingsEvent.RecoverFromDrive -> state
+                            SettingsEvent.Pair, SettingsEvent.ForgetPc -> state
                             SettingsEvent.ToggleAdvanced -> state.copy(advancedExpanded = !state.advancedExpanded)
                             SettingsEvent.OpenDirect -> state.copy(directOpen = true)
                             SettingsEvent.CloseDirect -> state.copy(directOpen = false)
@@ -163,6 +163,9 @@ class SettingsScreenBehaviorTest {
         composeRule.onNodeWithText("Non associée").assertExists()
         composeRule.onNodeWithText("Dossier Drive").performScrollTo().assertExists()
         composeRule.onNodeWithText("App/TranslateMyManga/").assertExists()
+        // R12 : plus d'action « Récupérer depuis Google Drive ».
+        composeRule.onNodeWithText("Récupérer depuis Google Drive").assertDoesNotExist()
+        composeRule.onNodeWithText("Récupérer").assertDoesNotExist()
 
         // Replier masque de nouveau la liste.
         openAdvanced()

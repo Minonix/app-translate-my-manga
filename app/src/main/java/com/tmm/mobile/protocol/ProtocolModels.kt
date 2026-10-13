@@ -178,6 +178,8 @@ data class SettingsValues(
     val preferredOcr: String,
     val inpainter: String,
     val inpaintingSize: Int,
+    // ponytail: le PC emet toujours "font" (le mobile ne l'affiche ni ne l'envoie plus, R12) ; champ garde pour
+    // decoder settings.json sans erreur. A retirer si le protocole PC abandonne la cle.
     val font: String,
 )
 
