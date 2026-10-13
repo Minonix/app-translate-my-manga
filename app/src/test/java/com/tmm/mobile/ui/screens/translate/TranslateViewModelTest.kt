@@ -91,6 +91,18 @@ class TranslateViewModelTest {
     }
 
     @Test
+    fun updateQuery_isReadBackSynchronously_andResetOnOpen() = runTest {
+        val vm = open(TranslateRequest(preselectAll = true))
+        // Chaque frappe doit se relire tout de suite, sans attendre le recalcul de `state`.
+        "Garden".forEachIndexed { i, _ ->
+            vm.onEvent(TranslateEvent.UpdateQuery("Garden".substring(0, i + 1)))
+            assertEquals("Garden".substring(0, i + 1), vm.query.value)
+        }
+        vm.onEvent(TranslateEvent.Open(TranslateRequest(preselectAll = true)))
+        assertEquals("", vm.query.value)
+    }
+
+    @Test
     fun seriesKeys_restrictsListToChosenSeries() = runTest {
         seed()
         val vm = TranslateViewModel(env.container)

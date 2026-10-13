@@ -35,6 +35,7 @@ val LocalOpenTranslate = staticCompositionLocalOf<(TranslateRequest) -> Unit> { 
 fun TranslateSheetHost(container: AppContainer, content: @Composable () -> Unit) {
     val vm: TranslateViewModel = viewModel(factory = viewModelFactory { initializer { TranslateViewModel(container) } })
     val state by vm.state.collectAsStateWithLifecycle()
+    val query by vm.query.collectAsStateWithLifecycle()
     var visible by remember { mutableStateOf(false) }
     var done by remember { mutableStateOf<TranslatePhase.Done?>(null) }
 
@@ -55,7 +56,7 @@ fun TranslateSheetHost(container: AppContainer, content: @Composable () -> Unit)
     CompositionLocalProvider(LocalOpenTranslate provides open) {
         Box(Modifier.fillMaxSize()) {
             content()
-            TranslateSheet(visible = visible, state = state, onEvent = vm::onEvent, onDismiss = { visible = false })
+            TranslateSheet(visible = visible, state = state.copy(query = query), onEvent = vm::onEvent, onDismiss = { visible = false })
             val last = done
             V2Toast(
                 visible = last != null,

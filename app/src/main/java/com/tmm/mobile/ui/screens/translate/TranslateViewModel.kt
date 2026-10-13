@@ -23,6 +23,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
@@ -46,7 +48,6 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
 
     private data class UiState(
         val request: TranslateRequest = TranslateRequest(preselectAll = true),
-        val query: String = "",
         val toggled: Set<String> = emptySet(),
         val expanded: Set<String> = emptySet(),
         val phase: TranslatePhase = TranslatePhase.Idle,
@@ -62,6 +63,12 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
     )
 
     private val ui = MutableStateFlow(UiState())
+
+    // Hors de `state` : le champ de recherche doit relire sa valeur tout de suite. Repassée par
+    // buildState (thread Default, des milliers de chapitres), chaque frappe recevait l'ancienne
+    // valeur et les lettres tapées entre-temps étaient perdues.
+    private val queryFlow = MutableStateFlow("")
+    val query: StateFlow<String> = queryFlow.asStateFlow()
 
     // ponytail: caches remplacés d'un bloc à chaque émission (thread Default) et lus par les
     // événements ; @Volatile suffit.
@@ -90,10 +97,13 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
         when (event) {
             // Rouvrir pendant un envoi garde la phase Busy : repartir à Idle permettrait un second envoi
             // des mêmes chapitres avant que le premier ait créé ses jobs.
-            is TranslateEvent.Open -> ui.update { cur ->
-                UiState(request = event.request, phase = if (cur.phase == TranslatePhase.Busy) cur.phase else TranslatePhase.Idle)
+            is TranslateEvent.Open -> {
+                queryFlow.value = ""
+                ui.update { cur ->
+                    UiState(request = event.request, phase = if (cur.phase == TranslatePhase.Busy) cur.phase else TranslatePhase.Idle)
+                }
             }
-            is TranslateEvent.UpdateQuery -> ui.update { it.copy(query = event.query) }
+            is TranslateEvent.UpdateQuery -> queryFlow.value = event.query
             is TranslateEvent.ToggleExpand -> ui.update { it.copy(expanded = it.expanded.xor(event.seriesKey)) }
             is TranslateEvent.ToggleChapter -> ui.update { it.copy(toggled = it.toggled.xor(event.mihonPath)) }
             is TranslateEvent.ToggleSeries -> ui.update { cur ->
@@ -193,7 +203,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
         chapterByPath = series.flatMap { it.chapters }.associateBy { it.mihonPath }
 
         val selected = series.flatMap { s -> s.chapters.map { it.mihonPath } }.filter { isSelected(it, u) }.toSet()
-        return TranslateState(query = u.query, series = series, selected = selected, expanded = u.expanded, phase = u.phase)
+        return TranslateState(series = series, selected = selected, expanded = u.expanded, phase = u.phase)
     }
 
     /**
