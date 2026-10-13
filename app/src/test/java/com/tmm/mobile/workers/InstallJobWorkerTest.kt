@@ -5,6 +5,8 @@ import androidx.work.Data
 import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.tmm.mobile.data.db.JobEntity
+import com.tmm.mobile.data.db.LocalFrChapterEntity
+import com.tmm.mobile.mihon.FakeMihonFs
 import com.tmm.mobile.fake.FakeFile
 import com.tmm.mobile.protocol.FileRef
 import com.tmm.mobile.protocol.ProtocolJson
@@ -15,7 +17,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,7 +66,12 @@ class InstallJobWorkerTest {
 
     // Fichier stocke dans le faux Drive avec un contenu different du sha256/size annonces par
     // resultJson.file : la verification post-telechargement doit echouer avant tout acces MihonFs.
-    private fun resultJson(jobId: String, size: Long = 999L, sha256: String = "0".repeat(64)) = ProtocolJson.encodeToString(
+    private fun resultJson(
+        jobId: String,
+        size: Long = 999L,
+        sha256: String = "0".repeat(64),
+        chapterFileName: String = "Chapitre 1.cbz",
+    ) = ProtocolJson.encodeToString(
         ResultJson.serializer(),
         ResultJson(
             jobId = jobId,
@@ -70,7 +79,7 @@ class InstallJobWorkerTest {
             mode = "verify",
             file = FileRef(name = "result.cbz", size = size, sha256 = sha256),
             localFolderName = "Titre",
-            chapterFileName = "Chapitre 1.cbz",
+            chapterFileName = chapterFileName,
             pages = 10,
         ),
     )
@@ -111,5 +120,39 @@ class InstallJobWorkerTest {
         assertEquals(Result.success(), result)
         assertNull(env.db.jobDao().get("job-3"))
         assertEquals(0, env.db.localFrChapterDao().observeAll().first().size)
+    }
+
+    // R2 : le PC nomme desormais le fichier avec l'edition. Le meme chapitre deja installe sous l'ancien
+    // nom restait a cote, et Mihon l'affichait deux fois.
+    @Test fun doWork_replacesSameChapterInstalledUnderOldName() = runTest {
+        val root = kotlin.io.path.createTempDirectory("mihon").toFile()
+        val folder = java.io.File(root, "local/Titre").apply { mkdirs() }
+        val old = java.io.File(folder, "c0001 - Chapitre 1.cbz").apply { writeBytes(byteArrayOf(1)) }
+        val other = java.io.File(folder, "c0002 - Chapitre 2.cbz").apply { writeBytes(byteArrayOf(2)) }
+        env.container.mihonFs = FakeMihonFs(root)
+        env.container.mihonRootDocId = root.absolutePath
+        env.db.localFrChapterDao().upsertAll(
+            listOf(
+                LocalFrChapterEntity("Titre/${old.name}", "Titre", old.name, old.absolutePath, 0L, "job-old", "MangaSource/Titre/Chapitre 1"),
+                LocalFrChapterEntity("Titre/${other.name}", "Titre", other.name, other.absolutePath, 0L, "job-2", "MangaSource/Titre/Chapitre 2"),
+            ),
+        )
+        val bytes = "contenu-valide".toByteArray()
+        val sha = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        val resultFile = FakeFile(name = "result.cbz", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.comicbook+zip", modifiedTime = "2026-01-01T00:00:00Z", bytes = bytes)
+        env.drive.files[resultFile.id] = resultFile
+        val newName = "c0001 - Chapitre 1 [Team].cbz"
+        env.db.jobDao().upsert(job("job-4", phoneState = "RESULT_READY", resultFileId = resultFile.id, resultJson = resultJson("job-4", bytes.size.toLong(), sha, newName)))
+
+        assertEquals(Result.success(), buildWorker("job-4").doWork())
+
+        assertTrue(java.io.File(folder, newName).exists())
+        assertFalse(old.exists())
+        assertTrue(other.exists())
+        assertEquals(
+            setOf("Titre/$newName", "Titre/${other.name}"),
+            env.db.localFrChapterDao().observeAll().first().map { it.localPath }.toSet(),
+        )
+        root.deleteRecursively()
     }
 }

@@ -5,6 +5,8 @@ import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
 import com.tmm.mobile.data.db.SeriesEntity
+import com.tmm.mobile.data.autoTranslateTargets
+import com.tmm.mobile.data.db.SeriesSettingsEntity
 import com.tmm.mobile.data.flatten
 import com.tmm.mobile.mihon.FakeMihonFs
 import com.tmm.mobile.mihon.MihonNaming
@@ -217,9 +219,9 @@ class SeriesViewModelTest {
         env.container.mihonFs = FakeMihonFs(root)
 
         val vm = SeriesViewModel(env.container, seriesKey)
-        vm.state.first { it.rows.isNotEmpty() }
+        val key = vm.state.first { it.rows.isNotEmpty() }.rows.single { it.number == 2 }.key
         vm.onEvent(SeriesEvent.StartSelection)
-        vm.onEvent(SeriesEvent.ToggleChapter(2))
+        vm.onEvent(SeriesEvent.ToggleChapter(key))
         vm.state.first { it.selectionToDelete == 1 }
         vm.onEvent(SeriesEvent.OpenSelectionMore)
         vm.state.first { it.sheet is SeriesSheet.More }
@@ -231,9 +233,84 @@ class SeriesViewModelTest {
 
         assertEquals(SeriesToast.Deleted(1), state.toast)
         assertEquals(SeriesSheet.None, state.sheet)
-        assertEquals(emptySet<Int>(), state.selected)
+        assertEquals(emptySet<String>(), state.selected)
         assertFalse(state.selecting)
         assertFalse(frFile.exists())
         root.deleteRecursively()
+    }
+
+    // Chapitre catalogue + telecharge d'une edition donnee (scantrad), numero decimal possible.
+    private suspend fun seedEdition(number: Float, scanlator: String?): String {
+        val url = "https://x/$seriesKey-$number-$scanlator"
+        val chapterKey = "$seriesKey-$number-$scanlator"
+        val name = "Chapitre $number"
+        env.db.chapterDao().upsertAll(listOf(ChapterEntity(chapterKey = chapterKey, seriesKey = seriesKey, url = url, name = name, number = number, scanlator = scanlator, read = false, dateUpload = 0L)))
+        val mihonPath = MihonPath(MihonNaming.getSourceDirName(sourceName), MihonNaming.getMangaDirName(title), MihonNaming.getChapterDirName(name, scanlator, url))
+        env.db.downloadedChapterDao().upsert(
+            DownloadedChapterEntity(
+                mihonPath = mihonPath.flatten(), sourceDir = mihonPath.source, seriesDir = mihonPath.series, chapterDir = mihonPath.chapter,
+                documentUri = "content://x/$chapterKey", isCbz = false, sizeBytes = 10L, lastModified = 0L, pageCount = 5,
+                seriesKey = seriesKey, chapterKey = chapterKey, number = number,
+            ),
+        )
+        return mihonPath.flatten()
+    }
+
+    // R2 / PBS 1.2.4 : la selection se faisait par numero entier, 12 et 12.5 et les deux editions du 12
+    // etaient une seule case et partaient ensemble.
+    @Test fun selection_isPerChapter_andOneEditionPerNumber() = runTest {
+        seedSeries()
+        val a = seedEdition(12f, "Team A")
+        val b = seedEdition(12f, "Team B")
+        val half = seedEdition(12.5f, "Team A")
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        val rows = vm.state.first { it.rows.size == 3 }.rows
+        assertEquals(listOf("12.5", "12", "12"), rows.map { it.label })
+        assertEquals(setOf("Team A", "Team B"), rows.filter { it.duplicate }.map { it.edition }.toSet())
+        assertFalse(rows.single { it.key == half }.duplicate)
+
+        vm.onEvent(SeriesEvent.StartSelection)
+        vm.onEvent(SeriesEvent.ToggleChapter(a))
+        vm.onEvent(SeriesEvent.ToggleChapter(half))
+        assertEquals(setOf(a, half), vm.state.first { it.selected.size == 2 }.selected)
+        // Choisir l'autre edition du 12 remplace la premiere, sans toucher au 12.5.
+        vm.onEvent(SeriesEvent.ToggleChapter(b))
+        assertEquals(setOf(b, half), vm.state.first { b in it.selected }.selected)
+
+        vm.onEvent(SeriesEvent.OpenSelectionMore)
+        vm.state.first { it.sheet is SeriesSheet.More }
+        vm.onEvent(SeriesEvent.Translate)
+        vm.state.first { it.toast != null }
+        assertEquals(setOf(b, half), env.db.jobDao().observeAll().first().map { it.mihonPath }.toSet())
+    }
+
+    // R2 : « Tout traduire » envoyait les deux editions du 12.
+    @Test fun translateAll_sendsOneEditionPerNumber() = runTest {
+        seedSeries()
+        val a1 = seedEdition(11f, "Team A")
+        val a2 = seedEdition(12f, "Team A")
+        seedEdition(12f, "Team B")
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        val state = vm.state.first { it.rows.size == 3 }
+        assertEquals(2, state.seriesCounts.translate)
+        vm.onEvent(SeriesEvent.TranslateAll)
+        assertEquals(SeriesToast.Translated(2), vm.state.first { it.toast != null }.toast)
+        // Team A, la scantrad la plus presente, est preselectionnee.
+        assertEquals(setOf(a1, a2), env.db.jobDao().observeAll().first().map { it.mihonPath }.toSet())
+    }
+
+    // R2 dans le suivi : deux editions telechargees du meme numero partaient toutes les deux.
+    @Test fun follow_sendsOneEditionPerNumber() = runTest {
+        seedSeries()
+        seedEdition(11f, "Team A")
+        val a = seedEdition(12f, "Team A")
+        seedEdition(12f, "Team B")
+        env.db.seriesSettingsDao().upsert(SeriesSettingsEntity(seriesKey, autoTranslate = true))
+
+        val targets = autoTranslateTargets(env.db, setOf(seriesKey))
+        assertEquals(2, targets.size)
+        assertTrue(targets.any { it.mihonPath.flatten() == a })
     }
 }

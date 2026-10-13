@@ -98,6 +98,9 @@ interface DownloadedChapterDao {
     @Query("SELECT * FROM downloaded_chapter WHERE mihonPath = :mihonPath")
     suspend fun get(mihonPath: String): DownloadedChapterEntity?
 
+    @Query("SELECT * FROM downloaded_chapter WHERE seriesKey = :seriesKey AND number = :number")
+    suspend fun getForNumber(seriesKey: String, number: Float): List<DownloadedChapterEntity>
+
     @Upsert
     suspend fun upsert(chapter: DownloadedChapterEntity)
 

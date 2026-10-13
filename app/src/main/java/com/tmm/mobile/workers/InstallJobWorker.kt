@@ -119,6 +119,12 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             dest.parentFile?.deleteRecursively()
 
             val localPath = "${result.localFolderName}/${result.chapterFileName}"
+            // R2 : le nom du fichier porte desormais l'edition. Le meme chapitre deja installe sous un
+            // autre nom (ancien nom sans edition) est remplace, sinon Mihon l'afficherait deux fois.
+            for (old in db.localFrChapterDao().getForFolder(result.localFolderName)) {
+                if (old.mihonPath != job.mihonPath || old.localPath == localPath) continue
+                if (runCatching { root.fs.delete(old.documentUri) }.isSuccess) db.localFrChapterDao().delete(old)
+            }
             db.localFrChapterDao().upsert(
                 LocalFrChapterEntity(
                     localPath = localPath,

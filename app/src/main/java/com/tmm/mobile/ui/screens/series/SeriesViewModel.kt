@@ -9,6 +9,8 @@ import com.tmm.mobile.data.DeleteOptions
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.autoTranslateTargets
+import com.tmm.mobile.data.editionRanking
+import com.tmm.mobile.data.oneEditionPerNumber
 import com.tmm.mobile.data.flatten
 import com.tmm.mobile.data.db.CategoryEntity
 import com.tmm.mobile.data.db.ChapterQualityEntity
@@ -25,6 +27,7 @@ import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.joinInputsFlow
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.data.status.translatingPercent
+import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
@@ -50,8 +53,9 @@ class SeriesViewModel(
 
     private data class UiOnly(
         val selecting: Boolean = false,
-        val selected: Set<Int> = emptySet(),
-        val expandedStats: Set<Int> = emptySet(),
+        // Cles de SeriesRow (chemin Mihon) : un chapitre, pas un numero (R2, PBS 1.2.4).
+        val selected: Set<String> = emptySet(),
+        val expandedStats: Set<String> = emptySet(),
         val showGap: Boolean = true,
         val sheet: SeriesSheet = SeriesSheet.None,
         val toast: SeriesToast? = null,
@@ -106,7 +110,8 @@ class SeriesViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyData)
 
     val state: StateFlow<SeriesState> = combine(ui, dataState) { u, d ->
-        val selectedRows = d.joinRows.filter { it.number in u.selected }
+        val selectedRows = d.joinRows.filter { it.flatPath in u.selected }
+        val toTranslate = translateRows(d.joinRows)
         val deleteSkipped = selectedRows.count { ChapterDeleter.isSkipped(it) }
         val maxNumber = d.joinRows.maxOfOrNull { it.number }
         SeriesState(
@@ -127,9 +132,10 @@ class SeriesViewModel(
             expandedStats = u.expandedStats,
             sheet = u.sheet,
             toast = u.toast,
-            seriesCounts = actionCounts(d.joinRows),
+            seriesCounts = actionCounts(d.joinRows).copy(translate = toTranslate.size),
             selectionCounts = actionCounts(selectedRows),
-            toTranslateNumbers = d.joinRows.filter(::canTranslate).map { it.number }.distinct().sortedDescending(),
+            toTranslateNumbers = toTranslate.map { it.number }.distinct().sortedDescending(),
+            selectionToTranslateNumbers = selectedRows.filter(::canTranslate).map { it.number }.distinct().sortedDescending(),
             selectionToDelete = selectedRows.size - deleteSkipped,
             selectionDeleteSkipped = deleteSkipped,
         )
@@ -144,15 +150,21 @@ class SeriesViewModel(
             SeriesEvent.StartSelection -> ui.update { it.copy(selecting = true) }
             SeriesEvent.EndSelection -> ui.update { it.copy(selecting = false, selected = emptySet()) }
             is SeriesEvent.ToggleChapter -> ui.update {
-                val row = state.value.rows.firstOrNull { r -> r.number == event.number }
+                val row = state.value.rows.firstOrNull { r -> r.key == event.key }
                 if (row == null || row.locked || row.kind == ChapterKind.NotDownloaded) {
                     it
+                } else if (event.key in it.selected) {
+                    it.copy(selected = it.selected - event.key)
                 } else {
-                    it.copy(selected = it.selected.toMutableSet().apply { if (!add(event.number)) remove(event.number) })
+                    // R2 : une edition par numero ; cocher l'autre edition remplace la premiere.
+                    val rows = dataState.value.joinRows
+                    val number = rows.firstOrNull { r -> r.flatPath == event.key }?.exactNumber?.takeIf { n -> n >= 0f }
+                    val sameNumber = if (number == null) emptySet() else rows.filter { r -> r.exactNumber == number }.mapTo(HashSet()) { r -> r.flatPath }
+                    it.copy(selected = it.selected - sameNumber + event.key)
                 }
             }
             is SeriesEvent.ToggleStats -> ui.update {
-                it.copy(expandedStats = it.expandedStats.toMutableSet().apply { if (!add(event.number)) remove(event.number) })
+                it.copy(expandedStats = it.expandedStats.toMutableSet().apply { if (!add(event.key)) remove(event.key) })
             }
             SeriesEvent.DismissGap -> dismissGap()
             SeriesEvent.TranslateAll -> performTranslate(allSeries = true)
@@ -213,8 +225,8 @@ class SeriesViewModel(
     }
 
     private fun rowsFor(allSeries: Boolean, predicate: (ChapterJoinRow) -> Boolean): List<ChapterJoinRow> {
-        val nums = ui.value.selected
-        return dataState.value.joinRows.filter { row -> (allSeries || row.number in nums) && predicate(row) }
+        val keys = ui.value.selected
+        return dataState.value.joinRows.filter { row -> (allSeries || row.flatPath in keys) && predicate(row) }
     }
 
     private fun targetOf(row: ChapterJoinRow) =
@@ -226,7 +238,7 @@ class SeriesViewModel(
      */
     private fun performTranslate(allSeries: Boolean) {
         viewModelScope.launch {
-            val rows = rowsFor(allSeries, ::canTranslate)
+            val rows = if (allSeries) translateRows(dataState.value.joinRows) else rowsFor(false, ::canTranslate)
             val repo = container.jobRepository
             val failed = rows.filter { it.status == ChapterStatus.FAILED }
             failed.forEach { row -> row.facts.latestJob?.let { repo.retry(it.jobId) } }
@@ -325,7 +337,10 @@ class SeriesViewModel(
         val joinRows = buildChapterJoinRows(seriesKey, series.sourceName, series.title, c.joinInputs)
         val missing = deriveSeriesSummary(seriesKey, joinRows.toAggregateInputs(), c.ignoredGaps).missing
         val qualityByPath = c.qualities.associateBy { it.mihonPath }
-        val chapterRows = joinRows.map { row -> row.toSeriesRow(qualityByPath[row.flatPath]) }
+        val copiesByNumber = joinRows.mapNotNull { it.exactNumber?.takeIf { n -> n >= 0f } }.groupingBy { it }.eachCount()
+        val chapterRows = joinRows.map { row ->
+            row.toSeriesRow(qualityByPath[row.flatPath], duplicate = (copiesByNumber[row.exactNumber] ?: 0) > 1)
+        }
         val gapRows = missing.map { SeriesRow(it, ChapterKind.Missing) }
         val categoryNameByOrder = categories.associate { it.order to it.name }
         val primaryOrder = links.filter { it.seriesKey == seriesKey }.minOfOrNull { it.categoryOrder }
@@ -335,7 +350,7 @@ class SeriesViewModel(
             subtitle = subtitleFor(series, c.settingsJson),
             followed = followed,
             joinRows = joinRows,
-            rows = (chapterRows + gapRows).sortedByDescending { it.number },
+            rows = (chapterRows + gapRows).sortedByDescending { it.label.toFloatOrNull() ?: it.number.toFloat() },
             progress = progressOf(chapterRows),
             missing = missing,
         )
@@ -353,8 +368,33 @@ class SeriesViewModel(
     }
 }
 
-/** Numero affiche (et cle de selection) d'une ligne : les hors-serie 7.5 se rangent sous 7. */
+/** Numero entier d'une ligne (trou, libelles « Traduire le ch. N ») : les hors-serie 7.5 se rangent sous 7. */
 internal val ChapterJoinRow.number: Int get() = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
+
+internal val ChapterJoinRow.exactNumber: Float? get() = chapter?.number ?: downloaded?.number
+
+private val ChapterJoinRow.scanlator: String?
+    get() = chapter?.scanlator ?: downloaded?.let { DownloadOnlySeries.guessScanlator(it.chapterDir) }
+
+private fun Float.label(): String = if (this == toInt().toFloat()) toInt().toString() else toString()
+
+private val TAKEN = setOf(ChapterStatus.QUEUED, ChapterStatus.TRANSLATING, ChapterStatus.TO_FETCH, ChapterStatus.UP_TO_DATE)
+
+/**
+ * R2 : « Traduire » sur toute la serie part avec une seule edition par numero. Une edition deja
+ * engagee (sur le PC, en echec) passe avant une simple copie telechargee, puis la scantrad preferee ;
+ * aucune si une autre edition de ce numero est deja traduite ou en cours.
+ */
+internal fun translateRows(rows: List<ChapterJoinRow>): List<ChapterJoinRow> {
+    val ranking = editionRanking(rows.map { it.scanlator })
+    val taken = rows.filter { it.status in TAKEN }.mapNotNull { it.exactNumber }.toSet()
+    return oneEditionPerNumber(
+        rows.filter(::canTranslate),
+        taken,
+        { it.exactNumber?.takeIf { n -> n >= 0f } },
+        compareBy<ChapterJoinRow>({ if (it.status == ChapterStatus.TO_SEND) 1 else 0 }, { ranking[it.scanlator] }),
+    )
+}
 
 private val JobTarget.number: Int get() = (chapter?.number ?: downloaded?.number ?: 0f).toInt()
 
@@ -389,7 +429,7 @@ private fun progressOf(rows: List<SeriesRow>) = SeriesProgress(
     total = rows.size,
 )
 
-private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?): SeriesRow {
+private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?, duplicate: Boolean): SeriesRow {
     val job = facts.latestJob
     val kind = when (status) {
         ChapterStatus.TO_SEND -> ChapterKind.ToTranslate
@@ -412,5 +452,13 @@ private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?): SeriesRo
             verifiedDate = it.verifiedAt?.let { at -> Formatters.verifiedDateFr(at) },
         )
     }
-    return SeriesRow(number = number, kind = kind, stats = stats)
+    return SeriesRow(
+        number = number,
+        kind = kind,
+        stats = stats,
+        key = flatPath,
+        label = exactNumber?.label() ?: number.toString(),
+        edition = scanlator,
+        duplicate = duplicate,
+    )
 }

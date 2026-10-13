@@ -50,20 +50,20 @@ class SeriesScreenBehaviorTest {
         return { state }
     }
 
-    private fun toggle(set: Set<Int>, n: Int): Set<Int> = if (n in set) set - n else set + n
+    private fun toggle(set: Set<String>, key: String): Set<String> = if (key in set) set - key else set + key
 
     private fun reduce(state: SeriesState, event: SeriesEvent): SeriesState = when (event) {
         SeriesEvent.StartSelection -> state.copy(selecting = true)
         SeriesEvent.EndSelection -> state.copy(selecting = false, selected = emptySet())
         is SeriesEvent.ToggleChapter -> {
-            val row = state.rows.firstOrNull { it.number == event.number }
+            val row = state.rows.firstOrNull { it.key == event.key }
             if (row == null || row.locked || row.kind == ChapterKind.NotDownloaded) {
                 state
             } else {
-                state.copy(selected = toggle(state.selected, event.number))
+                state.copy(selected = toggle(state.selected, event.key))
             }
         }
-        is SeriesEvent.ToggleStats -> state.copy(expandedStats = toggle(state.expandedStats, event.number))
+        is SeriesEvent.ToggleStats -> state.copy(expandedStats = toggle(state.expandedStats, event.key))
         SeriesEvent.DismissGap -> state.copy(showGap = false)
         SeriesEvent.TranslateAll -> state.copy(toast = SeriesToast.Translated(state.toTranslateNumbers.size))
         SeriesEvent.OpenSeriesMore -> state.copy(sheet = SeriesSheet.More(allSeries = true))
@@ -147,7 +147,7 @@ class SeriesScreenBehaviorTest {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasContentDescription("Détails de traduction du chapitre 211"))
         composeRule.onNodeWithContentDescription("Détails de traduction du chapitre 211").performClick()
         composeRule.waitForIdle()
-        assertTrue(211 in getState().expandedStats)
+        assertTrue("211" in getState().expandedStats)
         composeRule.onNodeWithText("22/22 pages").assertExists()
     }
 
@@ -161,7 +161,7 @@ class SeriesScreenBehaviorTest {
         composeRule.onNodeWithText("Ch. 214").performScrollTo().performClick()
         composeRule.onNodeWithText("Ch. 213").performScrollTo().performClick()
         composeRule.waitForIdle()
-        assertEquals(setOf(214), getState().selected)
+        assertEquals(setOf("214"), getState().selected)
 
         composeRule.onNodeWithText("Que faire ?").performClick()
         composeRule.waitForIdle()
