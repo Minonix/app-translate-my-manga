@@ -11,6 +11,17 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.7.0] - 2026-10-13
+
+### Ajoute
+- Activite : « Tout annuler » pour les chapitres en attente et pour les envois en cours.
+- Serie : choisir les chapitres a traiter ; Accueil : synchronisation visible.
+
+### Corrige
+- Activite : un chapitre dont l'annulation est demandee quitte « Ensuite » tout de suite (la croix agit).
+- « PC vu il y a… » : l'etat se rafraichit chaque minute tant que l'app est ouverte, aussi en canal direct.
+- Serie et Bibliotheque : « Recuperer » redemande au PC un chapitre deja traduit qu'il est seul a connaitre, sans le retraduire (R13).
+
 ## [1.6.0] - 2026-10-13
 
 ### Corrige
