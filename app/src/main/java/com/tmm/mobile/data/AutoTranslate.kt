@@ -5,6 +5,7 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.ChapterFacts
 import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.deriveStatus
+import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.protocol.MihonPath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -63,5 +64,30 @@ suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List
             chapter = downloaded.chapterKey?.let { db.chapterDao().get(it) },
         )
     }
-    return targets
+    return keepOneEditionPerNumber(db, targets)
+}
+
+/**
+ * R2 : deux editions telechargees du meme numero partaient toutes les deux. Garde l'edition
+ * preferee de chaque numero (meme rang que la feuille Traduire), et aucune si une autre edition
+ * de ce numero est deja traitee (sur le PC, en cours ou traduite).
+ */
+private suspend fun keepOneEditionPerNumber(db: TmmDatabase, targets: List<JobTarget>): List<JobTarget> {
+    val kept = HashSet<JobTarget>()
+    for ((seriesKey, candidates) in targets.groupBy { it.downloaded?.seriesKey }) {
+        if (seriesKey == null) {
+            kept += candidates
+            continue
+        }
+        val all = db.downloadedChapterDao().observeForSeries(seriesKey).first()
+        val scanlatorByKey = db.chapterDao().observeForSeries(seriesKey).first().associate { it.chapterKey to it.scanlator }
+        val scanlators = all.associate { dl ->
+            dl.mihonPath to (dl.chapterKey?.let { scanlatorByKey[it] } ?: DownloadOnlySeries.guessScanlator(dl.chapterDir))
+        }
+        val ranking = editionRanking(all.map { scanlators[it.mihonPath] })
+        val candidatePaths = candidates.mapTo(HashSet()) { it.downloaded?.mihonPath }
+        val taken = all.filter { it.mihonPath !in candidatePaths }.mapNotNull { it.number }.toSet()
+        kept += oneEditionPerNumber(candidates, taken, { it.downloaded?.number }, compareBy<JobTarget> { ranking[scanlators[it.downloaded?.mihonPath]] })
+    }
+    return targets.filter { it in kept }
 }

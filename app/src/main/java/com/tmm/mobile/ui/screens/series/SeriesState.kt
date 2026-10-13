@@ -25,11 +25,19 @@ sealed interface ChapterKind {
     data object Missing : ChapterKind
 }
 
-/** Ligne de la liste « Chapitres » : un chapitre, jamais un intervalle. */
+/**
+ * Ligne de la liste « Chapitres » : un chapitre, jamais un intervalle. `key` l'identifie (chemin Mihon),
+ * car deux lignes peuvent partager un numero (12 et 12.5, deux editions du 12). `label` est le numero
+ * affiche ; `edition` (scantrad) n'est renseignee que si un autre chapitre porte le meme numero.
+ */
 data class SeriesRow(
     val number: Int,
     val kind: ChapterKind,
     val stats: SeriesChapterStats? = null,
+    val key: String = number.toString(),
+    val label: String = number.toString(),
+    val edition: String? = null,
+    val duplicate: Boolean = false,
 ) {
     /** En cours (file ou traduction) et manquant : rien a faire dessus. */
     val locked: Boolean get() = kind is ChapterKind.Translating || kind == ChapterKind.Waiting || kind == ChapterKind.Missing
@@ -114,20 +122,22 @@ data class SeriesState(
     // Chapitres partis a l'activation du suivi pendant cette visite (carte « envoye au PC »).
     val sentOnFollow: List<Int> = emptyList(),
     val selecting: Boolean = false,
-    val selected: Set<Int> = emptySet(),
-    val expandedStats: Set<Int> = emptySet(),
+    val selected: Set<String> = emptySet(),
+    val expandedStats: Set<String> = emptySet(),
     val sheet: SeriesSheet = SeriesSheet.None,
     val toast: SeriesToast? = null,
     val seriesCounts: ActionCounts = ActionCounts(),
     val selectionCounts: ActionCounts = ActionCounts(),
     // Numeros a traduire de toute la serie, pour le libelle du gros bouton (« Traduire le ch. N »).
     val toTranslateNumbers: List<Int> = emptyList(),
+    // Meme chose pour la selection.
+    val selectionToTranslateNumbers: List<Int> = emptyList(),
     // Supprimer : chapitres selectionnes sans job actif, et ceux ignores (ChapterDeleter).
     val selectionToDelete: Int = 0,
     val selectionDeleteSkipped: Int = 0,
 ) {
     val selectionCount: Int get() = selected.size
-    val selectedNumbers: List<Int> get() = selected.sortedDescending()
+    val selectedLabels: List<String> get() = rows.filter { it.key in selected }.map { it.label }
 
     /** Lignes verrouillees visibles en mode selection, citees en bas de la feuille. */
     val lockedNumbers: List<Int> get() = rows.filter { it.kind is ChapterKind.Translating || it.kind == ChapterKind.Waiting }.map { it.number }
@@ -136,8 +146,8 @@ data class SeriesState(
 sealed interface SeriesEvent {
     data object StartSelection : SeriesEvent
     data object EndSelection : SeriesEvent
-    data class ToggleChapter(val number: Int) : SeriesEvent
-    data class ToggleStats(val number: Int) : SeriesEvent
+    data class ToggleChapter(val key: String) : SeriesEvent
+    data class ToggleStats(val key: String) : SeriesEvent
     data object DismissGap : SeriesEvent
 
     /** Gros bouton rouge : traduit tout ce qui reste a traduire dans la serie. */

@@ -124,7 +124,9 @@ class SendJobWorkerTest {
             env.prefs.setDirectUrl(pc.url("/").toString())
             DirectTokenStore(env.prefs, FakeTokenCipher).set("jeton")
             env.prefs.setMihonTreeUri("content://mihon/tree")
-            val cbz = File.createTempFile("source", ".cbz").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+            // Dans son propre dossier : le worker supprime le dossier parent du cache, qui serait sinon
+            // le dossier temporaire de la JVM (et les dossiers Robolectric des autres tests).
+            val cbz = File(kotlin.io.path.createTempDirectory("job-4").toFile(), "source.cbz").apply { writeBytes(byteArrayOf(1, 2, 3)) }
             env.db.jobDao().upsert(
                 job("job-4", phoneState = "UPLOADING", mode = JobMode.TRANSLATE).copy(
                     driveFolderId = "dossier-drive", uploadSessionUrl = "https://session",

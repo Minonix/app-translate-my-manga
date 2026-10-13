@@ -395,8 +395,7 @@ private fun SectionHeader(link: String, onLink: () -> Unit) {
     }
 }
 
-// Pas de cle : deux lignes peuvent partager le meme numero entier (7 et 7.5), et une cle en
-// double fait planter la LazyColumn. La position suffit, l'etat vit dans le ViewModel.
+// Pas de cle LazyColumn : la position suffit, l'etat (selection par SeriesRow.key) vit dans le ViewModel.
 private fun LazyListScope.chapterItems(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
     val rows = state.rows
     items(rows.size, contentType = { "chapter" }) { index ->
@@ -406,8 +405,8 @@ private fun LazyListScope.chapterItems(state: SeriesState, onEvent: (SeriesEvent
             ChapterRow(
                 row = row,
                 selecting = state.selecting,
-                selected = row.number in state.selected,
-                expanded = row.number in state.expandedStats,
+                selected = row.key in state.selected,
+                expanded = row.key in state.expandedStats,
                 onEvent = onEvent,
             )
         }
@@ -425,11 +424,11 @@ private fun ChapterRow(
 ) {
     val selectable = !row.locked && row.kind != ChapterKind.NotDownloaded
     val hasStats = row.stats != null && row.kind == ChapterKind.InMihon
-    val statsCd = stringResource(R.string.series_chapter_stats_cd_fmt, row.number)
+    val statsCd = stringResource(R.string.series_chapter_stats_cd_fmt, row.label)
     val click: Modifier = when {
-        selecting && selectable -> Modifier.clickable(role = Role.Checkbox) { onEvent(SeriesEvent.ToggleChapter(row.number)) }
+        selecting && selectable -> Modifier.clickable(role = Role.Checkbox) { onEvent(SeriesEvent.ToggleChapter(row.key)) }
         !selecting && hasStats -> Modifier
-            .clickable(role = Role.Button) { onEvent(SeriesEvent.ToggleStats(row.number)) }
+            .clickable(role = Role.Button) { onEvent(SeriesEvent.ToggleStats(row.key)) }
             .semantics { contentDescription = statsCd }
         else -> Modifier
     }
@@ -448,7 +447,8 @@ private fun ChapterRow(
                 text = if (row.number < 0) {
                     stringResource(R.string.series_chapter_unnumbered)
                 } else {
-                    stringResource(R.string.series_chapter_number_fmt, row.number)
+                    val number = stringResource(R.string.series_chapter_number_fmt, row.label)
+                    if (row.duplicate) "$number · ${row.edition ?: stringResource(R.string.translate_unknown_scanlator)}" else number
                 },
                 style = TmmType.mono(15),
                 color = if (dimmed) C.muted else C.ink,
@@ -538,14 +538,14 @@ private fun MoreSheetContent(state: SeriesState, allSeries: Boolean, onEvent: (S
         stringResource(
             R.string.series_sheet_kicker_fmt,
             pluralStringResource(R.plurals.series_chapters_selected, state.selectionCount, state.selectionCount),
-            state.selectedNumbers.joinToString(", "),
+            state.selectedLabels.joinToString(", "),
         )
     }
     V2SheetHeader(kick = kick, title = stringResource(R.string.series_sheet_more_title))
 
     val redIsInstall = counts.translate == 0 && counts.install > 0
     if (counts.translate > 0) {
-        val numbers = if (allSeries) state.toTranslateNumbers else state.toTranslateNumbers.filter { it in state.selected }
+        val numbers = if (allSeries) state.toTranslateNumbers else state.selectionToTranslateNumbers
         V2Button(
             label = if (numbers.size == counts.translate) {
                 translateLabel(numbers)

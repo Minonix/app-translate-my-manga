@@ -76,6 +76,8 @@ class JobRepository(
     ): CreateJobsResult {
         val createdIds = mutableListOf<String>()
         var refused = 0
+        // R2 : numeros (serie, numero) dont une edition part en traduction dans ce lot.
+        val translatingNumbers = HashSet<Pair<String, Float>>()
         // Un seul verrou et une seule transaction pour tout le lot : envoyer 2000 chapitres declenchait
         // 2000 invalidations Room, et l'accueil se recalculait a chacune.
         mutex.withLock {
@@ -84,6 +86,18 @@ class JobRepository(
                     val jobId = run {
                         val flatPath = target.mihonPath.flatten()
                         val hasActive = db.jobDao().getAllForMihonPath(flatPath).any { it.isActive() }
+                        // R2 : jamais deux editions du meme numero traduites en meme temps. Un simple
+                        // envoi (translate = false) n'est pas une traduction : il reste libre.
+                        val number = (target.downloaded?.number ?: target.chapter?.number)?.takeIf { it >= 0f }
+                        val seriesKey = target.series?.seriesKey ?: target.downloaded?.seriesKey
+                        val edition = if (translate && number != null && seriesKey != null) seriesKey to number else null
+                        val otherEditionBusy = edition != null && (
+                            edition in translatingNumbers ||
+                                db.downloadedChapterDao().getForNumber(edition.first, edition.second).any { other ->
+                                    other.mihonPath != flatPath &&
+                                        db.jobDao().getAllForMihonPath(other.mihonPath).any { it.isActive() && it.translate }
+                                }
+                            )
                         val indexEntry = db.pcIndexChapterDao().get(flatPath)
                         val refuse = if (redeliver) {
                             // Redemande sans fichier (docs/ERREURS_PROTOCOLE.md 2) : rien a lire localement.
@@ -97,10 +111,11 @@ class JobRepository(
                         } else {
                             hasActive || indexEntry?.original != true
                         }
-                        if (refuse) {
+                        if (refuse || otherEditionBusy) {
                             refused++
                             return@run null
                         }
+                        if (edition != null) translatingNumbers += edition
                         val id = UUID.randomUUID().toString()
                         val now = clock.nowMillis()
                         db.jobDao().upsert(

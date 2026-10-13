@@ -88,6 +88,33 @@ class JobRepositoryTest {
         assertEquals(0, second.refused)
     }
 
+    // Deux editions (scantrads) du meme numero 1 de la serie "s".
+    private suspend fun seedEdition(chapterDir: String): JobTarget {
+        val downloaded = DownloadedChapterEntity(
+            mihonPath = "MangaSource/Titre/$chapterDir", sourceDir = "MangaSource", seriesDir = "Titre", chapterDir = chapterDir,
+            documentUri = "doc://$chapterDir", isCbz = true, sizeBytes = 1_000L, lastModified = 0L, pageCount = 10,
+            seriesKey = "s", chapterKey = null, number = 1f,
+        )
+        env.db.downloadedChapterDao().upsert(downloaded)
+        return JobTarget(MihonPath("MangaSource", "Titre", chapterDir), downloaded, series = null, chapter = null)
+    }
+
+    // R2 : le refus de doublon ne regardait que le chemin Mihon ; deux editions du 1 partaient en traduction.
+    @Test fun createJobs_refusesSecondEditionOfSameNumber_whileFirstIsTranslating() = runTest {
+        val a = seedEdition("Team A_Chapitre 1_aaaaaa")
+        val b = seedEdition("Team B_Chapitre 1_bbbbbb")
+        val repo = env.container.jobRepository
+
+        val batch = repo.createJobs(JobMode.TRANSLATE, listOf(a, b))
+        assertEquals(1, batch.createdJobIds.size)
+        assertEquals(1, batch.refused)
+
+        val later = repo.createJobs(JobMode.TRANSLATE, listOf(b))
+        assertEquals(0, later.createdJobIds.size)
+        // Un simple envoi (sans traduction) n'est pas une seconde traduction.
+        assertEquals(1, repo.createJobs(JobMode.TRANSLATE, listOf(b), translate = false).createdJobIds.size)
+    }
+
     @Test fun createJobs_refusesVerify_whenIndexHasNoOriginal() = runTest {
         val flatPath = MihonPath("MangaSource", "Titre", "Chapitre 1").flatten()
         env.db.pcIndexChapterDao().insertAll(listOf(PcIndexChapterEntity(flatPath, original = false, fr = false)))

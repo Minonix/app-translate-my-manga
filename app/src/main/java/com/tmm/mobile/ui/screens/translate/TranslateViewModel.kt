@@ -6,6 +6,8 @@ import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
+import com.tmm.mobile.data.editionRanking
+import com.tmm.mobile.data.oneEditionPerNumber
 import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -216,14 +218,14 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
         scanlatorOf: (DownloadedChapterEntity) -> String?,
     ): List<TranslateChapter> {
         val scanlators = all.associate { it.mihonPath to scanlatorOf(it) }
-        // Plus de chapitres d'abord, puis ordre alphabétique, scantrad inconnue en dernier.
-        val ranking = all.groupingBy { scanlators[it.mihonPath] }.eachCount().entries
-            .sortedWith(compareByDescending<Map.Entry<String?, Int>> { it.value }.thenBy { it.key == null }.thenBy { it.key })
-            .mapIndexed { i, e -> e.key to i }.toMap()
+        val ranking = editionRanking(all.map { scanlators[it.mihonPath] })
         val copiesByNumber = all.mapNotNull { it.number }.groupingBy { it }.eachCount()
         val handledNumbers = all.filter { it.mihonPath !in toSendPaths }.mapNotNull { it.number }.toSet()
-        val chosen = mutableSetOf<Float>()
-        return all.filter { it.mihonPath in toSendPaths }
+        val toSend = all.filter { it.mihonPath in toSendPaths }
+        // R2 : une seule copie precochee par numero, aucune si une autre edition est deja traitee.
+        val preselected = oneEditionPerNumber(toSend, handledNumbers, { it.number }, compareBy<DownloadedChapterEntity> { ranking[scanlators[it.mihonPath]] })
+            .mapTo(HashSet()) { it.mihonPath }
+        return toSend
             .sortedWith(compareBy({ it.number ?: 0f }, { ranking[scanlators[it.mihonPath]] }))
             .map { dl ->
                 val n = dl.number
@@ -235,7 +237,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
                     pages = dl.pageCount,
                     scanlator = scanlators[dl.mihonPath],
                     duplicate = duplicate,
-                    defaultSelected = n == null || !duplicate || (n !in handledNumbers && chosen.add(n)),
+                    defaultSelected = dl.mihonPath in preselected,
                 )
             }
     }

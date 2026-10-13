@@ -152,11 +152,12 @@ object MockupData {
         ),
         missing = listOf(23),
         nextExpected = 215,
-        expandedStats = setOf(211),
+        expandedStats = setOf("211"),
         seriesCounts = ActionCounts(translate = 3, install = 1, verify = 2, retranslate = 2, copy = 1),
         selectionCounts = ActionCounts(translate = 1, install = 1, verify = 1, retranslate = 1, copy = 1),
         toTranslateNumbers = listOf(214),
-        selected = setOf(214, 212, 211),
+        selectionToTranslateNumbers = listOf(214),
+        selected = setOf("214", "212", "211"),
         selectionToDelete = 3,
     )
 

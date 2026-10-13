@@ -97,9 +97,9 @@
     <string name="series_chapters_title">Chapitres</string>
     <string name="series_select">Sélectionner</string>
     <string name="series_select_done">Terminer</string>
-    <string name="series_chapter_number_fmt">Ch. %1$d</string>
+    <string name="series_chapter_number_fmt">Ch. %1$s</string>
     <string name="series_chapter_unnumbered">Sans numéro</string>
-    <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$d</string>
+    <string name="series_chapter_stats_cd_fmt">Détails de traduction du chapitre %1$s</string>
     <string name="series_status_to_translate">À traduire</string>
     <string name="series_status_on_pc">Sur le PC, pas traduit</string>
     <string name="series_status_waiting">En attente du PC</string>
