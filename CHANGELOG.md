@@ -11,6 +11,15 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.5.1] - 2026-10-13
+
+### Corrige
+- Demarrage plus rapide : l'ecran s'affiche apres les verifications rapides, le scan et le rafraichissement Drive passent en arriere-plan.
+- L'onglet Accueil ne rouvre plus une serie ouverte depuis l'Accueil ; un retour au premier plan ne ramene plus a l'Accueil.
+- Chapitres manquants : comptes seulement si la serie a au moins un chapitre sur le telephone ou le PC ; la ligne des manquants est retiree de l'Accueil.
+- Le numero de chapitre -1 n'etire plus la plage des manquants et s'affiche "Sans numero" ; seuls les numeros consecutifs sont regroupes.
+- Couvertures : celles de la source locale Mihon s'affichent, et les redirections vers http:// sont suivies en https.
+
 ## [1.5.0] - 2026-10-12
 
 Remplace la 1.4.0, qui n'a pas ete publiee.
