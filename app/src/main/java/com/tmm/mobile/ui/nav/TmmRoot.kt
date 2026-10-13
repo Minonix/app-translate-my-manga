@@ -85,7 +85,14 @@ fun TmmRoot() {
             when (result) {
                 StartupResult.ONBOARDING -> navController.navigateSingleTop(OnboardingRoute)
                 StartupResult.PERMISSION_NEEDED -> navController.navigateSingleTop(PermissionRoute)
-                StartupResult.DONE -> navController.navigateSingleTop(HomeRoute)
+                // Seulement en sortie d'Onboarding/Permission : sinon chaque retour au premier plan
+                // ramenait sur l'Accueil depuis n'importe quel ecran.
+                StartupResult.DONE -> {
+                    val current = navController.currentDestination
+                    if (current?.hasRoute<OnboardingRoute>() == true || current?.hasRoute<PermissionRoute>() == true) {
+                        navController.navigateSingleTop(HomeRoute)
+                    }
+                }
             }
         }
     }
@@ -188,19 +195,7 @@ fun TmmRoot() {
                     TmmBottomBarItem(icon, label, badgeCount = if (index == 2) activityBadge.takeIf { it > 0 } else null)
                 },
                 selectedIndex = selectedTab,
-                onSelect = { index ->
-                    val target = when (index) {
-                        0 -> HomeRoute
-                        1 -> LibraryRoute()
-                        2 -> QueueRoute
-                        else -> SettingsRoute
-                    }
-                    navController.navigate(target) {
-                        popUpTo(HomeRoute) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+                onSelect = { index -> navController.selectTab(index) },
             )
         }
     }
@@ -211,6 +206,25 @@ private fun startDestinationFor(result: StartupResult) = when (result) {
     StartupResult.ONBOARDING -> OnboardingRoute
     StartupResult.PERMISSION_NEEDED -> PermissionRoute
     StartupResult.DONE -> HomeRoute
+}
+
+/** Onglet de la barre basse : 0 Accueil, 1 Bibliotheque, 2 Activite, 3 Reglages. */
+internal fun NavHostController.selectTab(index: Int) {
+    val target: Any = when (index) {
+        0 -> HomeRoute
+        1 -> LibraryRoute()
+        2 -> QueueRoute
+        else -> SettingsRoute
+    }
+    navigate(target) {
+        // saveState garde la pile de l'onglet quitte (Bibliotheque > fiche serie).
+        popUpTo(HomeRoute) { saveState = true }
+        launchSingleTop = true
+        // Jamais pour l'Accueil : le popUpTo non inclusif rattache aussi a HomeRoute la fiche serie
+        // ouverte depuis l'Accueil, que restoreState rouvrait (onglet Accueil sans effet, fiche
+        // rouverte en revenant d'Activite ou Reglages).
+        restoreState = index != 0
+    }
 }
 
 private fun NavHostController.navigateSingleTop(route: Any) {
@@ -228,7 +242,13 @@ private fun DisposableEffectStartup(startup: Startup, onResult: (StartupResult) 
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
-                scope.launch { onResult(startup.run()) }
+                // Porte rapide d'abord : l'ecran s'affiche sur le cache Room, le scan Mihon et le poll
+                // suivent en arriere-plan (une permission perdue passe par Startup.results).
+                scope.launch {
+                    val gate = startup.gate()
+                    onResult(gate)
+                    if (gate == StartupResult.DONE) startup.run()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

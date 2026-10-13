@@ -16,12 +16,14 @@ import com.tmm.mobile.mihon.DownloadScanner
 import com.tmm.mobile.mihon.MihonFs
 import com.tmm.mobile.mihon.MihonTree
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 enum class StartupResult { ONBOARDING, PERMISSION_NEEDED, DONE }
 
@@ -41,26 +43,41 @@ class Startup(
     // et TmmRoot doit quand meme renvoyer vers l'ecran Permission si l'acces Mihon a ete retire.
     val results: SharedFlow<StartupResult> = _results.asSharedFlow()
 
-    suspend fun run(): StartupResult = runLocked().also { _results.tryEmit(it) }
+    // Tout sur IO : les appels SAF (children, openInput) et la lecture du .tachibk sont bloquants, et
+    // TmmRoot/Reglages/Accueil lancaient run() depuis le thread principal (UI figee au lancement).
+    suspend fun run(): StartupResult = withContext(Dispatchers.IO) { runLocked() }.also { _results.tryEmit(it) }
 
-    private suspend fun runLocked(): StartupResult = mutex.withLock {
-        if (!prefs.onboardingDone.first()) return@withLock StartupResult.ONBOARDING
+    /**
+     * Porte rapide du premier affichage : onboarding, permission SAF et lecture de la racine Mihon,
+     * sans scan, import de sauvegarde ni poll. TmmRoot affiche l'ecran tout de suite (cache Room) puis
+     * lance run() en arriere-plan.
+     */
+    suspend fun gate(): StartupResult = withContext(Dispatchers.IO) { gateOrRoot().first }
 
-        val treeUriString = prefs.mihonTreeUri.first() ?: return@withLock StartupResult.PERMISSION_NEEDED
+    private suspend fun gateOrRoot(): Pair<StartupResult, Pair<MihonFs, String>?> {
+        if (!prefs.onboardingDone.first()) return StartupResult.ONBOARDING to null
+
+        val treeUriString = prefs.mihonTreeUri.first() ?: return StartupResult.PERMISSION_NEEDED to null
         val treeUri = Uri.parse(treeUriString)
         val hasPermission = context.contentResolver.persistedUriPermissions.any {
             it.uri == treeUri && it.isReadPermission && it.isWritePermission
         }
-        if (!hasPermission) return@withLock StartupResult.PERMISSION_NEEDED
+        if (!hasPermission) return StartupResult.PERMISSION_NEEDED to null
 
         val fs: MihonFs = MihonTree(context.contentResolver, treeUri)
-        val rootDocId = try {
+        return try {
             val docId = DocumentsContract.getTreeDocumentId(treeUri)
             fs.children(docId)
-            docId
+            StartupResult.DONE to (fs to docId)
         } catch (e: Exception) {
-            return@withLock StartupResult.PERMISSION_NEEDED
+            StartupResult.PERMISSION_NEEDED to null
         }
+    }
+
+    private suspend fun runLocked(): StartupResult = mutex.withLock {
+        val (gate, root) = gateOrRoot()
+        if (root == null) return@withLock gate
+        val (fs, rootDocId) = root
 
         // Sauvegarde ou dossier Mihon devenus illisibles en cours de route (SAF) : on garde le cache
         // Room et on poursuit, plutot que de faire planter l'app a chaque retour au premier plan.
