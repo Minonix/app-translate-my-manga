@@ -11,6 +11,20 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.6.0] - 2026-10-13
+
+### Corrige
+- Serie et suivi : un chapitre se choisit par edition, une seule par numero (R2).
+- Suivi : un chapitre annule ou deja traite n'est plus renvoye (R3, R7).
+- Plus d'etat bloque ou faux sur le telephone (envois, suppressions, actualisation).
+- Premier lancement : plus de valeurs de maquette (PC, dossier Drive) et le bouton de l'ecran vide lance vraiment le scan.
+
+### Modifie
+- Reglages : un message signale quand une modification ecrase une valeur venue du PC (R8).
+
+### Retire
+- Choix de la police et action « Recuperer depuis Drive » (R12).
+
 ## [1.5.4] - 2026-10-13
 
 ### Corrige
