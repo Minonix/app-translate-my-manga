@@ -106,14 +106,16 @@ class JobRepositoryTest {
         assertEquals(0, result.refused)
     }
 
-    @Test fun cancel_onPreparing_deletesJobAndDriveFolder() = runTest {
+    @Test fun cancel_onPreparing_keepsJobAsCancelled_andDeletesDriveFolder() = runTest {
         val folder = FakeFile(name = "job-1", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.google-apps.folder", modifiedTime = "2026-01-01T00:00:00Z")
         env.drive.files[folder.id] = folder
         env.db.jobDao().upsert(job(jobId = "job-1", phoneState = "PREPARING", driveFolderId = folder.id))
 
         env.container.jobRepository.cancel("job-1")
 
-        assertNull(env.db.jobDao().get("job-1"))
+        val cancelled = env.db.jobDao().get("job-1")!!
+        assertEquals("CANCEL_REQUESTED", cancelled.phoneState)
+        assertEquals("cancelled", cancelled.pcState)
         assertFalse(env.drive.files.containsKey(folder.id))
     }
 

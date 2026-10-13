@@ -50,6 +50,6 @@ object GlobalCounts {
 }
 
 /** Même périmètre pour le badge et les listes de traitements et transferts. */
-internal fun JobEntity.isInActivity(): Boolean = !isFailed() && phoneState in setOf(
+internal fun JobEntity.isInActivity(): Boolean = !isFailed() && !isCancelled() && phoneState in setOf(
     "PREPARING", "UPLOADING", "SENT", "DOWNLOADING", "CANCEL_REQUESTED",
 )

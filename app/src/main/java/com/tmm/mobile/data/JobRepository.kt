@@ -184,7 +184,17 @@ class JobRepository(
                         AppLog.d("JobRepository", "suppression du dossier du job impossible : ${e.message}")
                     }
                 }
-                db.jobDao().delete(job)
+                // R3 : le job reste en base, clos comme annule (le PC n'en a jamais entendu parler, rien
+                // a lui ecrire). Le supprimer rendait le chapitre « a envoyer » et le suivi le renvoyait.
+                val now = clock.nowMillis()
+                db.jobDao().upsert(
+                    job.copy(
+                        phoneState = "CANCEL_REQUESTED",
+                        pcState = "cancelled",
+                        cancelWrittenAt = now,
+                        updatedAt = now,
+                    ),
+                )
             }
             "SENT" -> {
                 db.jobDao().upsert(job.copy(phoneState = "CANCEL_REQUESTED", updatedAt = clock.nowMillis()))
