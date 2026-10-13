@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.5.4] - 2026-10-13
+
+### Corrige
+- Traduire : la recherche de serie ne perd plus les lettres tapees rapidement (seule la premiere restait).
+
 ## [1.5.3] - 2026-10-13
 
 ### Corrige
