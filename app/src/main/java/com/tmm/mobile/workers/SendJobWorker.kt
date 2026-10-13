@@ -18,6 +18,7 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.ErrorCatalog
 import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.mihon.CbzPacker
+import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.mihon.MihonFs
 import com.tmm.mobile.protocol.ChapterRef
 import com.tmm.mobile.protocol.FileRef
@@ -322,8 +323,8 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
             series = SeriesRef(
                 title = series?.title ?: job.seriesDir,
                 sourceName = series?.sourceName ?: job.sourceDir,
-                sourceId = series?.sourceId,
-                url = series?.url,
+                sourceId = series?.takeUnless { DownloadOnlySeries.isDownloadOnly(it.seriesKey) }?.sourceId,
+                url = series?.takeUnless { DownloadOnlySeries.isDownloadOnly(it.seriesKey) }?.url,
             ),
             chapter = ChapterRef(
                 name = chapter?.name ?: job.chapterDir,

@@ -325,7 +325,7 @@ class SeriesViewModel(
         val joinRows = buildChapterJoinRows(seriesKey, series.sourceName, series.title, c.joinInputs)
         val missing = deriveSeriesSummary(seriesKey, joinRows.toAggregateInputs(), c.ignoredGaps).missing
         val qualityByPath = c.qualities.associateBy { it.mihonPath }
-        val chapterRows = dedupeCatalogOnly(joinRows).map { row -> row.toSeriesRow(qualityByPath[row.flatPath]) }
+        val chapterRows = joinRows.map { row -> row.toSeriesRow(qualityByPath[row.flatPath]) }
         val gapRows = missing.map { SeriesRow(it, ChapterKind.Missing) }
         val categoryNameByOrder = categories.associate { it.order to it.name }
         val primaryOrder = links.filter { it.seriesKey == seriesKey }.minOfOrNull { it.categoryOrder }
@@ -388,21 +388,6 @@ private fun progressOf(rows: List<SeriesRow>) = SeriesProgress(
     notDownloaded = rows.count { it.kind == ChapterKind.NotDownloaded },
     total = rows.size,
 )
-
-/**
- * Une ligne par numero de chapitre : un exemplaire present (telecharge, sur le PC, traduit) masque
- * ses doublons seulement au catalogue (autre scantrad, serie ajoutee deux fois), et un seul de ces
- * doublons reste quand aucun n'est present. Les numeros inconnus (-1 chez Mihon) restent tous.
- */
-internal fun dedupeCatalogOnly(rows: List<ChapterJoinRow>): List<ChapterJoinRow> {
-    fun exactNumber(row: ChapterJoinRow): Float? = row.chapter?.number ?: row.downloaded?.number
-    val present = rows.filter { it.status != ChapterStatus.CATALOG_ONLY }.mapNotNullTo(HashSet(), ::exactNumber)
-    val keptCatalog = HashSet<Float>()
-    return rows.filter { row ->
-        val number = exactNumber(row)
-        row.status != ChapterStatus.CATALOG_ONLY || number == null || number < 0 || (number !in present && keptCatalog.add(number))
-    }
-}
 
 private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?): SeriesRow {
     val job = facts.latestJob

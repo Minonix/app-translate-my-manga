@@ -76,7 +76,7 @@ class DownloadScannerTest {
         assertEquals(0, db.downloadedChapterDao().observeAll().first().size)
     }
 
-    @Test fun scanDownloads_unmatchedSeries_keepsChapterWithNullSeriesKey() = runTest {
+    @Test fun scanDownloads_unmatchedSeries_becomesItsOwnSeries() = runTest {
         val sourceDir = File(root, "MangaSource").apply { mkdirs() }
         val seriesDir = File(sourceDir, "Bleach").apply { mkdirs() }
         chapter(seriesDir, "Chapitre 1")
@@ -86,7 +86,37 @@ class DownloadScannerTest {
 
         val all = db.downloadedChapterDao().observeAll().first()
         assertEquals(1, all.size)
-        assertNull(all[0].seriesKey)
+        assertEquals(DownloadOnlySeries.key("MangaSource", "Bleach"), all[0].seriesKey)
+        assertNull(all[0].chapterKey)
+        assertEquals(1f, all[0].number)
+        assertEquals("Bleach", db.seriesDao().get(DownloadOnlySeries.key("MangaSource", "Bleach"))?.title)
+    }
+
+    // Cas reel : la sauvegarde ne connait la serie que sur une autre source (MangaFire), les
+    // chapitres sont telecharges depuis MangaDot (EN). Ils forment leur propre serie, numerotee, sans
+    // rien rattacher a la copie MangaFire, et le restent apres un nouvel import (cache par date).
+    @Test fun scanDownloads_seriesOnlyOnOtherSource_staysSeparateAcrossReimport() = runTest {
+        db.seriesDao().upsert(SeriesEntity("fire", "1", "/title/x", "The Garden of Secrets", null, 0, null, "MangaFire", 0L, null))
+        db.chapterDao().upsertAll(listOf(ChapterEntity("fire|29", "fire", "/ch/29", "Ch. 29", 29f, "official", false, 0L)))
+        val seriesDir = File(File(root, "MangaDot (EN)"), "The Garden of Secrets").apply { mkdirs() }
+        chapter(seriesDir, "Nyx Scans_Chapter 29_816b9c")
+        chapter(seriesDir, "Rinko Comics_Chapter 29_aaaaaa")
+        chapter(seriesDir, "Rinko Comics_Chapter 50.5_bbbbbb")
+        val scanner = DownloadScanner(FakeMihonFs(root), db)
+        val ownKey = DownloadOnlySeries.key("MangaDot (EN)", "The Garden of Secrets")
+
+        scanner.scanDownloads(root.absolutePath)
+        val rows = db.downloadedChapterDao().observeAll().first()
+        assertEquals(setOf(ownKey), rows.map { it.seriesKey }.toSet())
+        assertEquals(listOf(29f, 29f, 50.5f), rows.mapNotNull { it.number }.sorted())
+
+        // Import d'une sauvegarde (vide la table series), dossier inchange : la serie revient.
+        db.seriesDao().clear()
+        db.seriesDao().upsert(SeriesEntity("fire", "1", "/title/x", "The Garden of Secrets", null, 0, null, "MangaFire", 0L, null))
+        scanner.scanDownloads(root.absolutePath)
+        scanner.rematch()
+        assertEquals("MangaDot (EN)", db.seriesDao().get(ownKey)?.sourceName)
+        assertEquals(setOf(ownKey), db.downloadedChapterDao().observeAll().first().map { it.seriesKey }.toSet())
     }
 
     @Test fun scanDownloads_secondScan_skipsUnchangedSeriesDirViaCache() = runTest {
@@ -169,10 +199,12 @@ class DownloadScannerTest {
         chapter(seriesDir, "Chapitre 1")
         val scanner = DownloadScanner(FakeMihonFs(root), db)
         scanner.scanDownloads(root.absolutePath)
-        assertNull(db.downloadedChapterDao().observeAll().first().single().seriesKey)
+        val ownKey = DownloadOnlySeries.key("MangaSource", "One Piece")
+        assertEquals(ownKey, db.downloadedChapterDao().observeAll().first().single().seriesKey)
 
         seedSeries()
         scanner.rematch()
+        assertNull(db.seriesDao().get(ownKey))
 
         assertEquals("sk1", db.downloadedChapterDao().observeAll().first().single().seriesKey)
     }
@@ -235,5 +267,13 @@ class DownloadScannerTest {
         folder.setLastModified(folder.lastModified() + 10_000)
         scanner.scanLocal(localRoot.absolutePath)
         assertEquals(listOf("OnePiece/ch1.cbz"), db.localFrChapterDao().observeAll().first().map { it.localPath })
+    }
+
+    @Test
+    fun guessScanlator_readsPrefixBeforeChapterKeyword() {
+        assertEquals("Nyx Scans", DownloadOnlySeries.guessScanlator("Nyx Scans_Chapter 29_816b9c.cbz"))
+        assertEquals("Rinko Comics", DownloadOnlySeries.guessScanlator("Rinko Comics_Chapter 47_1a91b8"))
+        assertEquals(null, DownloadOnlySeries.guessScanlator("Chapter 5_ Titre_123abc"))
+        assertEquals(null, DownloadOnlySeries.guessScanlator("Extra_ffffff.cbz"))
     }
 }

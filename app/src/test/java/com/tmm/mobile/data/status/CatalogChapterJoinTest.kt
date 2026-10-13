@@ -30,6 +30,14 @@ class CatalogChapterJoinTest {
         assertEquals(1, deriveSeriesSummary("sk1", rows.toAggregateInputs(), emptySet()).onPc)
     }
 
+    // Catalogue "official" + "unofficial" (65 entrees pour 43 numeros) : la Bibliotheque comptait 65,
+    // la Fiche serie 43. La jointure commune ne garde qu'une ligne par numero.
+    @Test fun duplicateCatalogNumbers_countedOnce() {
+        val other = chapter.copy(chapterKey = "ck1b", url = "https://x/1b", scanlator = "official")
+        val inputs = ChapterJoinInputs(listOf(chapter, other), emptyList(), emptyList(), emptyList(), emptyList())
+        assertEquals(1, buildChapterJoinRows("sk1", "MangaDex", "One Piece", inputs).size)
+    }
+
     @Test fun loosePath_stripsOnlySourceLangSuffix() {
         assertEquals("MangaDex/Titre (FR)/Ch 1", loosePath("MangaDex (EN)/Titre (FR)/Ch 1"))
         assertEquals("MangaDex/Titre/Ch 1", loosePath("MangaDex/Titre/Ch 1"))

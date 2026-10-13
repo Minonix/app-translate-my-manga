@@ -131,7 +131,8 @@ internal fun buildLibrarySnapshot(
         val badge = summary.badge()
         val primaryOrder = linksBySeries[series.seriesKey]?.minOfOrNull { it.categoryOrder }
         val categoryName = primaryOrder?.let { categoryNameByOrder[it] } ?: ""
-        val totalChapters = index.chaptersBySeries[series.seriesKey]?.size ?: 0
+        // Meme total que la Fiche serie : catalogue dedoublonne + telechargements hors catalogue.
+        val totalChapters = rows.size
         val translation = planTranslation(rows)
         MockSeries(
             title = series.title,

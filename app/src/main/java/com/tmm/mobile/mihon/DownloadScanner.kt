@@ -37,9 +37,7 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 seen += key
                 if (cached[key] == seriesDirEntry.lastModified) continue
 
-                val allSeries = series
-                    ?: db.seriesDao().observeAll().first().map { MatchableSeries(it.seriesKey, it.sourceName, it.title) }
-                        .also { series = it }
+                val allSeries = series ?: matchableSeries().also { series = it }
                 // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
                 // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
                 val entries = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
@@ -65,7 +63,7 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                         pageCount = pageCount,
                         seriesKey = match?.series?.seriesKey,
                         chapterKey = match?.chapter?.chapterKey,
-                        number = match?.chapter?.number,
+                        number = match?.chapter?.number ?: DownloadOnlySeries.guessNumber(chapterEntry.name),
                     )
                 }
 
@@ -90,6 +88,7 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 }
             }
         }
+        syncDownloadOnlySeries()
     }
 
     /**
@@ -98,17 +97,49 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
      * une serie ajoutee a la bibliotheque Mihon resterait "hors catalogue".
      */
     suspend fun rematch() {
-        val series = db.seriesDao().observeAll().first().map { MatchableSeries(it.seriesKey, it.sourceName, it.title) }
+        val series = matchableSeries()
         val updated = db.downloadedChapterDao().observeAll().first()
             .groupBy { it.sourceDir to it.seriesDir }
             .flatMap { (dir, rows) ->
                 val matches = matchFolder(dir.first, dir.second, rows.map { it.chapterDir.removeSuffix(".cbz") }, series)
                 rows.map { row ->
                     val match = matches[row.chapterDir.removeSuffix(".cbz")]
-                    row.copy(seriesKey = match?.series?.seriesKey, chapterKey = match?.chapter?.chapterKey, number = match?.chapter?.number)
+                    row.copy(
+                        seriesKey = match?.series?.seriesKey,
+                        chapterKey = match?.chapter?.chapterKey,
+                        number = match?.chapter?.number ?: DownloadOnlySeries.guessNumber(row.chapterDir),
+                    )
                 }.filterIndexed { i, row -> row != rows[i] }
             }
         if (updated.isNotEmpty()) db.downloadedChapterDao().upsertAll(updated)
+        syncDownloadOnlySeries()
+    }
+
+    /** Series de la sauvegarde seulement : une serie "downloads|" ne sert jamais de candidate. */
+    private suspend fun matchableSeries(): List<MatchableSeries> = db.seriesDao().observeAll().first()
+        .filterNot { DownloadOnlySeries.isDownloadOnly(it.seriesKey) }
+        .map { MatchableSeries(it.seriesKey, it.sourceName, it.title) }
+
+    /**
+     * Cree la SeriesEntity des dossiers sans serie dans la sauvegarde, retire celles devenues inutiles
+     * (serie arrivee par une sauvegarde, dossier supprime). Rejoue apres chaque scan et rematch : un
+     * import de sauvegarde vide la table series, et le cache par date ne relirait pas ces dossiers.
+     * N'ecrit que ce qui change : la Bibliotheque ne se recalcule pas a chaque demarrage.
+     */
+    private suspend fun syncDownloadOnlySeries() {
+        val wanted = db.downloadedChapterDao().observeAll().first()
+            .filter { DownloadOnlySeries.isDownloadOnly(it.seriesKey) }
+            .groupBy { it.seriesKey }
+            .values.map { DownloadOnlySeries.entity(it) }
+        val existing = db.seriesDao().observeAll().first().filter { DownloadOnlySeries.isDownloadOnly(it.seriesKey) }
+        val wantedKeys = wanted.mapTo(HashSet()) { it.seriesKey }
+        val stale = existing.filter { it.seriesKey !in wantedKeys }
+        val changed = wanted - existing.toSet()
+        if (stale.isEmpty() && changed.isEmpty()) return
+        db.withTransaction {
+            stale.forEach { db.seriesDao().delete(it) }
+            if (changed.isNotEmpty()) db.seriesDao().upsertAll(changed)
+        }
     }
 
     suspend fun scanLocal(localRootDocId: String) {
@@ -168,6 +199,10 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
         val candidates = Matcher.findSeriesCandidates(sourceDir, seriesDir, series).map { candidate ->
             candidate to db.chapterDao().getForSeries(candidate.seriesKey)
                 .map { MatchableChapter(it.chapterKey, it.name, it.scanlator, it.url, it.number) }
+        }
+        if (candidates.isEmpty()) {
+            val own = MatchableSeries(DownloadOnlySeries.key(sourceDir, seriesDir), sourceDir, seriesDir)
+            return chapterDirNames.associateWith { ChapterMatch(own, null) }
         }
         return Matcher.assignChapters(chapterDirNames, candidates)
     }

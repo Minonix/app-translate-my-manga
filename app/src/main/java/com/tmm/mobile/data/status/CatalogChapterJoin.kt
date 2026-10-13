@@ -125,7 +125,23 @@ fun buildChapterJoinRows(
     val catalogRows = index.chaptersBySeries[seriesKey].orEmpty()
         .map { chapter -> rowFor(chapter, downloadedByChapterKey[chapter.chapterKey]) }
     val orphanRows = downloadedOrphans.map { downloaded -> rowFor(null, downloaded) }
-    return catalogRows + orphanRows
+    // Dedoublonne ici : la Bibliotheque (total) et la Fiche serie (liste) comptent les memes chapitres.
+    return dedupeCatalogOnly(catalogRows + orphanRows)
+}
+
+/**
+ * Une ligne par numero de chapitre : un exemplaire present (telecharge, sur le PC, traduit) masque
+ * ses doublons seulement au catalogue (autre scantrad, serie ajoutee deux fois), et un seul de ces
+ * doublons reste quand aucun n'est present. Les numeros inconnus (-1 chez Mihon) restent tous.
+ */
+internal fun dedupeCatalogOnly(rows: List<ChapterJoinRow>): List<ChapterJoinRow> {
+    fun exactNumber(row: ChapterJoinRow): Float? = row.chapter?.number ?: row.downloaded?.number
+    val present = rows.filter { it.status != ChapterStatus.CATALOG_ONLY }.mapNotNullTo(HashSet(), ::exactNumber)
+    val keptCatalog = HashSet<Float>()
+    return rows.filter { row ->
+        val number = exactNumber(row)
+        row.status != ChapterStatus.CATALOG_ONLY || number == null || number < 0 || (number !in present && keptCatalog.add(number))
+    }
 }
 
 fun List<ChapterJoinRow>.toAggregateInputs(): List<ChapterAggregateInput> = map { row ->
