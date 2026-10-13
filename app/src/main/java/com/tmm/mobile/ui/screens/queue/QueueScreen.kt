@@ -461,6 +461,7 @@ private fun LazyListScope.doneItems(state: QueueState, onEvent: (QueueEvent) -> 
         item(key = "doneEmpty", contentType = "empty") { EmptyCard(stringResource(R.string.activity_done_empty)) }
         return
     }
+    if (done.any { it.installed }) item(key = "doneClear", contentType = "action") { ClearAction(onEvent, QueueEvent.ClearDone) }
     items(done.size, key = { "d:" + done[it].mihonPath }, contentType = { "done" }) { i ->
         Box(
             Modifier
@@ -571,6 +572,7 @@ private fun LazyListScope.failItems(state: QueueState, onEvent: (QueueEvent) -> 
         item(key = "failEmpty", contentType = "empty") { EmptyCard(stringResource(R.string.activity_fail_empty)) }
         return
     }
+    item(key = "failClear", contentType = "action") { ClearAction(onEvent, QueueEvent.ClearFailed) }
     items(failed.size, key = { "f:" + failed[it].jobId }, contentType = { "fail" }) { i -> FailCard(failed[i], onEvent, onErrorAction) }
     if (failed.any { it.quota }) item(key = "quotaTip", contentType = "tip") { QuotaTip() }
 }
@@ -633,7 +635,10 @@ private fun FailCard(failed: FailedJob, onEvent: (QueueEvent) -> Unit, onErrorAc
             ErrorAction.REPAIR -> stringResource(R.string.activity_action_repair) to { onErrorAction(ErrorAction.REPAIR) }
             ErrorAction.RECONNECT_DRIVE -> stringResource(R.string.offline_btn_reconnect) to { onErrorAction(ErrorAction.RECONNECT_DRIVE) }
             ErrorAction.OPEN_PERMISSION -> stringResource(R.string.activity_action_open_permission) to { onErrorAction(ErrorAction.OPEN_PERMISSION) }
-            ErrorAction.UPDATE_PC, ErrorAction.UPDATE_APP, ErrorAction.NONE -> null to null
+            // Sans remede dedie (doublon, modele absent, source illisible) : on peut toujours reessayer
+            // une fois la cause levee, sinon l'echec reste bloque a l'ecran.
+            ErrorAction.NONE -> stringResource(R.string.activity_retry) to retry
+            ErrorAction.UPDATE_PC, ErrorAction.UPDATE_APP -> null to null
         }
         if (buttonLabel != null && onClick != null) {
             V2Button(
@@ -695,6 +700,19 @@ private fun SectionTitle(text: String, action: String? = null, onAction: () -> U
                 modifier = Modifier.clickable(role = Role.Button, onClick = onAction),
             )
         }
+    }
+}
+
+/** « Vider » en tete d'onglet : meme style que l'action de SectionTitle (« Tout annuler »), aligne a droite. */
+@Composable
+private fun ClearAction(onEvent: (QueueEvent) -> Unit, event: QueueEvent) {
+    Row(Modifier.padding(top = 12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        TmmText(
+            text = stringResource(R.string.activity_clear),
+            style = TmmType.sans(14, weight = 600),
+            color = C.red,
+            modifier = Modifier.clickable(role = Role.Button, onClick = { onEvent(event) }),
+        )
     }
 }
 

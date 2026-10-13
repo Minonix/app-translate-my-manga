@@ -35,6 +35,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val LAST_REFRESH_AT = longPreferencesKey("last_refresh_at")
         val HEARTBEAT_JSON = stringPreferencesKey("heartbeat_json")
         val HEARTBEAT_SEEN_AT = longPreferencesKey("heartbeat_seen_at")
+        val DONE_CLEARED_AT = longPreferencesKey("done_cleared_at")
         val INDEX_UPDATED_AT = stringPreferencesKey("index_updated_at")
         val SETTINGS_JSON = stringPreferencesKey("settings_json")
         val PENDING_COMMANDS_JSON = stringPreferencesKey("pending_commands_json")
@@ -101,6 +102,11 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     // serveur (en-tete Date Drive - modifiedTime, ou reception en direct) : insensible au decalage d'horloge.
     val heartbeatSeenAt: Flow<Long?> = dataStore.data.map { it[Keys.HEARTBEAT_SEEN_AT] }
     suspend fun setHeartbeatSeenAt(value: Long) = set(Keys.HEARTBEAT_SEEN_AT, value)
+
+    // « Vider » de l'onglet Terminees : masque ce qui est termine avant cet instant, sans supprimer
+    // de job (R7 : un chapitre installe puis supprime ne doit pas repartir avec le suivi).
+    val doneClearedAt: Flow<Long?> = dataStore.data.map { it[Keys.DONE_CLEARED_AT] }
+    suspend fun setDoneClearedAt(value: Long) = set(Keys.DONE_CLEARED_AT, value)
 
     val indexUpdatedAt: Flow<String?> = dataStore.data.map { it[Keys.INDEX_UPDATED_AT] }
     suspend fun setIndexUpdatedAt(value: String?) = setOrRemove(Keys.INDEX_UPDATED_AT, value)

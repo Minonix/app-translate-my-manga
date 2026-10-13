@@ -247,6 +247,7 @@
     <string name="activity_focus_cd_fmt">Voir le détail de %1$s</string>
     <string name="activity_next_fmt">Ensuite (%1$d)</string>
     <string name="activity_cancel_all_waiting">Tout annuler</string>
+    <string name="activity_clear">Vider</string>
     <string name="activity_cancel_uploads_fmt">Annuler les envois en cours (%1$d)</string>
     <string name="activity_waiting_translation">Traduction</string>
     <string name="activity_waiting_verification">Correction des oublis</string>
@@ -280,6 +281,7 @@
     <string name="activity_fail_fmt">Échec : %1$s</string>
     <string name="activity_resume_page_fmt">Reprendre à la page %1$d</string>
     <string name="activity_resume">Reprendre</string>
+    <string name="activity_retry">Réessayer</string>
     <string name="activity_quota_tip">Astuce : activez « Secours LLM local » dans Réglages, Traduction, pour basculer sur Ollama quand le quota est atteint.</string>
     <string name="activity_fail_empty">Aucun échec en cours.</string>
     <string name="activity_action_resend">Renvoyer le chapitre</string>

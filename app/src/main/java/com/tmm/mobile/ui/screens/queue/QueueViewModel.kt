@@ -62,6 +62,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         val pcIndex: List<PcIndexChapterEntity>,
         val heartbeatJson: String?,
         val autoSeries: Set<String>,
+        val doneClearedAt: Long,
     )
 
     // combine() type s'arrete a 5 flux : les trois premiers sont regroupes en amont.
@@ -69,10 +70,10 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         combine(db.jobDao().observeAll().ignoringProgress(), db.chapterQualityDao().observeAll(), db.seriesDao().observeAll(), ::Triple),
         db.downloadedChapterDao().observeAll(),
         db.pcIndexChapterDao().observeAll(),
-        prefs.heartbeatJson,
+        combine(prefs.heartbeatJson, prefs.doneClearedAt, ::Pair),
         db.seriesSettingsDao().observeAutoTranslateSeriesKeys(),
-    ) { (jobs, quality, seriesList), downloaded, pcIndex, heartbeatJson, autoSeries ->
-        Raw(jobs, quality, seriesList, downloaded, pcIndex, heartbeatJson, autoSeries.toSet())
+    ) { (jobs, quality, seriesList), downloaded, pcIndex, (heartbeatJson, doneClearedAt), autoSeries ->
+        Raw(jobs, quality, seriesList, downloaded, pcIndex, heartbeatJson, autoSeries.toSet(), doneClearedAt ?: 0L)
     }
 
     private val _ui = MutableStateFlow(QueueUi())
@@ -131,6 +132,35 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             // Ids lus a l'instant du clic : JobRepository.cancel ignore un job deja parti plus loin.
             QueueEvent.CancelAllWaiting -> cancelEach(state.value.waitingJobs.map { it.id })
             QueueEvent.CancelAllUploads -> cancelEach(state.value.transfers.filter { it.isUpload }.map { it.jobId })
+            QueueEvent.ClearDone -> launchSafely { prefs.setDoneClearedAt(clock.nowMillis()) }
+            QueueEvent.ClearFailed -> clearFailedEach(state.value.failedJobs.map { it.jobId })
+        }
+    }
+
+    // Relu en base job par job (FailedJob ne porte pas phoneState). Un pc_stalled est encore vivant
+    // cote PC : on l'annule au lieu de le supprimer. Un echec n'arrete pas les suivants.
+    private fun clearFailedEach(ids: List<String>) {
+        viewModelScope.launch {
+            ids.forEach { id ->
+                try {
+                    val job = db.jobDao().get(id) ?: return@forEach
+                    when {
+                        job.isStalled() -> jobRepository.cancel(id)
+                        // R3 : clos comme annule, pas supprime. Sans job, le chapitre redevenait « a envoyer »
+                        // et le suivi automatique le renvoyait au PC.
+                        job.phoneState == "FAILED" -> {
+                            val now = clock.nowMillis()
+                            db.jobDao().upsert(
+                                job.copy(phoneState = "CANCEL_REQUESTED", pcState = "cancelled", cancelWrittenAt = now, updatedAt = now),
+                            )
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("QueueViewModel", "vidage des echecs en echec : ${e.javaClass.simpleName} ${e.message}")
+                }
+            }
         }
     }
 
@@ -248,6 +278,8 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             .filter { it.phoneState == "RESULT_READY" || it.phoneState == "INSTALLED" }
             .map { it to jobReferenceMillis(it) }
             .filter { (_, at) -> now - at <= SEVEN_DAYS_MS }
+            // Un RESULT_READY n'est pas encore dans Mihon : « Vider » ne le masque jamais.
+            .filter { (job, at) -> job.phoneState == "RESULT_READY" || at > r.doneClearedAt }
             .sortedByDescending { (_, at) -> at }
             .map { (job, at) ->
                 val quality = qualityByPath[job.mihonPath]
