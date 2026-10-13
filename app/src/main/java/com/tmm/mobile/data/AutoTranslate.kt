@@ -29,7 +29,8 @@ suspend fun runAutoTranslate(db: TmmDatabase, jobRepository: JobRepository) {
 }
 
 /**
- * Chapitres telecharges au statut A traduire des series donnees : ce que le suivi automatique enverra.
+ * Chapitres telecharges au statut A traduire et sans aucun job des series donnees : ce que le suivi
+ * automatique enverra.
  * Partage par runAutoTranslate et par l'activation du suivi sur la fiche serie, pour que la feuille de
  * confirmation annonce exactement les chapitres qui partiront.
  */
@@ -43,6 +44,9 @@ suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List
 
         val index = db.pcIndexChapterDao().get(downloaded.mihonPath)
         val latestJob = db.jobDao().getAllForMihonPath(downloaded.mihonPath).firstOrNull()
+        // R3/R7 : le suivi ne s'occupe que des chapitres jamais envoyes. Un chapitre qui a deja eu un
+        // job (annule, installe puis supprime, installe sans fichier) ne repart qu'a la main.
+        if (latestJob != null) continue
         val facts = ChapterFacts(
             downloaded = true,
             inCatalog = index != null,
