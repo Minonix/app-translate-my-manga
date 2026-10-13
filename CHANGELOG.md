@@ -11,6 +11,17 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.8.0] - 2026-10-14
+
+### Ajoute
+- Activite : « Reessayer » sur tout echec et « Vider » dans Terminees et Echecs (sans supprimer l'historique du suivi).
+
+### Corrige
+- Statuts : une traduction deja presente dans Mihon n'apparait plus « Prete a installer ».
+- Envoi : un original que le PC possede deja n'est plus renvoye, le PC le retraduit depuis sa copie.
+- Serie : « Retraduire » est propose des que le PC a l'original.
+- Accueil : le bandeau « Le PC n'accede plus a Google Drive » ne s'affiche plus a tort.
+
 ## [1.7.0] - 2026-10-13
 
 ### Ajoute
