@@ -130,6 +130,21 @@ class SettingsSyncTest {
         assertTrue(pending().isEmpty())
     }
 
+    // Suppression PC : le compte de fichiers non supprimes de l'accuse reste lisible (il n'etait vu nulle part).
+    @Test fun reconcile_deleteApplied_exposesPcFailedCount() = runTest {
+        seedSettings(version = 3)
+        val sync = env.container.settingsSync
+        val cmdId = requireNotNull(sync.enqueueDelete(listOf(com.tmm.mobile.protocol.MihonPath("Source", "Serie", "Chapitre 1"))))
+        sync.sendPendingCommands()
+
+        sync.reconcile(pcSettings(version = 4).copy(lastCommandId = cmdId,
+            lastCommandResult = com.tmm.mobile.protocol.CommandResult(cmdId, "applied", deleted = 1, failed = 2)))
+
+        assertEquals(SyncBanner.APPLIED, sync.awaitConfirmation(cmdId))
+        assertEquals(2, sync.commandResult(cmdId)?.failed)
+        assertEquals(1, sync.commandResult(cmdId)?.deleted)
+    }
+
     // R12 : stale_version -> relue sur la nouvelle base et renvoyee UNE seule fois (nouveau cmdId) ;
     // un second stale_version la rejette.
     @Test fun reconcile_staleVersion_rebasesOnce_thenRejects() = runTest {

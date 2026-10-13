@@ -112,10 +112,11 @@ second jobId pour un `mihonPath` déjà actif échoue en `duplicate` sans touche
 sans partager sa tâche). Si le dossier d'un job actif disparaît de Drive, le PC annule la tâche.
 
 **R8 - Job orphelin (téléphone).** PC en ligne (R9) et job envoyé, et : soit aucun status.json 15 min
-après l'envoi, soit état `fetching`/`translating` sans que le jobId figure dans `activeJobIds`
-depuis 10 min. Le job s'affiche « bloqué sur le PC » (`pc_stalled`) avec « Relancer ». Côté PC, une
+après l'envoi, soit état `translating` sans que le jobId figure dans `activeJobIds`
+depuis 10 min (`fetching` n'est pas jugé : `activeJobIds` ne liste que les traductions). Le job s'affiche « bloqué sur le PC » (`pc_stalled`) avec « Relancer ». Côté PC, une
 tâche disparue est publiée `failed`/`job_lost` (jamais `cancelled`), et `waiting_recovery` ne publie
-pas `failed` tant que la récupération est possible.
+pas `failed` tant que la récupération est possible. Une annulation demandée par le téléphone que le PC
+n'acquitte pas en 15 min (et que le PC ne traduit pas) est close localement comme annulée.
 
 **R9 - Horloges.** « PC en ligne » se décide sur l'heure serveur : `modifiedTime` Drive du
 heartbeat comparé à l'en-tête `Date` de la réponse Drive (ou heure de réception en direct), jamais

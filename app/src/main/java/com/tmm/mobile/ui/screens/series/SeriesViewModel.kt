@@ -8,6 +8,7 @@ import com.tmm.mobile.data.ChapterDeleter
 import com.tmm.mobile.data.DeleteOptions
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
+import com.tmm.mobile.data.SyncBanner
 import com.tmm.mobile.data.autoTranslateTargets
 import com.tmm.mobile.data.editionRanking
 import com.tmm.mobile.data.oneEditionPerNumber
@@ -221,7 +222,22 @@ class SeriesViewModel(
             )
             // Les flux Room (local_fr_chapter, downloaded_chapter) rafraichissent la liste d'eux-memes.
             showToast(SeriesToast.Deleted(outcome.chapters, outcome.failed, outcome.pcUnavailable))
+            outcome.pcCmdId?.let { awaitPcDelete(it) }
         }
+    }
+
+    // Le PC acquitte la suppression dans settings.json : sans cette attente, un echec ou un refus restait invisible.
+    private suspend fun awaitPcDelete(cmdId: String) {
+        val sync = container.settingsSync
+        val banner = sync.awaitConfirmation(cmdId)
+        val failed = sync.commandResult(cmdId)?.failed ?: 0
+        val toast = when {
+            banner == SyncBanner.REJECTED -> SeriesToast.PcDeleteResult(PcDeleteOutcome.REJECTED)
+            banner == SyncBanner.WAITING_PC -> SeriesToast.PcDeleteResult(PcDeleteOutcome.WAITING)
+            failed > 0 -> SeriesToast.PcDeleteResult(PcDeleteOutcome.PARTIAL, failed)
+            else -> SeriesToast.PcDeleteResult(PcDeleteOutcome.DONE)
+        }
+        showToast(toast)
     }
 
     private fun rowsFor(allSeries: Boolean, predicate: (ChapterJoinRow) -> Boolean): List<ChapterJoinRow> {

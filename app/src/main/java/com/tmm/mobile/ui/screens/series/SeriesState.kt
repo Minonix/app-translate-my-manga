@@ -93,6 +93,8 @@ sealed interface SeriesSheet {
 enum class DeleteTarget { LocalFr, Mihon, Pc }
 
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu. */
+enum class PcDeleteOutcome { DONE, PARTIAL, REJECTED, WAITING }
+
 sealed interface SeriesToast {
     data class Translated(val chapterCount: Int) : SeriesToast
     data class Copied(val chapterCount: Int) : SeriesToast
@@ -104,6 +106,8 @@ sealed interface SeriesToast {
 
     /** Suivi active : porte l'action « Annuler ». */
     data class Followed(val chapterCount: Int) : SeriesToast
+    /** Resultat de la suppression demandee au PC (accuse du PC, ou pas encore de reponse). */
+    data class PcDeleteResult(val outcome: PcDeleteOutcome, val failed: Int = 0) : SeriesToast
 }
 
 data class SeriesState(

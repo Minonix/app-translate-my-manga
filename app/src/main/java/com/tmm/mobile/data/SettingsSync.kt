@@ -2,6 +2,7 @@ package com.tmm.mobile.data
 
 import androidx.work.WorkManager
 import com.tmm.mobile.core.AppLog
+import com.tmm.mobile.protocol.CommandResult
 import com.tmm.mobile.protocol.DeletePayload
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.PcSettings
@@ -198,7 +199,7 @@ class SettingsSync(
                 settings.lastCommandId == id && (result == null || result.status == "applied") -> {
                     // R8 : le PC signale les reglages dont la valeur plus ancienne venue de lui est ecrasee.
                     result?.overwritten?.takeIf { it.isNotEmpty() }?.let { o -> p.trackedIds.forEach { overwrites[it] = o } }
-                    resolve(p, SyncBanner.APPLIED)
+                    resolve(p, SyncBanner.APPLIED, result = result)
                 }
                 settings.lastCommandId == id && result?.code == "stale_version" && !p.rebased -> {
                     kept += PendingCommand(
@@ -228,9 +229,10 @@ class SettingsSync(
         if (rebasedAny || (kept.isNotEmpty() && kept.none { it.sent })) workManager.enqueueOutbox(prefs.wifiOnly.first())
     }
 
-    private fun resolve(p: PendingCommand, banner: SyncBanner, code: String? = null) {
+    private fun resolve(p: PendingCommand, banner: SyncBanner, code: String? = null, result: CommandResult? = null) {
         for (tracked in p.trackedIds) {
             outcomes[tracked] = banner
+            if (result != null) commandResults[tracked] = result else commandResults.remove(tracked)
             if (code != null) rejectCodes[tracked] = code else rejectCodes.remove(tracked)
         }
     }
@@ -248,6 +250,10 @@ class SettingsSync(
     private val outcomes = java.util.concurrent.ConcurrentHashMap<String, SyncBanner>()
     private val rejectCodes = java.util.concurrent.ConcurrentHashMap<String, String>()
     private val overwrites = java.util.concurrent.ConcurrentHashMap<String, List<String>>()
+    private val commandResults = java.util.concurrent.ConcurrentHashMap<String, CommandResult>()
+
+    // Accuse detaille du PC (compteurs deleted/failed d'une commande « delete »), null sans accuse explicite.
+    fun commandResult(cmdId: String): CommandResult? = commandResults[cmdId]
 
     // Evite d'attendre le prochain refresh() pour que values() reflete l'etat confirme.
     private suspend fun storeIfNewer(settings: PcSettings) {
