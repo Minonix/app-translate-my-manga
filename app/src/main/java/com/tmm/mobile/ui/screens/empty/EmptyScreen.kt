@@ -295,7 +295,7 @@ private fun EmptyHeader(state: EmptyState) {
                     color = TmmColors.ink,
                 )
             }
-            Row(
+            if (state.pcSeenText.isNotBlank()) Row(
                 modifier = Modifier
                     .height(36.dp)
                     .clip(RoundedCornerShape(18.dp))

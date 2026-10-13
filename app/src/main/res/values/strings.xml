@@ -371,6 +371,7 @@
     <string name="onb_drive_label">Drive</string>
     <string name="onb_step1_title">Relier le téléphone et le PC</string>
     <string name="onb_step1_desc">Les chapitres passent par un dossier de votre Google Drive. Le PC n\'a pas besoin d\'être allumé pour que vous envoyiez.</string>
+    <string name="onb_step1_connected">Compte Google connecté</string>
     <string name="onb_step1_folder_found_fmt">Dossier %1$s trouvé · PC vu il y a %2$s</string>
     <string name="onb_step2_title">Où est le dossier Mihon ?</string>
     <string name="onb_step2_desc">Choisissez le dossier racine de Mihon. Android vous demandera l\'autorisation une seule fois.</string>

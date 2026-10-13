@@ -38,7 +38,7 @@ fun MainRoute(nav: NavController) {
     }.collectAsState(initial = false)
 
     if (isEmpty) {
-        val vm: EmptyViewModel = viewModel(factory = viewModelFactory { initializer { EmptyViewModel() } })
+        val vm: EmptyViewModel = viewModel(factory = viewModelFactory { initializer { EmptyViewModel(scanMihon = { container.startup.run() }) } })
         val state by vm.state.collectAsStateWithLifecycle()
         EmptyScreen(
             state = state,

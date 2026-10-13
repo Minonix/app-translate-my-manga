@@ -10,9 +10,10 @@ data class OnboardingState(
     val step: Int = 1,
     val isWorking: Boolean = false,
     val isGoogleConnected: Boolean = false,
-    val googleAccount: String = "vous@gmail.com",
-    val sharedFolderName: String = "TranslateMyManga/",
-    val pcLastSeen: String = "2 min",
+    // Vides tant que Drive ne les a pas confirmes (avant : valeurs de maquette affichees meme en echec).
+    val googleAccount: String = "",
+    val sharedFolderName: String = "",
+    val pcLastSeen: String = "",
     val isMihonSelected: Boolean = false,
     val mihonFolderPath: String = "/Documents/Mihon",
     val subfolders: List<OnboardingSubfolder> = listOf(

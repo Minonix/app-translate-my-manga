@@ -239,9 +239,9 @@ object MockupData {
 
     val translationSettings = TranslationSettingsState()
 
-    val onboarding = OnboardingState()
+    val onboarding = OnboardingState(googleAccount = "vous@gmail.com", sharedFolderName = "TranslateMyManga/", pcLastSeen = "2 min")
 
-    val empty = EmptyState()
+    val empty = EmptyState(pcSeenText = "PC vu il y a 3 h")
 
     val offline = OfflineState()
 

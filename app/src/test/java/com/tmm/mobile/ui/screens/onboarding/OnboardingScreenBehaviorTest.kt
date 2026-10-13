@@ -55,6 +55,16 @@ class OnboardingScreenBehaviorTest {
         OnboardingEvent.PreviousStep -> state.copy(step = (state.step - 1).coerceAtLeast(1))
     }
 
+    // Bug vu sur emulateur : Drive en echec, l'etape 1 affichait quand meme « vous@gmail.com »
+    // et « Dossier TranslateMyManga/ trouvé · PC vu il y a 2 min ».
+    @Test
+    fun step1_connectedWithoutDriveInfo_showsNoFakeValues() {
+        setupScreen(OnboardingState(isGoogleConnected = true))
+        composeRule.onNodeWithText("Compte Google connecté").assertExists()
+        composeRule.onNodeWithText("vous@gmail.com").assertDoesNotExist()
+        composeRule.onNodeWithText("Dossier TranslateMyManga/ trouvé · PC vu il y a 2 min").assertDoesNotExist()
+    }
+
     @Test
     fun step1_initialState_showsConnectButton() {
         setupScreen()

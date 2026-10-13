@@ -397,13 +397,13 @@ private fun Step1Content(state: OnboardingState) {
                         tint = TmmColors.C2F7D4F,
                     )
                     TmmText(
-                        text = state.googleAccount,
+                        text = state.googleAccount.ifBlank { stringResource(R.string.onb_step1_connected) },
                         style = TmmType.sans(14, weight = 600),
                         color = TmmColors.C2F7D4F,
                     )
                 }
 
-                TmmText(
+                if (state.sharedFolderName.isNotBlank() && state.pcLastSeen.isNotBlank()) TmmText(
                     text = stringResource(
                         R.string.onb_step1_folder_found_fmt,
                         state.sharedFolderName,

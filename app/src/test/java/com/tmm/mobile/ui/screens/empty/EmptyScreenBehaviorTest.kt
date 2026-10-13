@@ -8,12 +8,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.tmm.mobile.ui.mock.MockupData
 import com.tmm.mobile.ui.theme.TmmTheme
+import android.os.Looper
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.GraphicsMode
 
 /**
@@ -84,5 +87,24 @@ class EmptyScreenBehaviorTest {
     fun doneState_displaysRetryLabel() {
         setState(EmptyState(isDone = true))
         composeRule.onNodeWithText("Toujours rien, réessayer").assertExists()
+    }
+
+    // Bug vu sur emulateur : au premier lancement, « PC vu il y a 3 h » s'affichait sans aucun PC vu.
+    @Test
+    fun defaultState_hidesFakePcPill() {
+        setState(EmptyState())
+        composeRule.onNodeWithText("PC vu il y a 3 h").assertDoesNotExist()
+    }
+
+    // Bug vu sur emulateur : « Scanner Mihon » / « réessayer » ne lançait aucun scan (simple délai).
+    @Test
+    fun viewModelScan_runsRealScan() {
+        var scans = 0
+        val vm = EmptyViewModel(scanMihon = { scans++ })
+        vm.onEvent(EmptyEvent.ScanMihon)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(1, scans)
+        assertTrue(vm.state.value.isDone)
+        assertFalse(vm.state.value.isBusy)
     }
 }
