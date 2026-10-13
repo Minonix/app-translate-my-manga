@@ -269,6 +269,43 @@ class DownloadScannerTest {
         assertEquals(listOf("OnePiece/ch1.cbz"), db.localFrChapterDao().observeAll().first().map { it.localPath })
     }
 
+    private fun downloaded(source: String, series: String, chapterDir: String, number: Float) =
+        com.tmm.mobile.data.db.DownloadedChapterEntity(
+            mihonPath = "$source/$series/$chapterDir", sourceDir = source, seriesDir = series, chapterDir = chapterDir,
+            documentUri = "uri", isCbz = true, sizeBytes = 1, lastModified = 0, pageCount = 1,
+            seriesKey = null, chapterKey = null, number = number,
+        )
+
+    // Bug « Pret a installer jusqu'au 65 » : les traductions deja dans local/ sans mihonPath n'etaient
+    // pas reconnues, le statut retombait sur l'index du PC (fr) au lieu de « A jour ». Le dossier etait
+    // deja en cache : le rattachement doit se faire meme sans rescanner le dossier.
+    @Test fun scanLocal_linksLegacyFrFilesToDownloadedChapter_evenWhenFolderCached() = runTest {
+        val localRoot = File(root, "local").apply { mkdirs() }
+        val folder = File(localRoot, "A Gatherer's Adventure in Isekai").apply { mkdirs() }
+        listOf("c0033 - Ch. 33.cbz", "c0014.1 - Ch. 14.1.cbz", "c0040 - Ch. 40.cbz", "notes.cbz")
+            .forEach { File(folder, it).writeBytes(byteArrayOf(1)) }
+        val scanner = DownloadScanner(FakeMihonFs(root), db)
+        scanner.scanLocal(localRoot.absolutePath)
+
+        val series = "A Gatherer's Adventure in Isekai"
+        db.downloadedChapterDao().upsertAll(
+            listOf(
+                downloaded("MangaFire (EN)", series, "unofficial_Ch. 33_a1.cbz", 33f),
+                downloaded("MangaFire (EN)", series, "unofficial_Ch. 14.1_b2.cbz", 14.1f),
+                // Deux editions du 40 : ambigu, on ne devine pas.
+                downloaded("MangaFire (EN)", series, "unofficial_Ch. 40_c3.cbz", 40f),
+                downloaded("Other (EN)", series, "Ch. 40_d4.cbz", 40f),
+            ),
+        )
+        scanner.scanLocal(localRoot.absolutePath)
+
+        val byFile = db.localFrChapterDao().observeAll().first().associate { it.fileName to it.mihonPath }
+        assertEquals("MangaFire (EN)/$series/unofficial_Ch. 33_a1.cbz", byFile["c0033 - Ch. 33.cbz"])
+        assertEquals("MangaFire (EN)/$series/unofficial_Ch. 14.1_b2.cbz", byFile["c0014.1 - Ch. 14.1.cbz"])
+        assertNull(byFile["c0040 - Ch. 40.cbz"])
+        assertNull(byFile["notes.cbz"])
+    }
+
     @Test
     fun guessScanlator_readsPrefixBeforeChapterKeyword() {
         assertEquals("Nyx Scans", DownloadOnlySeries.guessScanlator("Nyx Scans_Chapter 29_816b9c.cbz"))
