@@ -66,8 +66,8 @@ comme seul texte : il affiche le libellé associé au code, et le message en dé
   s'il ne l'a pas, il retraduit depuis l'original ; sans original, `source_missing`. Un PC ancien
   ignore le champ et échoue en `source_missing` (pas de fichier) : c'est acceptable.
 - `pc/settings.json` `lastCommandResult: {"cmdId", "status": "applied"|"rejected", "code"?, "message"?,
-  "deleted"?, "failed"?}` : accusé explicite de la dernière commande. Codes de rejet :
-  `stale_version`, `invalid_value`, `bad_request`. `deleted`/`failed` : compteurs d'une commande
+  "deleted"?, "failed"?, "overwritten"?, "kept"?}` : accusé explicite de la dernière commande. Codes de rejet :
+  `stale_version`, `superseded`, `invalid_value`, `bad_request`. `overwritten`/`kept` (R8) : réglages dont la valeur du PC a été écrasée / conservée. `deleted`/`failed` : compteurs d'une commande
   `delete`.
 - `pc/heartbeat.json` `driveOk: true|false` et `lastErrorCode` optionnels : état du pont vu par le
   PC (le heartbeat via direct reste lisible même si Drive est cassé).
@@ -132,8 +132,10 @@ en place. Lecture/écriture en flux (pas de `readBytes` du fichier entier). `res
 cancel.json. Si un résultat ou un état terminal arrive après la demande d'annulation, le job est clos
 localement (annulé, résultat non installé) et ne bloque plus le chapitre.
 
-**R12 - Réglages.** Le PC compare `baseVersion` à sa version : différent → `rejected`/`stale_version`
-sans rien appliquer. Valeur hors liste → `rejected`/`invalid_value`. Le PC écrit l'accusé
+**R12 - Réglages.** Le PC compare `baseVersion` à sa version. Différent et `createdAt` illisible → `rejected`/`stale_version`
+sans rien appliquer. Différent avec `createdAt` valide (R8, la modification la plus récente gagne) : chaque réglage changé
+sur le PC après `createdAt` est conservé (`kept`), les autres sont appliqués (`overwritten` si la valeur du PC est remplacée) ;
+rien d'appliqué → `rejected`/`superseded`. Valeur hors liste → `rejected`/`invalid_value`. Le PC écrit l'accusé
 (settings.json avec `lastCommandId` et `lastCommandResult`) **avant** de supprimer la commande, et
 ignore un `cmdId` déjà traité. Le téléphone ne considère une commande appliquée que si
 `lastCommandId == cmdId` (et `lastCommandResult.status == "applied"` s'il est présent) ; sur
