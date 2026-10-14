@@ -5,8 +5,13 @@ import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.workers.WorkerTestEnvironment
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,8 +30,17 @@ class TranslateViewModelTest {
     @Before
     fun setUp() = env.setUp()
 
+    private val vms = mutableListOf<TranslateViewModel>()
+
+    // Le flux d'etat tourne sur Dispatchers.Default dans viewModelScope : l'arreter avant de fermer la base,
+    // sinon une requete en vol leve « already-closed » pendant le test suivant (UncaughtExceptionsBeforeTest).
     @After
-    fun tearDown() = env.tearDown()
+    fun tearDown() {
+        runBlocking { vms.forEach { withTimeoutOrNull(5_000) { it.viewModelScope.coroutineContext.job.cancelAndJoin() } } }
+        env.tearDown()
+    }
+
+    private fun newVm() = TranslateViewModel(env.container).also { vms += it }
 
     private fun series(key: String, title: String) = SeriesEntity(
         seriesKey = key, sourceId = "src", url = "url/$key", title = title, author = null,
@@ -49,7 +63,7 @@ class TranslateViewModelTest {
 
     private suspend fun open(request: TranslateRequest): TranslateViewModel {
         seed()
-        val vm = TranslateViewModel(env.container)
+        val vm = newVm()
         vm.onEvent(TranslateEvent.Open(request))
         vm.state.first { it.series.size == 2 }
         return vm
@@ -105,7 +119,7 @@ class TranslateViewModelTest {
     @Test
     fun seriesKeys_restrictsListToChosenSeries() = runTest {
         seed()
-        val vm = TranslateViewModel(env.container)
+        val vm = newVm()
         vm.onEvent(TranslateEvent.Open(TranslateRequest(preselectAll = true, seriesKeys = setOf("frieren"))))
         val state = vm.state.first { it.series.isNotEmpty() }
         assertEquals(listOf("Frieren"), state.series.map { it.title })
@@ -191,7 +205,7 @@ class TranslateViewModelTest {
             "Rinko Comics_Chapter 31_cccccc.cbz" to 31f, "Nyx Scans_Chapter 29_dddddd.cbz" to 29f,
             "Nyx Scans_Chapter 30_eeeeee.cbz" to 30f, "Extra_ffffff.cbz" to null)
             .forEach { (dir, n) -> env.db.downloadedChapterDao().upsert(downloaded("garden", dir, n ?: 0f, 10).copy(number = n)) }
-        val vm = TranslateViewModel(env.container)
+        val vm = newVm()
         vm.onEvent(TranslateEvent.Open(request))
         vm.state.first { it.totalCount == 6 }
         return vm
