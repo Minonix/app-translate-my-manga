@@ -63,6 +63,9 @@ class SeriesScreenBehaviorTest {
                 state.copy(selected = toggle(state.selected, event.key))
             }
         }
+        // Le geste est couvert par DragSelectionTest ; ici seul l'entree en selection compte.
+        is SeriesEvent.DragSelectStart -> state.copy(selecting = true)
+        is SeriesEvent.DragSelectTo, SeriesEvent.DragSelectEnd -> state
         is SeriesEvent.ToggleStats -> state.copy(expandedStats = toggle(state.expandedStats, event.key))
         SeriesEvent.DismissGap -> state.copy(showGap = false)
         SeriesEvent.TranslateAll -> state.copy(toast = SeriesToast.Translated(state.toTranslateNumbers.size))

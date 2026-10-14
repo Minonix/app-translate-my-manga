@@ -17,16 +17,35 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -38,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collectLatest
 import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.AutoTag
 import com.tmm.mobile.ui.components.Cover
@@ -82,8 +102,10 @@ fun SeriesScreen(
     Box(modifier.fillMaxSize().background(C.bg)) {
         // Liste paresseuse : une serie longue a plus de 1000 chapitres, tous composes d'un coup
         // dans une Column a chaque ouverture de la fiche.
+        val listState = rememberLazyListState()
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier.fillMaxSize().dragToSelect(listState, state.rows, onEvent),
+            state = listState,
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 110.dp),
         ) {
             item(key = "top", contentType = "top") {
@@ -401,6 +423,75 @@ private fun SectionHeader(link: String, onLink: () -> Unit) {
             color = C.red,
             modifier = Modifier.clickable(role = Role.Button, onClick = onLink),
         )
+    }
+}
+
+/**
+ * Appui long sur un chapitre puis glissement vers le haut ou le bas : coche chaque chapitre
+ * survole. Pres des bords, la liste defile seule pour continuer la selection.
+ */
+private fun Modifier.dragToSelect(
+    listState: LazyListState,
+    rows: List<SeriesRow>,
+    onEvent: (SeriesEvent) -> Unit,
+): Modifier = composed {
+    val haptics = LocalHapticFeedback.current
+    val currentRows by rememberUpdatedState(rows)
+    val send by rememberUpdatedState(onEvent)
+    var pointerY by remember { mutableFloatStateOf(-1f) }
+    var speed by remember { mutableFloatStateOf(0f) }
+
+    // Cle de la ligne sous le doigt. L'element 0 est l'en-tete « top », les chapitres suivent.
+    fun keyAt(y: Float): String? {
+        val info = listState.layoutInfo
+        // Les decalages des elements partent du haut du contenu, apres la marge interne.
+        val inList = y.toInt() + info.viewportStartOffset
+        val item = info.visibleItemsInfo.firstOrNull { inList in it.offset until it.offset + it.size }
+            ?: return null
+        return currentRows.getOrNull(item.index - 1)?.key
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { speed != 0f }.collectLatest { scrolling ->
+            while (scrolling) {
+                withFrameNanos { }
+                listState.scrollBy(speed)
+                keyAt(pointerY)?.let { send(SeriesEvent.DragSelectTo(it)) }
+            }
+        }
+    }
+
+    pointerInput(listState) {
+        val edge = 64.dp.toPx()
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            // Un defilement ou un relachement avant le delai annule : la liste et le tap restent normaux.
+            val longPress = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+            val key = keyAt(longPress.position.y) ?: return@awaitEachGesture
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            pointerY = longPress.position.y
+            send(SeriesEvent.DragSelectStart(key))
+            try {
+                while (true) {
+                    // Passe Initial : la liste ne defile pas et la ligne ne recoit pas de tap pendant le geste.
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                    change.consume()
+                    if (!change.pressed) break
+                    pointerY = change.position.y
+                    val height = size.height.toFloat()
+                    speed = when {
+                        pointerY < edge -> -(edge - pointerY) / 4f
+                        pointerY > height - edge -> (pointerY - (height - edge)) / 4f
+                        else -> 0f
+                    }
+                    keyAt(pointerY)?.let { send(SeriesEvent.DragSelectTo(it)) }
+                }
+            } finally {
+                speed = 0f
+                pointerY = -1f
+                send(SeriesEvent.DragSelectEnd)
+            }
+        }
     }
 }
 

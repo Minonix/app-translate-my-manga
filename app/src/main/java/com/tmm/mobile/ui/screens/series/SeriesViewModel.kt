@@ -146,6 +146,26 @@ class SeriesViewModel(
         SeriesState(title = "", categoryLabel = "", subtitle = "", coverColor = TmmColors.placeholderFor(seriesKey)),
     )
 
+    /** Etat du geste en cours : selection avant le geste, premier chapitre touche, cocher ou decocher. */
+    private data class DragAnchor(val base: Set<String>, val anchor: String, val adding: Boolean)
+
+    private var drag: DragAnchor? = null
+
+    private fun dragTo(key: String) {
+        val d = drag ?: return
+        val rows = state.value.rows
+        val selectable = rows.filter { !it.locked && it.kind != ChapterKind.NotDownloaded }.mapTo(HashSet()) { it.key }
+        val next = dragSelection(rows.map { it.key }, selectable, ::sameNumberKeys, d.base, d.anchor, key, d.adding)
+        ui.update { it.copy(selected = next) }
+    }
+
+    /** R2 : cles des autres editions du meme numero que [key] (elle comprise). */
+    private fun sameNumberKeys(key: String): Set<String> {
+        val rows = dataState.value.joinRows
+        val number = rows.firstOrNull { it.flatPath == key }?.exactNumber?.takeIf { it >= 0f } ?: return emptySet()
+        return rows.filter { it.exactNumber == number }.mapTo(HashSet()) { it.flatPath }
+    }
+
     fun onEvent(event: SeriesEvent) {
         when (event) {
             SeriesEvent.StartSelection -> ui.update { it.copy(selecting = true) }
@@ -158,12 +178,17 @@ class SeriesViewModel(
                     it.copy(selected = it.selected - event.key)
                 } else {
                     // R2 : une edition par numero ; cocher l'autre edition remplace la premiere.
-                    val rows = dataState.value.joinRows
-                    val number = rows.firstOrNull { r -> r.flatPath == event.key }?.exactNumber?.takeIf { n -> n >= 0f }
-                    val sameNumber = if (number == null) emptySet() else rows.filter { r -> r.exactNumber == number }.mapTo(HashSet()) { r -> r.flatPath }
-                    it.copy(selected = it.selected - sameNumber + event.key)
+                    it.copy(selected = it.selected - sameNumberKeys(event.key) + event.key)
                 }
             }
+            is SeriesEvent.DragSelectStart -> {
+                val selected = ui.value.selected
+                drag = DragAnchor(base = selected, anchor = event.key, adding = event.key !in selected)
+                ui.update { it.copy(selecting = true) }
+                dragTo(event.key)
+            }
+            is SeriesEvent.DragSelectTo -> dragTo(event.key)
+            SeriesEvent.DragSelectEnd -> drag = null
             is SeriesEvent.ToggleStats -> ui.update {
                 it.copy(expandedStats = it.expandedStats.toMutableSet().apply { if (!add(event.key)) remove(event.key) })
             }

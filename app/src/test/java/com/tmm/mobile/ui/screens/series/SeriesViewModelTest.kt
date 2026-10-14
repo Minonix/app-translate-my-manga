@@ -309,6 +309,30 @@ class SeriesViewModelTest {
         assertEquals(setOf(b, half), env.db.jobDao().observeAll().first().map { it.mihonPath }.toSet())
     }
 
+    // Appui long sur un chapitre puis glissement : tout ce qui est survole est coche, et revenir en arriere decoche.
+    @Test fun dragSelect_selectsEveryChapterPassedOver() = runTest {
+        seedSeries()
+        seedEdition(1f, "Team A")
+        seedEdition(2f, "Team A")
+        seedEdition(3f, "Team A")
+
+        val vm = SeriesViewModel(env.container, seriesKey)
+        val keys = vm.state.first { it.rows.size == 3 }.rows.map { it.key }
+
+        vm.onEvent(SeriesEvent.DragSelectStart(keys[0]))
+        assertTrue(vm.state.first { it.selecting }.selected == setOf(keys[0]))
+        vm.onEvent(SeriesEvent.DragSelectTo(keys[2]))
+        assertEquals(keys.toSet(), vm.state.first { it.selected.size == 3 }.selected)
+        vm.onEvent(SeriesEvent.DragSelectTo(keys[1]))
+        assertEquals(setOf(keys[0], keys[1]), vm.state.first { it.selected.size == 2 }.selected)
+        vm.onEvent(SeriesEvent.DragSelectEnd)
+
+        // Nouveau geste parti d'un chapitre coche : il decoche.
+        vm.onEvent(SeriesEvent.DragSelectStart(keys[1]))
+        vm.onEvent(SeriesEvent.DragSelectTo(keys[0]))
+        assertEquals(emptySet<String>(), vm.state.first { it.selected.isEmpty() }.selected)
+    }
+
     // R2 : « Tout traduire » envoyait les deux editions du 12.
     @Test fun translateAll_sendsOneEditionPerNumber() = runTest {
         seedSeries()
