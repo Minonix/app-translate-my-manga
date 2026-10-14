@@ -4,8 +4,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -18,9 +20,11 @@ import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.protocol.Heartbeat
+import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +52,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private data class Ephemeral(
         val getState: BusyState = BusyState.Idle,
         val getFraction: Float = 0f,
+        val sendOriginalsState: BusyState = BusyState.Idle,
         val installTotal: Int = 0,
         val toast: MainToast? = null,
     )
@@ -96,7 +101,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     val state: StateFlow<MainState> = combine(derived, ephemeral, followed) { base, eph, followedSeries ->
-        base.copy(getState = eph.getState, getFraction = eph.getFraction, toast = eph.toast, installTotal = eph.installTotal, followedSeries = followedSeries)
+        base.copy(getState = eph.getState, getFraction = eph.getFraction, sendOriginalsState = eph.sendOriginalsState, toast = eph.toast, installTotal = eph.installTotal, followedSeries = followedSeries)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainState(
         pcTone = PcTone.Offline, toSendCount = 0, toSendSeriesCount = 0, toGetCount = 0, toGetSummary = "",
         queueCount = 0, queueParallelCount = 0, queueMachineName = "PC", queueNextCount = 0,
@@ -115,6 +120,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             // RefreshCoordinator.state) - composant partage, hors peripherie de cet ecran.
             MainEvent.RefreshFinished -> {}
             MainEvent.FetchTranslated -> fetchTranslated()
+            MainEvent.SendOriginals -> sendOriginals()
             MainEvent.DismissToast -> ephemeral.update { it.copy(toast = null) }
         }
     }
@@ -141,6 +147,39 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 .takeWhile { it < total }
                 .collect { installed -> ephemeral.update { it.copy(getFraction = installed / total.toFloat()) } }
             ephemeral.update { it.copy(getState = BusyState.Done, getFraction = 1f, toast = MainToast.Received(total)) }
+        }
+    }
+
+    /**
+     * Les chapitres « a traduire » de l'accueil partent au PC sans traduction (translate = false, comme
+     * « Copier sur le PC sans traduire ») : par Drive quand le direct ne repond pas. Meme perimetre que
+     * le compteur de la carte, relu en base au moment de l'appui.
+     */
+    private fun sendOriginals() {
+        if (ephemeral.value.sendOriginalsState == BusyState.Busy) return
+        ephemeral.update { it.copy(sendOriginalsState = BusyState.Busy) }
+        viewModelScope.launch {
+            val created = try {
+                val room = roomSnapshot.first()
+                val seriesByKey = db.seriesDao().observeAll().first().associateBy { it.seriesKey }
+                val targets = room.downloaded
+                    .filter { dl -> dl.seriesKey in seriesByKey && statusFor(dl, room) == ChapterStatus.TO_SEND }
+                    .map { dl ->
+                        JobTarget(
+                            mihonPath = MihonPath(dl.sourceDir, dl.seriesDir, dl.chapterDir),
+                            downloaded = dl,
+                            series = seriesByKey[dl.seriesKey],
+                            chapter = dl.chapterKey?.let { db.chapterDao().get(it) },
+                        )
+                    }
+                container.jobRepository.createJobs(JobMode.TRANSLATE, targets, translate = false).createdJobIds.size
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("Accueil", "Envoi des originaux impossible : ${e.message}")
+                0
+            }
+            ephemeral.update { it.copy(sendOriginalsState = BusyState.Idle, toast = MainToast.SentOriginals(created)) }
         }
     }
 

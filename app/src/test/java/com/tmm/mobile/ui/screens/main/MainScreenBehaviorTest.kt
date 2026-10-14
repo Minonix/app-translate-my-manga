@@ -72,6 +72,7 @@ class MainScreenBehaviorTest {
     private fun reduce(state: MainState, event: MainEvent): MainState = when (event) {
         MainEvent.FetchTranslated -> state.copy(getState = BusyState.Busy, getFraction = 0f, installTotal = state.toGetCount)
         MainEvent.DismissToast -> state.copy(toast = null)
+        MainEvent.SendOriginals -> state.copy(toast = MainToast.SentOriginals(state.toSendCount))
         MainEvent.Refresh, MainEvent.RefreshFinished -> state
     }
 
@@ -89,6 +90,17 @@ class MainScreenBehaviorTest {
             "Derniers traduits", "Tout voir", "ch. 140 · dans Mihon", "ch. 212 · dans Mihon", "ch. 1120 · prêt",
         ).forEach { composeRule.onNodeWithText(it).assertExists() }
         composeRule.onNodeWithContentDescription("À faire").assertExists()
+    }
+
+    // Demande utilisateur : « Envoyer » part sans ouvrir la feuille Traduire, et annonce l'envoi sans traduction.
+    @Test
+    fun sendOriginals_sendsWithoutOpeningTranslateSheet() {
+        val (_, calls) = setState(mockup)
+        composeRule.onNodeWithText("Envoyer").performClick()
+        composeRule.waitForIdle()
+        assertEquals(0, calls.translate)
+        assertEquals(listOf<MainEvent>(MainEvent.SendOriginals), calls.events)
+        composeRule.onNodeWithText("envoyé", substring = true).assertExists()
     }
 
     @Test

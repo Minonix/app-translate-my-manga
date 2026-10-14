@@ -124,4 +124,36 @@ class MainViewModelTest {
         assertEquals(1, state.toSendCount)
         assertEquals(1, state.toSendSeriesCount)
     }
+
+    // Demande utilisateur : un bouton d'accueil envoie au PC les originaux a traduire, sans les traduire.
+    // Seuls les chapitres comptes « a traduire » partent, chacun une fois, avec translate = false.
+    @Test
+    fun sendOriginals_sendsToSendChaptersWithoutTranslation() = runTest {
+        env.db.seriesDao().upsert(series("frieren", "Frieren"))
+        fun dl(path: String, seriesKey: String?) = DownloadedChapterEntity(
+            mihonPath = path, sourceDir = "Mihon", seriesDir = path.split("/")[1], chapterDir = path.substringAfterLast("/"),
+            documentUri = "doc://$path", isCbz = true, sizeBytes = 1L, lastModified = 0L, pageCount = 1,
+            seriesKey = seriesKey, chapterKey = null, number = null,
+        )
+        env.db.downloadedChapterDao().upsert(dl("Mihon/frieren/140", "frieren"))
+        env.db.downloadedChapterDao().upsert(dl("Mihon/frieren/141", "frieren"))
+        env.db.downloadedChapterDao().upsert(dl("Mihon/inconnue/1", null))
+
+        val vm = MainViewModel(env.container)
+        vm.state.first { it.toSendCount == 2 }
+        vm.onEvent(MainEvent.SendOriginals)
+        val state = vm.state.first { it.toast != null }
+
+        assertEquals(MainToast.SentOriginals(2), state.toast)
+        val jobs = env.db.jobDao().observeAll().first()
+        assertEquals(setOf("Mihon/frieren/140", "Mihon/frieren/141"), jobs.map { it.mihonPath }.toSet())
+        assertEquals(listOf(false, false), jobs.map { it.translate })
+        assertEquals(0, vm.state.first { it.toSendCount == 0 }.toSendCount)
+
+        // Un second appui ne renvoie rien : les chapitres sont deja en route.
+        vm.onEvent(MainEvent.DismissToast)
+        vm.onEvent(MainEvent.SendOriginals)
+        assertEquals(MainToast.SentOriginals(0), vm.state.first { it.toast != null }.toast)
+        assertEquals(2, env.db.jobDao().observeAll().first().size)
+    }
 }

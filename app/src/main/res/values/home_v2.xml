@@ -8,6 +8,8 @@
     <string name="home_v2_todo">À faire</string>
     <string name="home_v2_translate">Traduire</string>
     <string name="home_v2_translate_label">chapitres\nà traduire</string>
+    <string name="home_v2_send_originals_label">Ou seulement envoyer les originaux au PC, sans traduire</string>
+    <string name="home_v2_send_originals">Envoyer</string>
     <string name="home_v2_install">Installer</string>
     <string name="home_v2_install_label">traductions\nà installer</string>
     <string name="home_v2_manage">Gérer</string>
@@ -24,6 +26,10 @@
     <plurals name="home_v2_to_send_series">
         <item quantity="one">dans %1$d série</item>
         <item quantity="other">dans %1$d séries</item>
+    </plurals>
+    <plurals name="home_v2_toast_sent_originals">
+        <item quantity="one">%1$d original envoyé au PC, sans traduction.</item>
+        <item quantity="other">%1$d originaux envoyés au PC, sans traduction.</item>
     </plurals>
     <plurals name="home_v2_followed">
         <item quantity="one">%1$d série suivie</item>

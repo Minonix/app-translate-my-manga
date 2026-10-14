@@ -34,6 +34,7 @@ data class MainRecentChapter(
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
 sealed interface MainToast {
     data class Received(val count: Int) : MainToast
+    data class SentOriginals(val count: Int) : MainToast
 }
 
 data class MainState(
@@ -49,6 +50,8 @@ data class MainState(
     val toGetCount: Int,
     val toGetSummary: String,
     val getState: BusyState = BusyState.Idle,
+    // « Envoyer » les originaux a traduire, sans traduction (meme envoi que « Copier sur le PC »).
+    val sendOriginalsState: BusyState = BusyState.Idle,
     val getFraction: Float = 0f,
     val queueCount: Int,
     val queueParallelCount: Int,
@@ -68,5 +71,6 @@ sealed interface MainEvent {
     data object Refresh : MainEvent
     data object RefreshFinished : MainEvent
     data object FetchTranslated : MainEvent
+    data object SendOriginals : MainEvent
     data object DismissToast : MainEvent
 }

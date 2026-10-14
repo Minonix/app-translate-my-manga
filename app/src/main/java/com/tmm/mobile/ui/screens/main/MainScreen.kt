@@ -80,6 +80,7 @@ fun MainScreen(
         }
         val toastMessage = when (val toast = state.toast) {
             is MainToast.Received -> stringResource(R.string.home_toast_received_fmt, toast.count)
+            is MainToast.SentOriginals -> pluralStringResource(R.plurals.home_v2_toast_sent_originals, toast.count, toast.count)
             null -> ""
         }
         TmmToast(
@@ -196,6 +197,17 @@ private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenTr
             TodoRow(state.toSendCount, stringResource(R.string.home_v2_translate_label),
                 pluralStringResource(R.plurals.home_v2_to_send_series, state.toSendSeriesCount, state.toSendSeriesCount)) {
                 InlineButton(stringResource(R.string.home_v2_translate), filled = true, onClick = onOpenTranslate)
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TmmText(stringResource(R.string.home_v2_send_originals_label), style = TmmType.sans(13),
+                    color = TmmColors.textOnInkMuted, modifier = Modifier.weight(1f))
+                InlineButton(stringResource(R.string.home_v2_send_originals), filled = false) {
+                    if (state.sendOriginalsState != BusyState.Busy) onEvent(MainEvent.SendOriginals)
+                }
             }
         }
         if (state.toGetCount > 0 || state.getState == BusyState.Busy) {
