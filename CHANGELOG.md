@@ -11,6 +11,16 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.10.0] - 2026-10-14
+
+### Ajoute
+- Accueil : bouton « Envoyer » qui envoie au PC les originaux a traduire, sans les traduire (par Google Drive quand l'acces direct ne repond pas).
+
+### Corrige
+- Bibliotheque : une serie de la source locale de Mihon (dossier des traductions installees) n'apparait plus comme une serie en plus.
+- Envoi Drive : une requete de moins par chapitre.
+- Presence du PC : necessite TMM-Win a jour (PR 50) ; le PC n'apparait plus « eteint » pendant qu'il recoit une serie entiere.
+
 ## [1.8.1] - 2026-10-14
 
 ### Corrige
