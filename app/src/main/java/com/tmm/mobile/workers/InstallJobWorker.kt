@@ -48,7 +48,7 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
         var step = "download"
 
         return try {
-            setForeground(getForegroundInfo())
+            setForegroundIfAllowed()
             val result = job.resultJson
                 ?.let { runCatching { ProtocolJson.decodeFromString(ResultJson.serializer(), it) }.getOrNull() }
                 ?: return fail(jobId, db, clock, step, LocalErrorCode.DOWNLOAD, "resultJson absent ou illisible")

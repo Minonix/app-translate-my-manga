@@ -32,9 +32,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
+
+// Delai maximal de GoogleAuth.authorize() avant de le traiter comme une panne reseau.
+private const val AUTHORIZE_TIMEOUT_MILLIS = 30_000L
 
 interface AppContainer {
     val context: Context
@@ -87,12 +92,14 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
         // R13 : toute exception de l'autorisation (Play Services hors ligne, compte retire...) est `auth` :
         // retry + bandeau « Reconnecter », jamais un FAILED definitif.
         val result = try {
-            googleAuth.authorize()
+            // Une Task Play Services peut ne jamais repondre (reseau instable) : sans borne, le verrou du jeton
+            // restait pris et bloquait tout acces Drive. Pas de reponse = panne reseau, pas un consentement a refaire.
+            withTimeoutOrNull(AUTHORIZE_TIMEOUT_MILLIS) { googleAuth.authorize() }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             throw AuthExpiredException("autorisation Google impossible : ${e.javaClass.simpleName}")
-        }
+        } ?: throw IOException("autorisation Google sans reponse")
         val token = result.accessToken ?: throw AuthExpiredException("consentement Google requis")
         cachedToken = token
         // Jeton obtenu = consentement valide : le bandeau "Reconnecter" tombe tout de suite, sans

@@ -8,6 +8,7 @@ import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
+import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
@@ -16,6 +17,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.tmm.mobile.R
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.transport.DirectPairingExpiredException
 import com.tmm.mobile.transport.DriveQuotaException
@@ -109,4 +111,16 @@ fun transferForegroundInfo(context: Context, notificationId: Int, @StringRes tit
         .setOngoing(true)
         .build()
     return ForegroundInfo(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+}
+
+// Android 12+ refuse de demarrer un service de premier plan quand l'app est en arriere-plan
+// (ForegroundServiceStartNotAllowedException, une IllegalStateException), notamment quand le quota
+// expedited est epuise et que le travail tourne en non-expedited. Le transfert continue alors sans
+// notification : avant, l'exception tombait dans le catch generique et le chapitre passait FAILED.
+suspend fun CoroutineWorker.setForegroundIfAllowed() {
+    try {
+        setForeground(getForegroundInfo())
+    } catch (e: IllegalStateException) {
+        AppLog.d("worker", "premier plan refuse, transfert poursuivi sans : ${e.message}")
+    }
 }

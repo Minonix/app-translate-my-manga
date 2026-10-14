@@ -1,7 +1,10 @@
 package com.tmm.mobile.workers
 
 import androidx.test.core.app.ApplicationProvider
+import android.app.ForegroundServiceStartNotAllowedException
+import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.work.Data
+import androidx.work.ForegroundUpdater
 import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.tmm.mobile.data.JobMode
@@ -86,6 +89,27 @@ class SendJobWorkerTest {
         val request = env.pc.readRequest("job-2")
         assertNull(request.file)
         assertEquals("verify", request.options.mode)
+    }
+
+    // Android 12+ en arriere-plan (quota expedited epuise) : setForeground leve
+    // ForegroundServiceStartNotAllowedException. Le chapitre passait FAILED (« startForegroundService()
+    // not allowed due to mAllowStartForeground false ») ; l'envoi doit continuer sans premier plan.
+    @Test fun doWork_foregroundNotAllowed_stillSends() = runTest {
+        env.db.jobDao().upsert(job("job-fg", phoneState = "PREPARING", mode = JobMode.VERIFY))
+        val refusing = ForegroundUpdater { _, _, _ ->
+            CallbackToFutureAdapter.getFuture { completer ->
+                completer.setException(ForegroundServiceStartNotAllowedException(
+                    "startForegroundService() not allowed due to mAllowStartForeground false"))
+                "refus"
+            }
+        }
+        val worker = TestListenableWorkerBuilder<SendJobWorker>(ApplicationProvider.getApplicationContext())
+            .setInputData(Data.Builder().putString(KEY_JOB_ID, "job-fg").build())
+            .setForegroundUpdater(refusing)
+            .build()
+
+        assertEquals(Result.success(), worker.doWork())
+        assertEquals("SENT", env.db.jobDao().get("job-fg")!!.phoneState)
     }
 
     @Test fun doWork_failsAfterMaxRetries_whenDriveKeepsErroring() = runTest {
