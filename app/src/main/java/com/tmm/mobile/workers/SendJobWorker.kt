@@ -64,7 +64,7 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         if (initial.phoneState != "PREPARING" && initial.phoneState != "UPLOADING") return Result.success()
 
         return try {
-            setForeground(getForegroundInfo())
+            setForegroundIfAllowed()
             // Envoyer 2000 chapitres d'un coup lancait ~20 workers en parallele (CBZ en memoire, lectures SAF,
             // uploads) et faisait planter l'app : au plus SEND_PARALLELISM a la fois, les autres attendent
             // leur tour deja en foreground (pas de limite de 10 min, pas de tentative consommee).
