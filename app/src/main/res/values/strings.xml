@@ -18,6 +18,13 @@
     <string name="home_see_all">Tout voir</string>
     <string name="home_toast_received_fmt">%1$d chapitres traduits rangés dans Mihon/local.</string>
     <string name="home_toast_action">Voir</string>
+    <string name="home_copy_originals">Envoyer les originaux sans traduire</string>
+    <string name="home_copy_originals_title">Envoyer les originaux ?</string>
+    <string name="home_copy_originals_confirm">Envoyer sans traduire</string>
+    <plurals name="home_copy_originals_body">
+        <item quantity="one">%1$d chapitre part sur le PC en VO. Il ne sera pas traduit, vous pourrez le traduire plus tard.</item>
+        <item quantity="other">%1$d chapitres partent sur le PC en VO. Ils ne seront pas traduits, vous pourrez les traduire plus tard.</item>
+    </plurals>
 
     <!-- Partagé (E4.2+) -->
     <string name="common_cancel">Annuler</string>

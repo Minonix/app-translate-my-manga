@@ -80,6 +80,20 @@ class DriveTransportTest {
         assertEquals(commandsId, prefs.driveCommandsId.first())
     }
 
+    // Un premier envoi n'interroge pas une session qu'il vient d'ouvrir : ouverture + un morceau, rien d'autre.
+    @Test
+    fun uploadSource_freshSession_skipsResumeQuery() = runTest {
+        transport.ensureLayout()
+        val job = emptyJob("job-fresh").copy(driveFolderId = transport.ensureJobFolder("job-fresh"))
+        val file = File.createTempFile("source", ".cbz").apply { writeBytes(ByteArray(1024) { 1 }) }
+        val before = drive.server.requestCount
+
+        val fileId = transport.uploadSource(job = job, file = file, onSession = {}, onProgress = { _, _ -> })
+
+        assertEquals(2, drive.server.requestCount - before)
+        assertEquals(1024, drive.files.values.first { it.id == fileId }.bytes.size)
+    }
+
     @Test
     fun uploadSource_recoversFromInterruption() = runTest {
         transport.ensureLayout()

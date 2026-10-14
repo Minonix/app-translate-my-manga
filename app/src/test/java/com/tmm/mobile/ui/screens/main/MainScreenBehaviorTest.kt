@@ -72,7 +72,7 @@ class MainScreenBehaviorTest {
     private fun reduce(state: MainState, event: MainEvent): MainState = when (event) {
         MainEvent.FetchTranslated -> state.copy(getState = BusyState.Busy, getFraction = 0f, installTotal = state.toGetCount)
         MainEvent.DismissToast -> state.copy(toast = null)
-        MainEvent.Refresh, MainEvent.RefreshFinished -> state
+        MainEvent.Refresh, MainEvent.RefreshFinished, MainEvent.CopyOriginals -> state
     }
 
     @Test

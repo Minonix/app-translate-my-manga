@@ -34,6 +34,7 @@ data class MainRecentChapter(
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu (regle 4.10). */
 sealed interface MainToast {
     data class Received(val count: Int) : MainToast
+    data class Copied(val count: Int) : MainToast
 }
 
 data class MainState(
@@ -68,5 +69,7 @@ sealed interface MainEvent {
     data object Refresh : MainEvent
     data object RefreshFinished : MainEvent
     data object FetchTranslated : MainEvent
+    // Envoie au PC les originaux « a envoyer », sans les traduire.
+    data object CopyOriginals : MainEvent
     data object DismissToast : MainEvent
 }
