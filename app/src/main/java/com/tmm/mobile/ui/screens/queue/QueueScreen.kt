@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,7 +56,6 @@ import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.components.V2Button
 import com.tmm.mobile.ui.components.V2ButtonSize
 import com.tmm.mobile.ui.components.V2ButtonStyle
-import com.tmm.mobile.ui.components.dashedBorder
 import com.tmm.mobile.ui.components.px
 import com.tmm.mobile.ui.components.v2Card
 import com.tmm.mobile.ui.components.v2CardItem
@@ -331,16 +332,13 @@ private fun FocusedCard(job: ActiveJob) {
             )
         }
         Bar(job.percent, C.red, track = C.darkTrack, height = 8, modifier = Modifier.padding(top = 14.dp))
-        Row(Modifier.padding(top = 14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            val shape = RoundedCornerShape(10.dp)
-            val cell = Modifier.weight(1f)
-            PhaseCell(stringResource(R.string.activity_phase_upload_done), C.greenLight, cell.clip(shape).background(C.ink2))
-            PhaseCell(typeLabel(job.type), C.white, cell.clip(shape).background(C.red), bold = true)
-            PhaseCell(
-                stringResource(R.string.activity_phase_return),
-                C.muted2,
-                cell.dashedBorder(C.darkSwitch, width = 1.dp, cornerRadius = 10.dp),
-            )
+        // Etapes lues comme un fil (point + trait), pas comme des boutons : rien n'est cliquable ici.
+        Row(Modifier.padding(top = 14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            PhaseStep(stringResource(R.string.activity_phase_upload_done), C.greenLight, dot = C.greenLight)
+            PhaseLink()
+            PhaseStep(typeLabel(job.type), C.white, dot = C.red, bold = true)
+            PhaseLink()
+            PhaseStep(stringResource(R.string.activity_phase_return), C.muted2, dot = null)
         }
         val steps = listOf(
             stringResource(R.string.activity_step_read),
@@ -377,17 +375,24 @@ private fun withSystemCheck(text: String): AnnotatedString = buildAnnotatedStrin
 }
 
 @Composable
-private fun PhaseCell(label: String, color: Color, modifier: Modifier, bold: Boolean = false) {
-    Box(modifier.padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+private fun PhaseStep(label: String, color: Color, dot: Color?, bold: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        val m = Modifier.size(8.dp).clip(CircleShape)
+        Box(if (dot != null) m.background(dot) else m.border(1.dp, C.muted2, CircleShape))
         TmmText(
             text = withSystemCheck(label),
             style = TmmType.sans(12, weight = if (bold) 600 else 400).px(12.5f),
             color = color,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(start = 6.dp),
         )
     }
+}
+
+@Composable
+private fun RowScope.PhaseLink() {
+    Box(Modifier.weight(1f).padding(horizontal = 8.dp).height(1.dp).background(C.darkSwitch))
 }
 
 @Composable
