@@ -122,7 +122,7 @@ fun TranslateSheet(
 @Composable
 private fun TranslateFooter(state: TranslateState, onEvent: (TranslateEvent) -> Unit) {
     val count = remember(state.series, state.selected) { state.selectedCount }
-    val enabled = count > 0 && state.phase == TranslatePhase.Idle
+    val enabled = count > 0 && (state.phase == TranslatePhase.Idle || state.phase == TranslatePhase.Failed)
     Column(
         Modifier
             .fillMaxWidth()
@@ -131,6 +131,14 @@ private fun TranslateFooter(state: TranslateState, onEvent: (TranslateEvent) -> 
     ) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(C.line))
         Column(Modifier.padding(top = 14.dp, bottom = 22.dp)) {
+            if (state.phase == TranslatePhase.Failed) {
+                TmmText(
+                    text = stringResource(R.string.translate_failed),
+                    style = TmmType.sans(14).copy(textAlign = TextAlign.Center),
+                    color = C.red,
+                    modifier = Modifier.padding(bottom = 10.dp).fillMaxWidth(),
+                )
+            }
             V2Button(
                 label = pluralStringResource(R.plurals.translate_button, count, count),
                 onClick = { onEvent(TranslateEvent.Send(translate = true)) },

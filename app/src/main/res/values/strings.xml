@@ -264,8 +264,12 @@
     <string name="activity_no_alert">Aucune alerte</string>
     <string name="activity_pages_fmt">%1$d/%2$d pages</string>
     <plurals name="activity_bubbles">
-        <item quantity="one">%1$d bulle</item>
-        <item quantity="other">%1$d bulles</item>
+        <item quantity="one">%1$d bulle traduite</item>
+        <item quantity="other">%1$d bulles traduites</item>
+    </plurals>
+    <plurals name="activity_bubbles_vo">
+        <item quantity="one">%1$d bulle restée en VO</item>
+        <item quantity="other">%1$d bulles restées en VO</item>
     </plurals>
     <string name="activity_sfx_fmt">%1$d SFX gardés</string>
     <string name="activity_alert_source_copy">bulle recopiée en VO</string>
@@ -473,6 +477,7 @@
         <item quantity="other">Traduire %1$d chapitres</item>
     </plurals>
     <string name="translate_copy_prefix">ou</string>
+    <string name="translate_failed">Ajout à la file impossible. Rien n\'est parti : réessaie.</string>
     <string name="translate_copy_link">copier sur le PC sans traduire</string>
     <string name="translate_note">Le PC peut être éteint : ils l\'attendront sur Google Drive.</string>
     <!-- Canal des notifications d'envoi et de reception (onglet Activite de la maquette v2). -->

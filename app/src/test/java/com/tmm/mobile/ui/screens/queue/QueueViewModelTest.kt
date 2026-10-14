@@ -113,6 +113,29 @@ class QueueViewModelTest {
     }
 
     @Test
+    fun state_hidesBubbleCount_whenPcNeverCountedThem() = runTest {
+        // Chapitre traduit sans revérification : le PC publie 0 bulle (il ne les compte pas).
+        env.db.jobDao().upsert(baseJob("job-5", "Mihon/frieren/141", "RESULT_READY"))
+        env.db.chapterQualityDao().upsert(
+            ChapterQualityEntity(
+                mihonPath = "Mihon/frieren/141", totalPages = 14, translatedBubbles = 0,
+                untranslatedBubbles = 0, sfxKept = 0, verifiedAt = null, alerts = emptyList(), jobId = "job-5",
+            ),
+        )
+        val done = QueueViewModel(env.container).state.first { it.doneJobs.isNotEmpty() }.doneJobs.first()
+        assertEquals(null, done.totalBubbles)
+        assertEquals(14, done.totalPages)
+    }
+
+    @Test
+    fun countedBubbles_keepsZero_onceTheChapterWasRechecked() {
+        val q = ChapterQualityEntity("p", 5, 0, 0, 0, "2026-10-14T10:00:00Z", emptyList(), "j")
+        assertEquals(0, countedBubbles(q))
+        assertEquals(null, countedBubbles(q.copy(verifiedAt = null)))
+        assertEquals(3, countedBubbles(q.copy(verifiedAt = null, translatedBubbles = 3)))
+    }
+
+    @Test
     fun state_listsFailedJobs_untilANewerJobExistsForSameChapter() = runTest {
         // Chapitre telecharge : l'echec est relancable, donc affiche.
         env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/138"))

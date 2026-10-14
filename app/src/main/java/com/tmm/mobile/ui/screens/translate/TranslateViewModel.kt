@@ -138,7 +138,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
     private fun send(translate: Boolean) {
         // Sélection lue dans `ui` (synchrone) : `state` est calculé hors thread principal.
         val u = ui.value
-        if (u.phase != TranslatePhase.Idle) return
+        if (u.phase != TranslatePhase.Idle && u.phase != TranslatePhase.Failed) return
         val paths = seriesCache.flatMap { s -> s.chapters.map { it.mihonPath } }.filter { isSelected(it, u) }
         if (paths.isEmpty()) return
         ui.update { it.copy(phase = TranslatePhase.Busy) }
@@ -160,7 +160,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
             } catch (e: Exception) {
                 // Base indisponible : la feuille reste ouverte avec sa sélection, on peut réessayer.
                 AppLog.d("Traduire", "Envoi impossible : ${e.message}")
-                ui.update { it.copy(phase = TranslatePhase.Idle) }
+                ui.update { it.copy(phase = TranslatePhase.Failed) }
             }
         }
     }

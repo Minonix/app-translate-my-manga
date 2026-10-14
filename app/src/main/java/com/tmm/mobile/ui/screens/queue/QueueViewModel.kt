@@ -300,7 +300,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                     // ponytail: ChapterQualityEntity n'a pas de compteur "pages traduites" distinct de
                     // totalPages - on suppose la traduction complete faute de champ dedie.
                     translatedPages = quality?.totalPages ?: 0,
-                    totalBubbles = quality?.translatedBubbles ?: 0,
+                    totalBubbles = quality?.let(::countedBubbles),
                     untranslatedBubbles = quality?.untranslatedBubbles ?: 0,
                     sfxCount = quality?.sfxKept ?: 0,
                     alerts = alerts,
@@ -382,3 +382,8 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 }
+
+/** Le PC ne remplit les bulles du .tmm.json qu'a la revérification : sans elle, les compteurs
+ *  valent 0 et « 0 bulle » laissait croire a une page vide. Null = nombre inconnu (non affiche). */
+internal fun countedBubbles(q: ChapterQualityEntity): Int? =
+    q.translatedBubbles.takeIf { q.verifiedAt != null || it > 0 || q.untranslatedBubbles > 0 }

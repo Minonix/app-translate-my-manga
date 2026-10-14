@@ -45,6 +45,8 @@ sealed interface TranslatePhase {
     data object Idle : TranslatePhase
     data object Busy : TranslatePhase
     data class Done(val count: Int, val translate: Boolean) : TranslatePhase
+    /** Ajout a la file impossible : la feuille garde la selection et le dit (avant : retour muet a Idle). */
+    data object Failed : TranslatePhase
 }
 
 data class TranslateState(

@@ -505,7 +505,12 @@ private fun DoneRow(index: Int, done: DoneJob, onEvent: (QueueEvent) -> Unit) {
             if (done.isExpanded) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     StatusPill(PillTone.Wait, stringResource(R.string.activity_pages_fmt, done.translatedPages, done.totalPages), plain = true)
-                    StatusPill(PillTone.Wait, pluralStringResource(R.plurals.activity_bubbles, done.totalBubbles, done.totalBubbles), plain = true)
+                    done.totalBubbles?.let { n ->
+                        StatusPill(PillTone.Wait, pluralStringResource(R.plurals.activity_bubbles, n, n), plain = true)
+                        if (done.untranslatedBubbles > 0) {
+                            StatusPill(PillTone.Todo, pluralStringResource(R.plurals.activity_bubbles_vo, done.untranslatedBubbles, done.untranslatedBubbles), plain = true)
+                        }
+                    }
                     if (done.sfxCount > 0) StatusPill(PillTone.Wait, stringResource(R.string.activity_sfx_fmt, done.sfxCount), plain = true)
                 }
                 if (done.alerts.isNotEmpty()) AlertBox(index, done.alerts, onEvent)

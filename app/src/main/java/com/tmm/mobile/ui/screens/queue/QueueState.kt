@@ -68,7 +68,8 @@ data class DoneJob(
     val color: Color,
     val totalPages: Int,
     val translatedPages: Int,
-    val totalBubbles: Int,
+    /** Bulles traduites ; null quand le PC ne les a pas comptees (pas de revérification). */
+    val totalBubbles: Int?,
     val untranslatedBubbles: Int,
     val sfxCount: Int,
     val alerts: List<DoneJobAlert>,
