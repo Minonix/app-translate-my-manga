@@ -442,6 +442,21 @@ private fun WaitingRow(job: WaitingJob, divider: Boolean, onEvent: (QueueEvent) 
                         RowDesc(stringResource(R.string.activity_auto))
                     }
                 }
+                val handoff = when (job.handoff) {
+                    Handoff.Pending -> stringResource(R.string.activity_handoff_pending)
+                    Handoff.RequestSending -> stringResource(R.string.activity_handoff_request)
+                    Handoff.OnDrive -> stringResource(R.string.activity_handoff_drive)
+                    Handoff.ReceivedByPc -> job.pcQueuePosition?.let { stringResource(R.string.activity_handoff_received_pos_fmt, it) }
+                        ?: stringResource(R.string.activity_handoff_received)
+                }
+                TmmText(
+                    text = handoff,
+                    style = TmmType.sans(12),
+                    color = if (job.handoff == Handoff.ReceivedByPc) C.green else C.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
             val cd = stringResource(R.string.activity_remove_cd_fmt, job.title)
             Box(

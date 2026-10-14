@@ -19,6 +19,7 @@ import com.tmm.mobile.ui.screens.queue.ActiveJob
 import com.tmm.mobile.ui.screens.queue.DoneJob
 import com.tmm.mobile.ui.screens.queue.DoneJobAlert
 import com.tmm.mobile.ui.screens.queue.FailedJob
+import com.tmm.mobile.ui.screens.queue.Handoff
 import com.tmm.mobile.ui.screens.queue.QueueJobType
 import com.tmm.mobile.ui.screens.queue.QueueState
 import com.tmm.mobile.ui.screens.queue.QueueTab
@@ -178,9 +179,9 @@ object MockupData {
             TransferRow("Frieren · ch. 140", isUpload = false, doneBytes = 3L * 1_048_576, totalBytes = 4L * 1_048_576),
         ),
         waitingJobs = listOf(
-            WaitingJob("k53", "kagurabachi", null, "Kagurabachi · ch. 53", TmmColors.CCFD8C6, QueueJobType.Translation, auto = true),
-            WaitingJob("bl209", "bluelock", null, "Blue Lock · ch. 209", TmmColors.CD8D2E4, QueueJobType.Translation, auto = false),
-            WaitingJob("op1121", "onepiece", null, "One Piece · ch. 1121", TmmColors.CE6DCC0, QueueJobType.Verification, auto = false),
+            WaitingJob("k53", "kagurabachi", null, "Kagurabachi · ch. 53", TmmColors.CCFD8C6, QueueJobType.Translation, auto = true, handoff = Handoff.ReceivedByPc, pcQueuePosition = 1),
+            WaitingJob("bl209", "bluelock", null, "Blue Lock · ch. 209", TmmColors.CD8D2E4, QueueJobType.Translation, auto = false, handoff = Handoff.OnDrive),
+            WaitingJob("op1121", "onepiece", null, "One Piece · ch. 1121", TmmColors.CE6DCC0, QueueJobType.Verification, auto = false, handoff = Handoff.RequestSending),
         ),
         doneJobs = listOf(
             DoneJob(

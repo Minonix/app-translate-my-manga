@@ -241,7 +241,12 @@
     <string name="activity_step_done_fmt">%1$s ✓</string>
     <string name="activity_step_current_fmt">%1$s en cours</string>
     <string name="activity_row_progress_fmt">%1$s %2$d %%</string>
-    <string name="activity_upload_fmt">Envoi %1$d %%</string>
+    <string name="activity_upload_fmt">Chapitre %1$d %%</string>
+    <string name="activity_handoff_pending">En attente d\'envoi</string>
+    <string name="activity_handoff_request">Envoi de la demande seule</string>
+    <string name="activity_handoff_drive">Sur Drive, pas encore lu par le PC</string>
+    <string name="activity_handoff_received">Reçu par le PC</string>
+    <string name="activity_handoff_received_pos_fmt">Reçu par le PC · n° %1$d dans sa file</string>
     <string name="activity_download_fmt">Retour %1$d/%2$d Mo</string>
     <string name="activity_download">Retour</string>
     <string name="activity_focus_cd_fmt">Voir le détail de %1$s</string>
