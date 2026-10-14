@@ -1,5 +1,8 @@
 package com.tmm.mobile.ui.screens.queue
 
+import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.db.CHANNEL_DIRECT
+import com.tmm.mobile.data.db.CHANNEL_DRIVE
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -110,6 +113,44 @@ class QueueViewModelTest {
         assertEquals("Mihon/frieren/139", done.mihonPath)
         assertEquals(20, done.totalPages)
         assertEquals(40, done.totalBubbles)
+    }
+
+    @Test
+    fun state_hidesBubbleCount_whenPcNeverCountedThem() = runTest {
+        // Chapitre traduit sans revérification : le PC publie 0 bulle (il ne les compte pas).
+        env.db.jobDao().upsert(baseJob("job-5", "Mihon/frieren/141", "RESULT_READY"))
+        env.db.chapterQualityDao().upsert(
+            ChapterQualityEntity(
+                mihonPath = "Mihon/frieren/141", totalPages = 14, translatedBubbles = 0,
+                untranslatedBubbles = 0, sfxKept = 0, verifiedAt = null, alerts = emptyList(), jobId = "job-5",
+            ),
+        )
+        val done = QueueViewModel(env.container).state.first { it.doneJobs.isNotEmpty() }.doneJobs.first()
+        assertEquals(null, done.totalBubbles)
+        assertEquals(14, done.totalPages)
+    }
+
+    @Test
+    fun countedBubbles_keepsZero_onceTheChapterWasRechecked() {
+        val q = ChapterQualityEntity("p", 5, 0, 0, 0, "2026-10-14T10:00:00Z", emptyList(), "j")
+        assertEquals(0, countedBubbles(q))
+        assertEquals(null, countedBubbles(q.copy(verifiedAt = null)))
+        assertEquals(3, countedBubbles(q.copy(verifiedAt = null, translatedBubbles = 3)))
+    }
+
+    @Test
+    fun handoff_saysWhetherThePcReceivedTheRequest() {
+        val translate = baseJob("j", "Mihon/frieren/1", "PREPARING")
+        assertEquals(Handoff.Pending, handoffOf(translate))
+        // Correction / retraduction : rien a televerser, seule la demande part.
+        assertEquals(Handoff.RequestSending, handoffOf(translate.copy(mode = JobMode.RETRANSLATE)))
+        assertEquals(Handoff.RequestSending, handoffOf(translate.copy(mode = JobMode.VERIFY)))
+        // Drive : demande deposee mais le PC n'a encore publie aucun statut.
+        val onDrive = translate.copy(phoneState = "SENT", channel = CHANNEL_DRIVE)
+        assertEquals(Handoff.OnDrive, handoffOf(onDrive))
+        assertEquals(Handoff.ReceivedByPc, handoffOf(onDrive.copy(pcState = "queued")))
+        // Direct : le PC a repondu a la demande, c'est son accuse de reception.
+        assertEquals(Handoff.ReceivedByPc, handoffOf(onDrive.copy(channel = CHANNEL_DIRECT)))
     }
 
     @Test

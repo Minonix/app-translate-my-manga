@@ -21,6 +21,7 @@ import com.tmm.mobile.transport.KeystoreTokenCipher
 import com.tmm.mobile.transport.TransportRouter
 import com.tmm.mobile.transport.DriveApi
 import com.tmm.mobile.transport.DriveTransport
+import com.tmm.mobile.transport.driveHttpClient
 import com.tmm.mobile.transport.GoogleAuth
 import com.tmm.mobile.transport.JobTransport
 import com.tmm.mobile.ui.screens.library.LibraryCache
@@ -108,7 +109,7 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
 
     private val driveApi: DriveApi by lazy {
         DriveApi(
-            client = OkHttpClient(),
+            client = driveHttpClient(),
             token = ::provideToken,
             baseUrl = "https://www.googleapis.com/".toHttpUrl(),
             onTokenRejected = ::rejectToken,

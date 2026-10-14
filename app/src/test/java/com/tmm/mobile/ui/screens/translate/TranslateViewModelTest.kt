@@ -138,6 +138,22 @@ class TranslateViewModelTest {
         assertTrue(jobs.none { it.translate })
     }
 
+    // Avant : un echec d'ecriture en base ramenait la feuille a Idle sans rien dire, l'utilisateur
+    // croyait l'envoi parti. La feuille passe en Failed, garde la selection et permet de reessayer.
+    @Test
+    fun sendFailure_isShown_andRetryWorks() = runTest {
+        val vm = open(TranslateRequest(preselectAll = true))
+        val sql = env.db.openHelper.writableDatabase
+        sql.execSQL("CREATE TRIGGER refuse_job BEFORE INSERT ON job BEGIN SELECT RAISE(ABORT, 'disque plein'); END")
+        vm.onEvent(TranslateEvent.Send(translate = true))
+        val failed = vm.state.first { it.phase == TranslatePhase.Failed }
+        assertEquals(3, failed.selectedCount)
+
+        sql.execSQL("DROP TRIGGER refuse_job")
+        vm.onEvent(TranslateEvent.Send(translate = true))
+        assertEquals(TranslatePhase.Done(3, translate = true), vm.state.first { it.phase is TranslatePhase.Done }.phase)
+    }
+
     // Garde Busy : rouvrir la feuille pendant un envoi ne doit pas repasser a Idle, sinon un second
     // « Traduire » partirait avant la fin du premier. La base est bloquee par une transaction tenue sur
     // un autre fil, pour que l'envoi reste en cours pendant la reouverture.

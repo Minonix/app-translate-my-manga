@@ -34,6 +34,12 @@ class QueueScreenshotTest {
         QueueScreen(state = MockupData.queue, onEvent = {})
     }
 
+    // « Ensuite » seul : chaque ligne dit ou en est la remise au PC (demande, Drive, recu).
+    @Test
+    fun queueScreen_waiting() = capture("QueueScreen_waiting") {
+        QueueScreen(state = MockupData.queue.copy(activeJobs = emptyList(), transfers = emptyList()), onEvent = {})
+    }
+
     @Test
     fun queueScreen_done() = capture("QueueScreen_done") {
         QueueScreen(

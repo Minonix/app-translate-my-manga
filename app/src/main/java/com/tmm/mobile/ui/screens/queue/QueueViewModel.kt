@@ -6,6 +6,7 @@ import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.db.CHANNEL_DIRECT
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -263,6 +264,8 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                     // ponytail: le job ne dit pas qui l'a cree ; on marque « suivi auto » les traductions
                     // des series suivies. Upgrade : une colonne origine sur JobEntity.
                     auto = job.mode == JobMode.TRANSLATE && job.seriesKey in r.autoSeries,
+                    handoff = handoffOf(job),
+                    pcQueuePosition = job.pcQueuePosition,
                 )
             }
 
@@ -300,7 +303,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                     // ponytail: ChapterQualityEntity n'a pas de compteur "pages traduites" distinct de
                     // totalPages - on suppose la traduction complete faute de champ dedie.
                     translatedPages = quality?.totalPages ?: 0,
-                    totalBubbles = quality?.translatedBubbles ?: 0,
+                    totalBubbles = quality?.let(::countedBubbles),
                     untranslatedBubbles = quality?.untranslatedBubbles ?: 0,
                     sfxCount = quality?.sfxKept ?: 0,
                     alerts = alerts,
@@ -382,3 +385,16 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 }
+
+/** Etat de la remise au PC, d'apres ce que le telephone sait deja : en direct, la reponse du PC a la
+ *  demande vaut accuse de reception ; sur Drive, il faut son premier statut (pcState). */
+internal fun handoffOf(job: JobEntity): Handoff = when {
+    job.phoneState == "PREPARING" -> if (job.mode == JobMode.TRANSLATE && !job.redeliver) Handoff.Pending else Handoff.RequestSending
+    job.pcState != null || job.channel == CHANNEL_DIRECT -> Handoff.ReceivedByPc
+    else -> Handoff.OnDrive
+}
+
+/** Le PC ne remplit les bulles du .tmm.json qu'a la revérification : sans elle, les compteurs
+ *  valent 0 et « 0 bulle » laissait croire a une page vide. Null = nombre inconnu (non affiche). */
+internal fun countedBubbles(q: ChapterQualityEntity): Int? =
+    q.translatedBubbles.takeIf { q.verifiedAt != null || it > 0 || q.untranslatedBubbles > 0 }

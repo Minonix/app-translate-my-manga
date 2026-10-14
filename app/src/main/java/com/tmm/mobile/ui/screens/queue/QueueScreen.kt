@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,7 +56,6 @@ import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.components.V2Button
 import com.tmm.mobile.ui.components.V2ButtonSize
 import com.tmm.mobile.ui.components.V2ButtonStyle
-import com.tmm.mobile.ui.components.dashedBorder
 import com.tmm.mobile.ui.components.px
 import com.tmm.mobile.ui.components.v2Card
 import com.tmm.mobile.ui.components.v2CardItem
@@ -331,16 +332,13 @@ private fun FocusedCard(job: ActiveJob) {
             )
         }
         Bar(job.percent, C.red, track = C.darkTrack, height = 8, modifier = Modifier.padding(top = 14.dp))
-        Row(Modifier.padding(top = 14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            val shape = RoundedCornerShape(10.dp)
-            val cell = Modifier.weight(1f)
-            PhaseCell(stringResource(R.string.activity_phase_upload_done), C.greenLight, cell.clip(shape).background(C.ink2))
-            PhaseCell(typeLabel(job.type), C.white, cell.clip(shape).background(C.red), bold = true)
-            PhaseCell(
-                stringResource(R.string.activity_phase_return),
-                C.muted2,
-                cell.dashedBorder(C.darkSwitch, width = 1.dp, cornerRadius = 10.dp),
-            )
+        // Etapes lues comme un fil (point + trait), pas comme des boutons : rien n'est cliquable ici.
+        Row(Modifier.padding(top = 14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            PhaseStep(stringResource(R.string.activity_phase_upload_done), C.greenLight, dot = C.greenLight)
+            PhaseLink()
+            PhaseStep(typeLabel(job.type), C.white, dot = C.red, bold = true)
+            PhaseLink()
+            PhaseStep(stringResource(R.string.activity_phase_return), C.muted2, dot = null)
         }
         val steps = listOf(
             stringResource(R.string.activity_step_read),
@@ -377,17 +375,24 @@ private fun withSystemCheck(text: String): AnnotatedString = buildAnnotatedStrin
 }
 
 @Composable
-private fun PhaseCell(label: String, color: Color, modifier: Modifier, bold: Boolean = false) {
-    Box(modifier.padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+private fun PhaseStep(label: String, color: Color, dot: Color?, bold: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        val m = Modifier.size(8.dp).clip(CircleShape)
+        Box(if (dot != null) m.background(dot) else m.border(1.dp, C.muted2, CircleShape))
         TmmText(
             text = withSystemCheck(label),
             style = TmmType.sans(12, weight = if (bold) 600 else 400).px(12.5f),
             color = color,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(start = 6.dp),
         )
     }
+}
+
+@Composable
+private fun RowScope.PhaseLink() {
+    Box(Modifier.weight(1f).padding(horizontal = 8.dp).height(1.dp).background(C.darkSwitch))
 }
 
 @Composable
@@ -437,6 +442,21 @@ private fun WaitingRow(job: WaitingJob, divider: Boolean, onEvent: (QueueEvent) 
                         RowDesc(stringResource(R.string.activity_auto))
                     }
                 }
+                val handoff = when (job.handoff) {
+                    Handoff.Pending -> stringResource(R.string.activity_handoff_pending)
+                    Handoff.RequestSending -> stringResource(R.string.activity_handoff_request)
+                    Handoff.OnDrive -> stringResource(R.string.activity_handoff_drive)
+                    Handoff.ReceivedByPc -> job.pcQueuePosition?.let { stringResource(R.string.activity_handoff_received_pos_fmt, it) }
+                        ?: stringResource(R.string.activity_handoff_received)
+                }
+                TmmText(
+                    text = handoff,
+                    style = TmmType.sans(12),
+                    color = if (job.handoff == Handoff.ReceivedByPc) C.green else C.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
             val cd = stringResource(R.string.activity_remove_cd_fmt, job.title)
             Box(
@@ -505,7 +525,12 @@ private fun DoneRow(index: Int, done: DoneJob, onEvent: (QueueEvent) -> Unit) {
             if (done.isExpanded) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     StatusPill(PillTone.Wait, stringResource(R.string.activity_pages_fmt, done.translatedPages, done.totalPages), plain = true)
-                    StatusPill(PillTone.Wait, pluralStringResource(R.plurals.activity_bubbles, done.totalBubbles, done.totalBubbles), plain = true)
+                    done.totalBubbles?.let { n ->
+                        StatusPill(PillTone.Wait, pluralStringResource(R.plurals.activity_bubbles, n, n), plain = true)
+                        if (done.untranslatedBubbles > 0) {
+                            StatusPill(PillTone.Todo, pluralStringResource(R.plurals.activity_bubbles_vo, done.untranslatedBubbles, done.untranslatedBubbles), plain = true)
+                        }
+                    }
                     if (done.sfxCount > 0) StatusPill(PillTone.Wait, stringResource(R.string.activity_sfx_fmt, done.sfxCount), plain = true)
                 }
                 if (done.alerts.isNotEmpty()) AlertBox(index, done.alerts, onEvent)

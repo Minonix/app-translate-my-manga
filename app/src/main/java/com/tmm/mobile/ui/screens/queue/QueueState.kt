@@ -47,7 +47,25 @@ data class WaitingJob(
     val type: QueueJobType,
     /** Parti tout seul grâce au suivi automatique de la série. */
     val auto: Boolean,
+    /** Où en est l'envoi : la demande part, attend sur Drive, ou le PC l'a reçue. */
+    val handoff: Handoff = Handoff.Pending,
+    /** Rang dans la file du PC, quand il l'a donné. */
+    val pcQueuePosition: Int? = null,
 )
+
+enum class Handoff {
+    /** Rien n'est encore parti (traduction : le chapitre partira juste avant la demande). */
+    Pending,
+
+    /** Correction ou retraduction : seule la demande part, pas le chapitre. */
+    RequestSending,
+
+    /** Demande déposée sur Drive ; le PC ne l'a pas encore lue. */
+    OnDrive,
+
+    /** Le PC a accusé réception (réponse directe ou statut Drive). */
+    ReceivedByPc,
+}
 
 data class DoneJobAlert(
     val page: Int,
@@ -68,7 +86,8 @@ data class DoneJob(
     val color: Color,
     val totalPages: Int,
     val translatedPages: Int,
-    val totalBubbles: Int,
+    /** Bulles traduites ; null quand le PC ne les a pas comptees (pas de revérification). */
+    val totalBubbles: Int?,
     val untranslatedBubbles: Int,
     val sfxCount: Int,
     val alerts: List<DoneJobAlert>,

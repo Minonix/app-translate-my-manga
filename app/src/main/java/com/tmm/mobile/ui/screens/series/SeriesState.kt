@@ -151,6 +151,11 @@ sealed interface SeriesEvent {
     data object StartSelection : SeriesEvent
     data object EndSelection : SeriesEvent
     data class ToggleChapter(val key: String) : SeriesEvent
+
+    // Appui long puis glissement sur la liste : coche (ou decoche) chaque chapitre survole.
+    data class DragSelectStart(val key: String) : SeriesEvent
+    data class DragSelectTo(val key: String) : SeriesEvent
+    data object DragSelectEnd : SeriesEvent
     data class ToggleStats(val key: String) : SeriesEvent
     data object DismissGap : SeriesEvent
 

@@ -241,7 +241,12 @@
     <string name="activity_step_done_fmt">%1$s ✓</string>
     <string name="activity_step_current_fmt">%1$s en cours</string>
     <string name="activity_row_progress_fmt">%1$s %2$d %%</string>
-    <string name="activity_upload_fmt">Envoi %1$d %%</string>
+    <string name="activity_upload_fmt">Chapitre %1$d %%</string>
+    <string name="activity_handoff_pending">En attente d\'envoi</string>
+    <string name="activity_handoff_request">Envoi de la demande seule</string>
+    <string name="activity_handoff_drive">Sur Drive, pas encore lu par le PC</string>
+    <string name="activity_handoff_received">Reçu par le PC</string>
+    <string name="activity_handoff_received_pos_fmt">Reçu par le PC · n° %1$d dans sa file</string>
     <string name="activity_download_fmt">Retour %1$d/%2$d Mo</string>
     <string name="activity_download">Retour</string>
     <string name="activity_focus_cd_fmt">Voir le détail de %1$s</string>
@@ -264,8 +269,12 @@
     <string name="activity_no_alert">Aucune alerte</string>
     <string name="activity_pages_fmt">%1$d/%2$d pages</string>
     <plurals name="activity_bubbles">
-        <item quantity="one">%1$d bulle</item>
-        <item quantity="other">%1$d bulles</item>
+        <item quantity="one">%1$d bulle traduite</item>
+        <item quantity="other">%1$d bulles traduites</item>
+    </plurals>
+    <plurals name="activity_bubbles_vo">
+        <item quantity="one">%1$d bulle restée en VO</item>
+        <item quantity="other">%1$d bulles restées en VO</item>
     </plurals>
     <string name="activity_sfx_fmt">%1$d SFX gardés</string>
     <string name="activity_alert_source_copy">bulle recopiée en VO</string>
@@ -473,6 +482,7 @@
         <item quantity="other">Traduire %1$d chapitres</item>
     </plurals>
     <string name="translate_copy_prefix">ou</string>
+    <string name="translate_failed">Ajout à la file impossible. Rien n\'est parti : réessaie.</string>
     <string name="translate_copy_link">copier sur le PC sans traduire</string>
     <string name="translate_note">Le PC peut être éteint : ils l\'attendront sur Google Drive.</string>
     <!-- Canal des notifications d'envoi et de reception (onglet Activite de la maquette v2). -->

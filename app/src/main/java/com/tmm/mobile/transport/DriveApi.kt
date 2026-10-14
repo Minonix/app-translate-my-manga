@@ -5,6 +5,7 @@ import java.io.IOException
 import java.io.OutputStream
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -17,6 +18,17 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+
+/**
+ * Client HTTP de Drive. Les delais par defaut d'OkHttp (10 s) coupaient sur un lien lent (4G faible) la
+ * reponse de Google apres un morceau de 8 Mo ou l'ouverture de connexion ; l'upload resumable reprend
+ * ensuite au bon octet, donc des delais longs ne coutent rien quand le reseau est bon.
+ */
+fun driveHttpClient(): OkHttpClient = OkHttpClient.Builder()
+    .connectTimeout(20, TimeUnit.SECONDS)
+    .readTimeout(60, TimeUnit.SECONDS)
+    .writeTimeout(60, TimeUnit.SECONDS)
+    .build()
 
 class AuthExpiredException(message: String) : Exception(message)
 class SessionExpiredException(message: String) : Exception(message)
