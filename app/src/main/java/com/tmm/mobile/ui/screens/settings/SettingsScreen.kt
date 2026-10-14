@@ -249,6 +249,9 @@ fun SettingsScreen(
                         actionButtonText = stringResource(R.string.settings_action_change),
                         onActionClick = { onEvent(SettingsEvent.ChangeGoogleAccount) }, showBottomDivider = false)
                 }
+                SettingsGroup(title = stringResource(R.string.settings_update_group)) {
+                    UpdateRow(state.update, onEvent)
+                }
                 // Avancé : carte repliable (details de la maquette v2), une seule liste une fois dépliée.
                 AdvancedCard(expanded = state.advancedExpanded, onToggle = { onEvent(SettingsEvent.ToggleAdvanced) })
                 if (state.advancedExpanded) {
@@ -318,6 +321,7 @@ private fun SettingsToastHost(state: SettingsState, onEvent: (SettingsEvent) -> 
         SettingsToast.LogsReady -> stringResource(R.string.settings_toast_logs_ready)
         SettingsToast.Paired -> stringResource(R.string.settings_toast_paired)
         SettingsToast.PairFailed -> stringResource(R.string.settings_toast_pair_failed)
+        SettingsToast.UpdateFailed -> stringResource(R.string.settings_toast_update_failed)
         null -> ""
     }
     TmmToast(
@@ -325,6 +329,33 @@ private fun SettingsToastHost(state: SettingsState, onEvent: (SettingsEvent) -> 
         message = toastMessage,
         onDismiss = { onEvent(SettingsEvent.DismissToast) },
         modifier = modifier.padding(16.dp),
+    )
+}
+
+// Mise a jour depuis GitHub : une ligne, son bouton suit l'etat (verifier, installer, progression).
+@Composable
+private fun UpdateRow(update: AppUpdateState, onEvent: (SettingsEvent) -> Unit) {
+    val value = when (update) {
+        AppUpdateState.Checking -> stringResource(R.string.settings_update_checking)
+        AppUpdateState.UpToDate -> stringResource(R.string.settings_update_up_to_date)
+        AppUpdateState.Failed -> stringResource(R.string.settings_update_failed)
+        is AppUpdateState.Available -> stringResource(R.string.settings_update_available_fmt, update.release.version)
+        is AppUpdateState.Downloading -> stringResource(R.string.settings_update_downloading_fmt, update.release.version, update.percent)
+        is AppUpdateState.Ready -> stringResource(R.string.settings_update_available_fmt, update.release.version)
+    }
+    val action = when (update) {
+        AppUpdateState.Checking, is AppUpdateState.Downloading -> null
+        AppUpdateState.UpToDate, AppUpdateState.Failed -> stringResource(R.string.settings_update_check)
+        is AppUpdateState.Available, is AppUpdateState.Ready -> stringResource(R.string.settings_update_install)
+    }
+    SettingsRow(
+        label = stringResource(R.string.settings_update_version_fmt, BuildConfig.VERSION_NAME),
+        value = value,
+        actionButtonText = action,
+        onActionClick = {
+            onEvent(if (update is AppUpdateState.Available || update is AppUpdateState.Ready) SettingsEvent.InstallUpdate else SettingsEvent.CheckUpdate)
+        },
+        showBottomDivider = false,
     )
 }
 

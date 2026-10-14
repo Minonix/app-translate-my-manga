@@ -59,6 +59,7 @@ class SettingsScreenBehaviorTest {
                             SettingsEvent.CloseDirect -> state.copy(directOpen = false)
                             SettingsEvent.ToggleFollowed -> state.copy(followedExpanded = !state.followedExpanded)
                             is SettingsEvent.Unfollow, SettingsEvent.Reimport -> state
+                            SettingsEvent.CheckUpdate, SettingsEvent.InstallUpdate -> state
                         }
                     },
                     onNavigateOnboarding = { onboardingNavigated = true },
@@ -92,6 +93,16 @@ class SettingsScreenBehaviorTest {
         composeRule.onNodeWithText("Connexion directe, Drive, réinstallation, journaux").assertExists()
         // Replie par defaut : rien de la section Avancé n'est compose.
         composeRule.onNodeWithText("Journaux").assertDoesNotExist()
+    }
+
+    // Mise a jour : une version plus recente sur GitHub s'installe depuis les Reglages.
+    @Test
+    fun updateAvailable_installButtonSendsInstall() {
+        val release = com.tmm.mobile.core.AppRelease("9.0.0", "https://example.invalid/app.apk", 10, null)
+        setState(MockupData.settings.copy(update = AppUpdateState.Available(release)))
+        composeRule.onNodeWithText("Version 9.0.0 disponible").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Installer").performScrollTo().performClick()
+        assertTrue(events.contains(SettingsEvent.InstallUpdate))
     }
 
     @Test
