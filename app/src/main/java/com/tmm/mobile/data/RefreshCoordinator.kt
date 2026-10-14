@@ -64,6 +64,8 @@ private val PC_TERMINAL_STATES = setOf("done", "failed", "cancelled")
 // heartbeat.activeJobIds ne liste que les jobs en traduction (processing/paused cote PC) : un job
 // « fetching » (recuperation de la source, parfois longue) n'y figure jamais et ne doit pas etre juge bloque.
 private val PC_WORKING_STATES = setOf("translating")
+// Resultat direct connu mais pas encore installe : le telechargement peut reprendre depuis la copie Drive.
+private val RESULT_PENDING_STATES = setOf("RESULT_READY", "DOWNLOADING")
 
 // PLAN_GEMINI.md 5.15/CdC 11.3. autoTranslate est injectee (pas reimplementee ici) : Startup (5.16)
 // et refresh() appellent la meme etape de traduction automatique sur les memes chapitres TO_SEND.
@@ -103,7 +105,7 @@ class RefreshCoordinator(
             var directOk = false
             if (router.activeChannel() == CHANNEL_DIRECT) {
                 directOk = try {
-                    applyPoll(router.direct.poll(null))
+                    applyPoll(router.direct.poll(null), CHANNEL_DIRECT)
                     true
                 } catch (e: CancellationException) {
                     throw e
@@ -183,13 +185,13 @@ class RefreshCoordinator(
         val result = drive.poll(prefs.lastChangesCursor.first())
         // Rien ne levait ce drapeau : le bandeau "reconnecter" restait affiche apres un nouveau consentement.
         if (prefs.authExpired.first()) prefs.setAuthExpired(false)
-        applyPoll(result)
+        applyPoll(result, CHANNEL_DRIVE)
         // Adresse Tailscale publiee par le PC : une URL non nulle ecrase la precedente, null ne l'efface pas.
         result.remote?.url?.let { prefs.setDirectUrl(it) }
         return result
     }
 
-    private suspend fun applyPoll(result: PollResult) {
+    private suspend fun applyPoll(result: PollResult, channel: String) {
         // Le drapeau retombe des qu'un fichier PC lisible en protocole 1 est vu (PC mis a jour).
         if (result.protocolTooNew) {
             prefs.setProtocolTooNew(true)
@@ -241,6 +243,14 @@ class RefreshCoordinator(
                 }
                 continue
             }
+            // Repli Drive : le PC a aussi depose sur Drive le resultat d'un job direct (Tailscale coupe, PC
+            // eteint). Le job passe sur Drive pour le telechargement et l'accuse ; s'il est deja installe,
+            // la copie est ignoree (une seule installation).
+            val toDrive = channel == CHANNEL_DRIVE && job.channel == CHANNEL_DIRECT
+            if (toDrive && job.phoneState in RESULT_PENDING_STATES) {
+                db.jobDao().upsert(job.copy(channel = CHANNEL_DRIVE, resultFileId = resultFileId, updatedAt = clock.nowMillis()))
+                continue
+            }
             // Le meme result.json revient a chaque poll (marge Drive de 120 s, poll direct complet) :
             // seul SENT -> RESULT_READY/INSTALLED est permis (5.4), sinon un job deja installe
             // repasserait RESULT_READY et serait retelecharge (voire FAILED si le dossier est purge).
@@ -250,6 +260,7 @@ class RefreshCoordinator(
                 job.copy(
                     resultJson = ProtocolJson.encodeToString(ResultJson.serializer(), resultJson),
                     resultFileId = resultFileId,
+                    channel = if (toDrive) CHANNEL_DRIVE else job.channel,
                     // Le resultat est la : le diagnostic « bloque sur le PC » n'a plus lieu d'etre.
                     errorCode = if (job.errorCode == LocalErrorCode.PC_STALLED) null else job.errorCode,
                     finishedAt = resultJson.finishedAt,

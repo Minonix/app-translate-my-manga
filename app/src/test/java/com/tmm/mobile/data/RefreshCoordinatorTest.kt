@@ -1,9 +1,12 @@
 package com.tmm.mobile.data
 
+import com.tmm.mobile.data.db.CHANNEL_DIRECT
+import com.tmm.mobile.data.db.CHANNEL_DRIVE
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.SeriesSettingsEntity
 import com.tmm.mobile.protocol.ChapterRef
+import com.tmm.mobile.protocol.FileRef
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.Quality
 import com.tmm.mobile.protocol.RequestJson
@@ -180,6 +183,47 @@ class RefreshCoordinatorTest {
         assertEquals("INSTALLED", again.phoneState)
         assertEquals(installed.installedAt, again.installedAt)
         assertEquals(installed.updatedAt, again.updatedAt)
+    }
+
+    // Repli Drive : job envoye en direct, Tailscale coupe ensuite. Le PC depose aussi le resultat sur Drive
+    // (request.json ici seulement parce que FakePc en a besoin) ; le job passe sur Drive pour le recuperer.
+    @Test fun refresh_takesDriveCopy_ofDirectJobResult() = runTest {
+        writeOwnRequest("job-d1")
+        env.db.jobDao().upsert(job("job-d1").copy(channel = CHANNEL_DIRECT))
+        val fileId = env.pc.finish("job-d1", resultBytes = ByteArray(3), fileRef = FileRef("result.cbz", 3, "ab"))
+
+        env.container.refreshCoordinator.refresh()
+
+        val updated = env.db.jobDao().get("job-d1")!!
+        assertEquals("RESULT_READY", updated.phoneState)
+        assertEquals(CHANNEL_DRIVE, updated.channel)
+        assertEquals(fileId, updated.resultFileId)
+    }
+
+    // Resultat deja connu en direct mais telechargement impossible (PC eteint) : la copie Drive prend le relais.
+    @Test fun refresh_switchesPendingDirectDownload_toDriveCopy() = runTest {
+        writeOwnRequest("job-d2")
+        env.db.jobDao().upsert(job("job-d2").copy(channel = CHANNEL_DIRECT, phoneState = "DOWNLOADING", resultFileId = "job-d2"))
+        val fileId = env.pc.finish("job-d2", resultBytes = ByteArray(3), fileRef = FileRef("result.cbz", 3, "ab"))
+
+        env.container.refreshCoordinator.refresh()
+
+        val updated = env.db.jobDao().get("job-d2")!!
+        assertEquals("DOWNLOADING", updated.phoneState)
+        assertEquals(CHANNEL_DRIVE, updated.channel)
+        assertEquals(fileId, updated.resultFileId)
+    }
+
+    // Deja installe depuis le direct : la copie Drive est ignoree, jamais de seconde installation.
+    @Test fun refresh_ignoresDriveCopy_ofDirectJobAlreadyInstalled() = runTest {
+        writeOwnRequest("job-d3")
+        val installed = job("job-d3").copy(channel = CHANNEL_DIRECT, phoneState = "INSTALLED", installedAt = env.clock.millis)
+        env.db.jobDao().upsert(installed)
+        env.pc.finish("job-d3", resultBytes = ByteArray(3), fileRef = FileRef("result.cbz", 3, "ab"))
+
+        env.container.refreshCoordinator.refresh()
+
+        assertEquals(installed, env.db.jobDao().get("job-d3"))
     }
 
     @Test fun refresh_ignoresStatus_forJobUnknownLocally() = runTest {
