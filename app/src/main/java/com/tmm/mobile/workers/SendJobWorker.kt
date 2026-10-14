@@ -126,14 +126,14 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         // Relu apres l'attente du creneau : le job a pu etre annule entre-temps.
         var job = db.jobDao().get(jobId) ?: return Result.success()
         if (job.phoneState != "PREPARING" && job.phoneState != "UPLOADING") return Result.success()
-        // Le canal se decide avant le premier octet envoye (PREPARING) : direct si le PC repond au
-        // health-check, sinon Drive. Un envoi Drive encore en cours (UPLOADING, request.json pas ecrit,
-        // donc invisible du PC) bascule aussi en direct des que le PC repond. Une fois request.json
-        // ecrit, le job reste sur son canal jusqu'au resultat.
-        val driveUpload = job.phoneState == "UPLOADING" && job.channel == CHANNEL_DRIVE
-        if (!forceDrive && (job.phoneState == "PREPARING" || driveUpload)) {
+        // Le canal se choisit a chaque essai tant que request.json n'est pas ecrit (PREPARING ou
+        // UPLOADING) : direct si le PC repond au health-check, sinon Drive. Un envoi Drive en cours
+        // bascule en direct des que le PC repond ; un envoi direct coupe (PC eteint, reponse perdue)
+        // repart sur Drive au lieu d'epuiser ses essais sur un PC absent. Meme jobId des deux cotes :
+        // le PC ne traduit jamais deux fois (R13). Une fois SENT, le job reste sur son canal.
+        if (!forceDrive) {
             val channel = container.router.activeChannel()
-            if (channel != job.channel && (!driveUpload || channel == CHANNEL_DIRECT)) {
+            if (channel != job.channel) {
                 // Nouvel essai sur l'autre canal : l'id de dossier/session du precedent n'y vaut rien
                 // (le direct stocke le jobId comme "dossier", inconnu de Drive).
                 job = job.copy(

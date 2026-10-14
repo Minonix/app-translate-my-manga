@@ -78,7 +78,7 @@ class QueueScreenBehaviorTest {
     fun activeTab_showsTransfersAndNextSection() {
         setState(MockupData.queue)
         composeRule.onNodeWithText("Traduction 42 %").assertExists()
-        composeRule.onNodeWithText("Envoi 98 %").assertExists()
+        composeRule.onNodeWithText("Chapitre 98 %").assertExists()
         composeRule.onNodeWithText("Retour 3/4 Mo").assertExists()
         composeRule.onNodeWithText("Ensuite (3)").performScrollTo().assertExists()
         composeRule.onNodeWithText("suivi auto").assertExists()
@@ -134,7 +134,7 @@ class QueueScreenBehaviorTest {
         setState(MockupData.queue.copy(activeTab = QueueTab.Done))
 
         composeRule.onNodeWithText("21/21 pages").assertExists()
-        composeRule.onNodeWithText("176 bulles").assertExists()
+        composeRule.onNodeWithText("176 bulles traduites").assertExists()
         composeRule.onAllNodesWithText("Corriger la page")[0].performScrollTo().performClick()
         assertTrue(events.contains(QueueEvent.VerifyPage(0, 4)))
 

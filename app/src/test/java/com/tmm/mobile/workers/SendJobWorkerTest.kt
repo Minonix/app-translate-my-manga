@@ -6,6 +6,7 @@ import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.db.CHANNEL_DIRECT
+import com.tmm.mobile.data.db.CHANNEL_DRIVE
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.transport.DirectTokenStore
 import java.io.File
@@ -146,5 +147,28 @@ class SendJobWorkerTest {
         } finally {
             pc.close()
         }
+    }
+
+    // PC eteint en plein envoi direct (UPLOADING, POST jamais confirme) : le job restait sur le direct,
+    // 5 essais vers un PC absent puis FAILED. Il bascule sur Drive avec le meme jobId (le PC deduplique,
+    // R13) et repart du CBZ deja prepare.
+    @Test fun doWork_directUploadInProgress_switchesToDriveWhenPcGone() = runTest {
+        env.prefs.setDirectUrl("http://127.0.0.1:1/")
+        DirectTokenStore(env.prefs, FakeTokenCipher).set("jeton")
+        val cbz = File(kotlin.io.path.createTempDirectory("job-5").toFile(), "source.cbz").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        env.db.jobDao().upsert(
+            job("job-5", phoneState = "UPLOADING", mode = JobMode.TRANSLATE).copy(
+                channel = CHANNEL_DIRECT, driveFolderId = "job-5",
+                cachePath = cbz.absolutePath, sha256 = "abc", sizeBytes = 3L, transferredBytes = 1L, transferTotal = 3L,
+            ),
+        )
+
+        val result = buildWorker("job-5").doWork()
+
+        assertEquals(Result.success(), result)
+        val updated = env.db.jobDao().get("job-5")!!
+        assertEquals("SENT", updated.phoneState)
+        assertEquals(CHANNEL_DRIVE, updated.channel)
+        assertEquals("job-5", env.pc.readRequest("job-5").jobId)
     }
 }
