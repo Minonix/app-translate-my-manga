@@ -13,6 +13,13 @@ import com.tmm.mobile.data.db.TmmDatabase
 // locale, aucune indirection par nom n'est necessaire (contrairement a Mihon lui-meme).
 class BackupImporter(private val db: TmmDatabase) {
 
+    companion object {
+        // Id fixe de la « Source locale » de Mihon (LocalSource.ID). Ses series sont les dossiers de
+        // local/, ou TMM installe les traductions : mises en bibliotheque, elles reapparaissaient dans
+        // TMM comme une serie a part, doublon de l'originale. Elles ne sont jamais importees.
+        const val MIHON_LOCAL_SOURCE_ID = 0L
+    }
+
     suspend fun import(backup: MihonBackup) {
         val sourceNameById = backup.backupSources.associate { it.sourceId to it.name }
 
@@ -30,6 +37,7 @@ class BackupImporter(private val db: TmmDatabase) {
             val chapters = mutableListOf<ChapterEntity>()
 
             for (manga in backup.backupManga) {
+                if (manga.source == MIHON_LOCAL_SOURCE_ID) continue
                 val seriesKey = "${manga.source}|${manga.url}"
                 series.add(
                     SeriesEntity(
