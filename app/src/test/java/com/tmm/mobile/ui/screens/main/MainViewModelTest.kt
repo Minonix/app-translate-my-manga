@@ -124,4 +124,27 @@ class MainViewModelTest {
         assertEquals(1, state.toSendCount)
         assertEquals(1, state.toSendSeriesCount)
     }
+
+    // Bouton de l'accueil : les originaux a envoyer partent au PC sans traduction, une seule fois.
+    @Test
+    fun copyOriginals_sendsToSendChaptersWithoutTranslation() = runTest {
+        env.db.seriesDao().upsert(series("frieren", "Frieren"))
+        fun dl(path: String, seriesKey: String?) = DownloadedChapterEntity(
+            mihonPath = path, sourceDir = "Mihon", seriesDir = path.split("/")[1], chapterDir = path.substringAfterLast("/"),
+            documentUri = "doc://$path", isCbz = true, sizeBytes = 1L, lastModified = 0L, pageCount = 1,
+            seriesKey = seriesKey, chapterKey = null, number = null,
+        )
+        env.db.downloadedChapterDao().upsert(dl("Mihon/frieren/140", "frieren"))
+        env.db.downloadedChapterDao().upsert(dl("Mihon/inconnue/1", null))
+        val vm = MainViewModel(env.container)
+        vm.state.first { it.toSendCount == 1 }
+
+        vm.onEvent(MainEvent.CopyOriginals)
+
+        val toast = vm.state.first { it.toast != null }.toast
+        assertEquals(MainToast.Copied(1), toast)
+        val jobs = env.db.jobDao().observeAll().first()
+        assertEquals(listOf("Mihon/frieren/140"), jobs.map { it.mihonPath })
+        assertEquals(false, jobs.single().translate)
+    }
 }

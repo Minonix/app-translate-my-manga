@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -18,6 +19,7 @@ import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.protocol.Heartbeat
+import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
 import java.time.Instant
@@ -115,7 +117,29 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             // RefreshCoordinator.state) - composant partage, hors peripherie de cet ecran.
             MainEvent.RefreshFinished -> {}
             MainEvent.FetchTranslated -> fetchTranslated()
+            MainEvent.CopyOriginals -> copyOriginals()
             MainEvent.DismissToast -> ephemeral.update { it.copy(toast = null) }
+        }
+    }
+
+    // Meme perimetre que le compteur « a envoyer » de l'accueil, envoye avec translate = false : le PC
+    // range les originaux sans les traduire (comme « Copier sur le PC sans traduire » d'une serie).
+    private fun copyOriginals() {
+        viewModelScope.launch {
+            val room = roomSnapshot.first()
+            val seriesByKey = db.seriesDao().observeAll().first().associateBy { it.seriesKey }
+            val targets = room.downloaded
+                .filter { dl -> dl.seriesKey in seriesByKey && statusFor(dl, room) == ChapterStatus.TO_SEND }
+                .map { dl ->
+                    JobTarget(
+                        mihonPath = MihonPath(dl.sourceDir, dl.seriesDir, dl.chapterDir),
+                        downloaded = dl,
+                        series = seriesByKey[dl.seriesKey],
+                        chapter = dl.chapterKey?.let { db.chapterDao().get(it) },
+                    )
+                }
+            val result = container.jobRepository.createJobs(JobMode.TRANSLATE, targets, translate = false)
+            ephemeral.update { it.copy(toast = MainToast.Copied(result.createdJobIds.size)) }
         }
     }
 

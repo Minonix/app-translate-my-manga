@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.ProgressBar
 import com.tmm.mobile.ui.components.RefreshButton
+import com.tmm.mobile.ui.components.TmmButton
+import com.tmm.mobile.ui.components.TmmDialog
 import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.components.TmmToast
 import com.tmm.mobile.ui.icons.TmmIcon
@@ -57,6 +63,8 @@ fun MainScreen(
     onOpenTranslate: () -> Unit = {},
     onManageFollowed: () -> Unit = {},
 ) {
+    // Envoi des originaux confirme d'abord : il peut porter sur des centaines de chapitres.
+    var confirmingCopy by remember { mutableStateOf(false) }
     Box(modifier = modifier.background(TmmColors.paper)) {
         Column(
             modifier = Modifier
@@ -72,7 +80,7 @@ fun MainScreen(
             // disparaitrait au milieu de la progression, toGetCount baissant a chaque installation) ;
             // l'etat Done ne revenant jamais a Idle, il ne compte pas.
             if (state.toSendCount > 0 || state.toGetCount > 0 || state.getState == BusyState.Busy) {
-                TodoSection(state = state, onEvent = onEvent, onOpenTranslate = onOpenTranslate)
+                TodoSection(state = state, onEvent = onEvent, onOpenTranslate = onOpenTranslate, onCopyOriginals = { confirmingCopy = true })
             }
             if (state.followedSeries.isNotEmpty()) FollowedSection(state.followedSeries, onManageFollowed, onOpenSeries)
             if (state.queueJobs.isNotEmpty() || state.queueCount > 0) OnPcNowSection(state = state, onOpenQueue = onOpenQueue)
@@ -80,7 +88,19 @@ fun MainScreen(
         }
         val toastMessage = when (val toast = state.toast) {
             is MainToast.Received -> stringResource(R.string.home_toast_received_fmt, toast.count)
+            is MainToast.Copied -> pluralStringResource(R.plurals.series_toast_copied, toast.count, toast.count)
             null -> ""
+        }
+        TmmDialog(visible = confirmingCopy, onDismiss = { confirmingCopy = false }, title = stringResource(R.string.home_copy_originals_title)) {
+            TmmText(
+                pluralStringResource(R.plurals.home_copy_originals_body, state.toSendCount, state.toSendCount),
+                style = TmmType.sans(14, lineHeight = 20f), color = TmmColors.textMuted,
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+            )
+            TmmButton(label = stringResource(R.string.home_copy_originals_confirm), onClick = {
+                confirmingCopy = false
+                onEvent(MainEvent.CopyOriginals)
+            })
         }
         TmmToast(
             visible = state.toast != null,
@@ -184,7 +204,7 @@ private fun OfflineNotice(sinceLabel: String) {
 }
 
 @Composable
-private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenTranslate: () -> Unit) {
+private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenTranslate: () -> Unit, onCopyOriginals: () -> Unit) {
     val description = stringResource(R.string.home_v2_todo)
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(TmmColors.ink)
@@ -197,6 +217,7 @@ private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenTr
                 pluralStringResource(R.plurals.home_v2_to_send_series, state.toSendSeriesCount, state.toSendSeriesCount)) {
                 InlineButton(stringResource(R.string.home_v2_translate), filled = true, onClick = onOpenTranslate)
             }
+            CopyOriginalsLink(onCopyOriginals)
         }
         if (state.toGetCount > 0 || state.getState == BusyState.Busy) {
             if (state.toSendCount > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(TmmColors.C34332E))
@@ -206,6 +227,15 @@ private fun TodoSection(state: MainState, onEvent: (MainEvent) -> Unit, onOpenTr
             }
         }
     }
+}
+
+@Composable
+private fun CopyOriginalsLink(onClick: () -> Unit) {
+    TmmText(
+        stringResource(R.string.home_copy_originals),
+        style = TmmType.sans(14, weight = 600), color = TmmColors.paper,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = 6.dp),
+    )
 }
 
 @Composable

@@ -11,6 +11,10 @@ import com.tmm.mobile.data.db.TmmDatabase
 // moitie importe). BackupManga.categories contient les `order` de BackupCategory (pas des ids,
 // verifie dans MangaRestorer.kt de Mihon) ; comme CategoryEntity.order EST deja la cle primaire
 // locale, aucune indirection par nom n'est necessaire (contrairement a Mihon lui-meme).
+// Identifiant de la source Locale de Mihon (LocalSource.ID). Ses series sont deja des fichiers sur le
+// telephone (souvent les traductions installees par TMM) : rien a envoyer, elles ne sont pas affichees.
+internal const val MIHON_LOCAL_SOURCE_ID = 0L
+
 class BackupImporter(private val db: TmmDatabase) {
 
     suspend fun import(backup: MihonBackup) {
@@ -29,7 +33,7 @@ class BackupImporter(private val db: TmmDatabase) {
             val links = mutableListOf<SeriesCategoryEntity>()
             val chapters = mutableListOf<ChapterEntity>()
 
-            for (manga in backup.backupManga) {
+            for (manga in backup.backupManga.filter { it.source != MIHON_LOCAL_SOURCE_ID }) {
                 val seriesKey = "${manga.source}|${manga.url}"
                 series.add(
                     SeriesEntity(
