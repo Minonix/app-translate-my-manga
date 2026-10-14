@@ -102,6 +102,22 @@ class DriveTransportTest {
         assertTrue(content.contentEquals(uploaded.bytes))
     }
 
+    // Envoi d'une serie sur une connexion lente : chaque requete compte. Une session neuve part
+    // directement avec le premier morceau, sans interroger d'abord une session forcement vide.
+    @Test
+    fun uploadSource_freshSessionSendsFirstChunkWithoutQuery() = runTest {
+        transport.ensureLayout()
+        val content = ByteArray(1024) { (it % 256).toByte() }
+        val file = File.createTempFile("source", ".cbz").apply { writeBytes(content) }
+
+        transport.uploadSource(job = emptyJob("job-q"), file = file, onSession = {}, onProgress = { _, _ -> })
+
+        val ranges = (0 until drive.server.requestCount).map { drive.server.takeRequest() }
+            .filter { it.url.encodedPath.startsWith("/upload/session/") }
+            .map { it.headers["Content-Range"] }
+        assertEquals(listOf("bytes 0-1023/1024"), ranges)
+    }
+
     @Test
     fun poll_returnsStatusAndDetectsProtocolTooNew() = runTest {
         transport.ensureLayout()

@@ -135,16 +135,19 @@ class DriveTransport(
         val jobFolderId = job.driveFolderId ?: ensureJobFolder(job.jobId)
         val total = file.length()
         var session = job.uploadSessionUrl
+        var offset = 0L
         if (session == null) {
             session = driveApi.startResumable(jobFolderId, "source.cbz", total, "application/vnd.comicbook+zip")
             onSession(session)
-        }
-        var offset = 0L
-        val existing = driveApi.queryResumable(session, total)
-        if (existing is ChunkResult.Incomplete) offset = existing.nextOffset
-        if (existing is ChunkResult.Complete) {
-            onProgress(total, total)
-            return existing.fileId
+        } else {
+            // Reprise seulement : une session neuve est vide, l'interroger coutait un aller-retour de plus
+            // par chapitre (sensible quand une serie entiere part sur une connexion lente).
+            val existing = driveApi.queryResumable(session, total)
+            if (existing is ChunkResult.Incomplete) offset = existing.nextOffset
+            if (existing is ChunkResult.Complete) {
+                onProgress(total, total)
+                return existing.fileId
+            }
         }
         RandomAccessFile(file, "r").use { raf ->
             val buffer = ByteArray(CHUNK_SIZE)
