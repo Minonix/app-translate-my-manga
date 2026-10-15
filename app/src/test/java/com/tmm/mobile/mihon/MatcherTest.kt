@@ -61,6 +61,19 @@ class MatcherTest {
         assertEquals(ChapterMatch(b, null), result["inconnu"])
     }
 
+    // Scenario reel : CBZ "Chapter 103" telecharge mais URL differente de la sauvegarde -> "Pas telecharge".
+    @Test fun assignChapters_hashMismatch_matchesByUniqueNumber() {
+        val s = MatchableSeries("s", "MangaDot", "Off to an Invincible Start")
+        val ch103 = MatchableChapter("c103", "Chapter 103: Hanlan Pavilion", "BRS Manhua", "/new-url", 103f)
+        val ch102 = MatchableChapter("c102", "Chapter 102", "BRS Manhua", "/102", 102f)
+        val dir102 = MihonNaming.getChapterDirName("Chapter 102", "BRS Manhua", "/102")
+        val dir103 = "BRS Manhua_Chapter 103_ Hanlan Pavilion_46aaec.cbz"
+        val result = Matcher.assignChapters(listOf(dir102, dir103, "BRS Manhua_Chapter 102_ copie_ffffff"), listOf(s to listOf(ch102, ch103)))
+        assertEquals(ChapterMatch(s, ch103), result[dir103])
+        assertEquals(ChapterMatch(s, ch102), result[dir102])
+        assertEquals(ChapterMatch(s, null), result["BRS Manhua_Chapter 102_ copie_ffffff"])
+    }
+
     @Test fun assignChapters_noCandidate_horsCatalogue() {
         assertEquals(ChapterMatch(null, null), Matcher.assignChapters(listOf("x"), emptyList())["x"])
     }

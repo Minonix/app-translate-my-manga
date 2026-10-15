@@ -47,7 +47,19 @@ object Matcher {
             candidates.firstNotNullOfOrNull { (series, chapters) -> findChapter(name, chapters)?.let { ChapterMatch(series, it) } }
         }
         val fallback = candidates.maxBy { (series, _) -> exact.values.count { it?.series == series } }.first
-        return exact.mapValues { (_, match) -> match ?: ChapterMatch(fallback, null) }
+        // Rattrapage : un chapitre dont l'URL ou le titre a change depuis la sauvegarde (hachage different)
+        // restait "Pas telecharge" alors que son CBZ est la. On le rattache par numero, seulement si un seul
+        // chapitre du catalogue porte ce numero et qu'aucun autre dossier ne l'a deja pris.
+        val taken = exact.values.mapNotNullTo(HashSet()) { it?.chapter?.chapterKey }
+        val fallbackChapters = candidates.first { it.first == fallback }.second
+        return exact.mapValues { (name, match) ->
+            match ?: ChapterMatch(fallback, findByNumber(name, fallbackChapters, taken)?.also { taken += it.chapterKey })
+        }
+    }
+
+    private fun findByNumber(dirName: String, chapters: List<MatchableChapter>, taken: Set<String>): MatchableChapter? {
+        val number = DownloadOnlySeries.guessNumber(dirName) ?: return null
+        return chapters.filter { it.number == number }.singleOrNull()?.takeIf { it.chapterKey !in taken }
     }
 
     /** Retrouve la ChapterEntity dont le nom de dossier chapitre correspond, ou null si "hors catalogue". */
