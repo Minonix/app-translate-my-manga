@@ -4,7 +4,7 @@
 
 Implémentation complète de l'application Android native TMM Mobile V1 (Kotlin, Compose, Room, WorkManager, SAF, Google Drive REST) en suivant scrupuleusement docs/PLAN_GEMINI.md, docs/CAHIER_DES_CHARGES.md et les maquettes HTML/CSS de maquettes/.
 
-Working directory: c:\Users\clement martini\Documents\GitHub\app-translate-my-manga
+Working directory: <project-root>/app-translate-my-manga
 Integrity mode: development
 
 ## Requirements

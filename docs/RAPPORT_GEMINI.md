@@ -30,9 +30,9 @@
 | Outil | Version vérifiée | Emplacement / Commande de validation |
 |---|---|---|
 | JDK | 26.0.1 (Oracle SE build 26.0.1+8-34, target bytecode 17) | `java -version` |
-| Android SDK Platforms | android-36, android-37.0 | `C:\Users\clement martini\AppData\Local\Android\Sdk\platforms` |
-| Android SDK Build-Tools | 36.0.0 | `C:\Users\clement martini\AppData\Local\Android\Sdk\build-tools\36.0.0` |
-| Gradle | 9.7.0 (dist locale en cache) | `C:\Users\clement martini\.gradle\wrapper\dists\gradle-9.7.0-bin` |
+| Android SDK Platforms | android-36, android-37.0 | `%LOCALAPPDATA%\Android\Sdk\platforms` |
+| Android SDK Build-Tools | 36.0.0 | `%LOCALAPPDATA%\Android\Sdk\build-tools\36.0.0` |
+| Gradle | 9.7.0 (dist locale en cache) | `%USERPROFILE%\.gradle\wrapper\dists\gradle-9.7.0-bin` |
 | Python | 3.13.1 | `python --version` |
 | Git | 2.47.1.windows.2 | `git --version` |
 

@@ -6,13 +6,13 @@ Coordinate and execute the complete implementation of TMM Mobile V1 (milestones 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
-- Working directory: c:\Users\clement martini\Documents\GitHub\app-translate-my-manga\.agents\teamwork\orchestrator_main
+- Working directory: <project-root>/.agents/teamwork/orchestrator_main
 - Original parent: parent
 - Original parent conversation ID: c837ea6e-fe52-4a60-aebd-3ab2aab2d61b
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern (Dual Track: Implementation Track + E2E Testing Track)
-- **Scope document**: c:\Users\clement martini\Documents\GitHub\app-translate-my-manga\PROJECT.md
+- **Scope document**: <project-root>/PROJECT.md
 1. **Decompose**: Survey phase (3 explorers/spec-miners) -> PROJECT.md Feature Inventory & Milestones (E0-E11) & Interface Contracts.
 2. **Dispatch & Execute** (pick ONE):
    - **Direct (iteration loop)**: Standard Explorer (3) -> Worker (1) -> Reviewer (2) -> Challenger (2) -> Auditor (1) -> Gate check per milestone.

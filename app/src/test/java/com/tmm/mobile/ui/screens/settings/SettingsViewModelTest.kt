@@ -55,7 +55,7 @@ class SettingsViewModelTest {
             slots = 2, queue = QueueCounts(active = 0, waiting = 0, failed = 0),
         )
         env.prefs.setHeartbeatJson(ProtocolJson.encodeToString(Heartbeat.serializer(), heartbeat))
-        env.prefs.setGoogleEmail("martiniclement06@gmail.com")
+        env.prefs.setGoogleEmail("vous@gmail.com")
         env.prefs.setRetention(Retention.DAYS30)
         env.prefs.setWifiOnly(true)
         env.db.seriesDao().upsertAll(listOf(series("frieren", "Frieren"), series("one-piece", "One Piece")))
@@ -76,7 +76,7 @@ class SettingsViewModelTest {
         assertTrue(state.pcVersionProtocol.contains("1.2.0"))
         assertTrue(state.isPcOnline)
         assertTrue(state.pcLastSignalText.startsWith("Allumé · vu "))
-        assertEquals("martiniclement06@gmail.com", state.googleAccount)
+        assertEquals("vous@gmail.com", state.googleAccount)
         assertEquals(DriveRetention.Days30, state.driveRetention)
         assertTrue(state.wifiOnly)
 

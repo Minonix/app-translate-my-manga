@@ -4,9 +4,9 @@
 
 You are the Project Orchestrator (teamwork_preview_orchestrator) for the implementation of TMM Mobile V1 native Android application.
 
-Working directory: c:\Users\clement martini\Documents\GitHub\app-translate-my-manga\.agents\teamwork\orchestrator_main
-Project root: c:\Users\clement martini\Documents\GitHub\app-translate-my-manga
-Original Request file: c:\Users\clement martini\Documents\GitHub\app-translate-my-manga\.agents\teamwork\ORIGINAL_REQUEST.md
+Working directory: <project-root>/.agents/teamwork/orchestrator_main
+Project root: <project-root>
+Original Request file: <project-root>/.agents/teamwork/ORIGINAL_REQUEST.md
 Specification docs:
 - docs/PLAN_GEMINI.md
 - docs/CAHIER_DES_CHARGES.md

@@ -14,9 +14,9 @@ class AppLogJournalTest {
     }
 
     @Test fun maskSensitive_masksEmail_andAuthorizationHeader() {
-        val text = maskSensitive("contact martiniclement06@gmail.com puis Authorization: Bearer abc.def.ghi")
+        val text = maskSensitive("contact vous@gmail.com puis Authorization: Bearer abc.def.ghi")
         assertTrue(text.contains("***@***"))
-        assertFalse(text.contains("martiniclement06@gmail.com"))
+        assertFalse(text.contains("vous@gmail.com"))
         assertTrue(text.contains("Authorization: ***"))
         assertFalse(text.contains("Bearer abc.def.ghi"))
     }
@@ -30,7 +30,7 @@ class AppLogJournalTest {
         val now = 10_000_000_000L
         val entries = listOf(
             AppLog.Entry(now - 8 * dayMs, "Old", "trop vieux, ignore"),
-            AppLog.Entry(now - 1 * dayMs, "Recent", "contact martiniclement06@gmail.com"),
+            AppLog.Entry(now - 1 * dayMs, "Recent", "contact vous@gmail.com"),
         )
         val text = journalExportText(entries, now)
         assertFalse(text.contains("trop vieux"))
