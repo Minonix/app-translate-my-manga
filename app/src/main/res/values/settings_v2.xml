@@ -42,6 +42,8 @@
     <string name="settings_v2_verify_hint">Repasse sur les bulles restées en VO</string>
     <string name="settings_v2_failover">Si le moteur échoue</string>
     <string name="settings_v2_failover_hint">Basculer sur le LLM local (Ollama)</string>
+    <string name="settings_v2_page_images">Montrer la page au modèle</string>
+    <string name="settings_v2_page_images_hint">Si le modèle lit les images (Gemini, certains modèles OpenRouter)</string>
     <string name="settings_v2_applied">Appliqué sur %1$s, sans redémarrage</string>
     <string name="settings_v2_step_reading">Lecture du fichier…</string>
     <string name="settings_v2_step_decompressing">Décompression…</string>

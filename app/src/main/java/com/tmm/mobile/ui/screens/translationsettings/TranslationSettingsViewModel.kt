@@ -54,6 +54,7 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
         translationProvider = TranslationProvider.entries.firstOrNull { it.id == v.translationProvider } ?: state.translationProvider,
         autoFailoverToLocalLlm = v.autoFailoverToLocalLlm,
         autoVerifyAfterTranslate = v.autoVerifyAfterTranslate,
+        sendPageImages = v.sendPageImages,
         chapterConcurrency = v.chapterConcurrency,
         concurrency = v.concurrency,
         pileSize = v.pileSize,
@@ -74,6 +75,8 @@ class TranslationSettingsViewModel(private val container: AppContainer) : ViewMo
                 change("translationProvider", event.value.id) { it.copy(translationProvider = event.value) }
             is TranslationSettingsEvent.SetAutoFailover ->
                 change("autoFailoverToLocalLlm", event.value.toString()) { it.copy(autoFailoverToLocalLlm = event.value) }
+            is TranslationSettingsEvent.SetSendPageImages ->
+                change("sendPageImages", event.value.toString()) { it.copy(sendPageImages = event.value) }
             is TranslationSettingsEvent.SetAutoVerify ->
                 change("autoVerifyAfterTranslate", event.value.toString()) { it.copy(autoVerifyAfterTranslate = event.value) }
             is TranslationSettingsEvent.SetChapterConcurrency ->

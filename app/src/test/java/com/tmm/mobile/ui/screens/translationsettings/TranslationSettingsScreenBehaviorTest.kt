@@ -58,6 +58,7 @@ class TranslationSettingsScreenBehaviorTest {
             is TranslationSettingsEvent.SelectTranslationProvider -> sent(state.copy(translationProvider = event.value))
             is TranslationSettingsEvent.SetAutoFailover -> sent(state.copy(autoFailoverToLocalLlm = event.value))
             is TranslationSettingsEvent.SetAutoVerify -> sent(state.copy(autoVerifyAfterTranslate = event.value))
+            is TranslationSettingsEvent.SetSendPageImages -> sent(state.copy(sendPageImages = event.value))
             is TranslationSettingsEvent.SetChapterConcurrency -> sent(state.copy(chapterConcurrency = event.value))
             is TranslationSettingsEvent.SetConcurrency -> sent(state.copy(concurrency = event.value))
             is TranslationSettingsEvent.SetPileSize -> sent(state.copy(pileSize = event.value))
