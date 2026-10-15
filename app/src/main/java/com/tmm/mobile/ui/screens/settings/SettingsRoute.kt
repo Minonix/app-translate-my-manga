@@ -1,7 +1,12 @@
 package com.tmm.mobile.ui.screens.settings
 
 import androidx.compose.runtime.getValue
+import android.content.Context
 import android.content.Intent
+import android.provider.Settings
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
+import java.io.File
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -21,6 +26,26 @@ import com.tmm.mobile.ui.nav.TranslationSettingsRoute
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.launch
+
+/**
+ * Confie l'APK a l'installateur d'Android. Sans l'autorisation « installer des applis inconnues », ouvre
+ * d'abord son ecran : au retour, « Installer » relance l'installation sans retelecharger.
+ */
+private fun installApk(context: Context, apk: File) {
+    if (!context.packageManager.canRequestPackageInstalls()) {
+        context.startActivity(
+            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        return
+    }
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.updates", apk)
+    context.startActivity(
+        Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, "application/vnd.android.package-archive")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK),
+    )
+}
 
 /**
  * Point d'entree navigation de l'ecran Reglages (E10, plan 7.8). Le selecteur de dossier Mihon
@@ -67,6 +92,7 @@ fun SettingsRoute(nav: NavController) {
         onEvent = { event ->
             when (event) {
                 SettingsEvent.ChangeMihonFolder -> folderPicker.launch(null)
+                SettingsEvent.InstallUpdate -> viewModel.downloadUpdate { apk -> installApk(context, apk) }
                 SettingsEvent.ExportLogs -> {
                     val today = Instant.ofEpochMilli(container.clock.nowMillis())
                         .atZone(ZoneId.systemDefault())

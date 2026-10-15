@@ -168,6 +168,10 @@ class FakeAppContainer(
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
     // Fichier neuf par test : un instantane d'un test precedent ne doit pas s'afficher dans le suivant.
     override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(kotlin.io.path.createTempDirectory().toFile(), "library_snapshot.json")) }
+    // Jamais GitHub depuis les tests : adresse locale fermee, la verification echoue tout de suite.
+    override val appUpdater: com.tmm.mobile.core.AppUpdater by lazy {
+        com.tmm.mobile.core.AppUpdater(okhttp3.OkHttpClient(), java.io.File(context.cacheDir, "updates"), "http://127.0.0.1:1/")
+    }
 }
 
 // Robolectric n'a pas d'Android Keystore : chiffreur factice (aucun secret reel dans les tests).

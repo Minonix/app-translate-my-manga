@@ -56,6 +56,7 @@ interface AppContainer {
     val chapterDeleter: ChapterDeleter
     val startup: Startup
     val libraryCache: LibraryCache
+    val appUpdater: AppUpdater
 
     /** Arbre Mihon (SAF) configure, ou null s'il n'y en a pas. Point d'injection des workers pour les tests. */
     suspend fun mihonRoot(): MihonRoot?
@@ -160,6 +161,8 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     override val startup: Startup by lazy { Startup(context, db, prefs, jobRepository, refreshCoordinator) }
 
     override val libraryCache: LibraryCache by lazy { LibraryCache(db, scope, java.io.File(context.filesDir, "library_snapshot.json")) }
+    // Dossier partage avec l'installateur via FileProvider (res/xml/file_paths.xml).
+    override val appUpdater: AppUpdater by lazy { AppUpdater(directClient, java.io.File(context.cacheDir, "updates")) }
 
     override suspend fun mihonRoot(): MihonRoot? {
         val treeUri = prefs.mihonTreeUri.first()?.let { Uri.parse(it) } ?: return null

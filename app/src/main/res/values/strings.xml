@@ -359,6 +359,16 @@
     <string name="settings_wifi_only_off_desc">Envois aussi en données mobiles</string>
     <string name="settings_row_logs">Journaux</string>
     <string name="settings_action_export">Exporter</string>
+    <string name="settings_update_group">Application</string>
+    <string name="settings_update_version_fmt">Version %1$s</string>
+    <string name="settings_update_checking">Recherche d\'une mise à jour…</string>
+    <string name="settings_update_up_to_date">À jour</string>
+    <string name="settings_update_failed">Vérification impossible (pas de réseau ?)</string>
+    <string name="settings_update_available_fmt">Version %1$s disponible</string>
+    <string name="settings_update_downloading_fmt">Téléchargement de la version %1$s : %2$d %%</string>
+    <string name="settings_update_check">Vérifier</string>
+    <string name="settings_update_install">Installer</string>
+    <string name="settings_toast_update_failed">Téléchargement de la mise à jour impossible</string>
     <string name="settings_footer_app_version">TMM Mobile %1$s · protocole v1</string>
     <string name="settings_toast_choose_account">Choix du compte Google</string>
     <string name="settings_toast_folder_picker">Sélecteur de dossier Android</string>

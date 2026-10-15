@@ -3,7 +3,9 @@ package com.tmm.mobile.ui.screens.settings
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
+import com.tmm.mobile.BuildConfig
 import com.tmm.mobile.core.AppContainer
+import java.io.File
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.Retention
@@ -62,6 +64,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { observeLogsInfo() }
         viewModelScope.launch { loadTranslationSummary() }
         viewModelScope.launch { observeDirect() }
+        checkUpdate()
         viewModelScope.launch {
             combine(container.db.seriesDao().observeAll(), container.db.seriesSettingsDao().observeAutoTranslateSeriesKeys()) { series, keys ->
                 series.filter { it.seriesKey in keys }.map { FollowedSeries(it.seriesKey, it.title) }.sortedBy { it.title }
@@ -292,10 +295,63 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             is SettingsEvent.PairingCodeChanged ->
                 _state.update { it.copy(pairingCode = event.code.filter(Char::isDigit).take(6)) }
             SettingsEvent.Pair -> pair()
+            SettingsEvent.CheckUpdate -> checkUpdate()
+            SettingsEvent.InstallUpdate -> Unit
             SettingsEvent.ForgetPc -> viewModelScope.launch {
                 container.router.direct.forget()
                 _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = "") }
             }
+        }
+    }
+
+    private var updateJob: Job? = null
+
+    private fun checkUpdate() {
+        if (updateJob?.isActive == true) return
+        _state.update { it.copy(update = AppUpdateState.Checking) }
+        updateJob = viewModelScope.launch {
+            val next = try {
+                container.appUpdater.newerThan(BuildConfig.VERSION_NAME)
+                    ?.let { AppUpdateState.Available(it) } ?: AppUpdateState.UpToDate
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("SettingsViewModel", "verification de mise a jour impossible : ${e.message}")
+                AppUpdateState.Failed
+            }
+            _state.update { it.copy(update = next) }
+        }
+    }
+
+    /** Telecharge l'APK propose (une seule fois) puis le remet a [install]. */
+    fun downloadUpdate(install: (File) -> Unit) {
+        when (val current = _state.value.update) {
+            is AppUpdateState.Ready -> install(current.apk)
+            is AppUpdateState.Available -> {
+                if (updateJob?.isActive == true) return
+                val release = current.release
+                _state.update { it.copy(update = AppUpdateState.Downloading(release, 0)) }
+                updateJob = viewModelScope.launch {
+                    try {
+                        val apk = container.appUpdater.download(release) { done, total ->
+                            val percent = if (total > 0) (done * 100 / total).toInt() else 0
+                            _state.update { s ->
+                                if ((s.update as? AppUpdateState.Downloading)?.percent == percent) s
+                                else s.copy(update = AppUpdateState.Downloading(release, percent))
+                            }
+                        }
+                        _state.update { it.copy(update = AppUpdateState.Ready(release, apk)) }
+                        install(apk)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        AppLog.d("SettingsViewModel", "telechargement de la mise a jour impossible : ${e.message}")
+                        _state.update { it.copy(update = AppUpdateState.Available(release)) }
+                        showToast(SettingsToast.UpdateFailed)
+                    }
+                }
+            }
+            else -> Unit
         }
     }
 

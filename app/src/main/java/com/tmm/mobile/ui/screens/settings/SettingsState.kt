@@ -1,5 +1,8 @@
 package com.tmm.mobile.ui.screens.settings
 
+import com.tmm.mobile.core.AppRelease
+import java.io.File
+
 enum class DriveRetention(val index: Int) {
     Never(0),
     Days30(1),
@@ -18,10 +21,22 @@ sealed interface SettingsToast {
     data object LogsReady : SettingsToast
     data object Paired : SettingsToast
     data object PairFailed : SettingsToast
+    data object UpdateFailed : SettingsToast
 }
 
 // Connexion directe (Tailscale) : etat affiche dans les Reglages.
 enum class DirectStatus { Direct, Unreachable, NotPaired, Expired }
+
+// Mise a jour de l'app depuis les releases GitHub.
+sealed interface AppUpdateState {
+    data object Checking : AppUpdateState
+    data object UpToDate : AppUpdateState
+    data object Failed : AppUpdateState
+    data class Available(val release: AppRelease) : AppUpdateState
+    data class Downloading(val release: AppRelease, val percent: Int) : AppUpdateState
+    // APK telecharge et verifie : « Installer » relance l'installateur sans retelecharger.
+    data class Ready(val release: AppRelease, val apk: File) : AppUpdateState
+}
 
 data class FollowedSeries(val key: String, val title: String)
 
@@ -56,6 +71,7 @@ data class SettingsState(
     val directUrl: String = "",
     val pairingCode: String = "",
     val pairing: Boolean = false,
+    val update: AppUpdateState = AppUpdateState.Checking,
 )
 
 sealed interface SettingsEvent {
@@ -76,4 +92,7 @@ sealed interface SettingsEvent {
     data class PairingCodeChanged(val code: String) : SettingsEvent
     data object Pair : SettingsEvent
     data object ForgetPc : SettingsEvent
+    data object CheckUpdate : SettingsEvent
+    // Telechargement par le ViewModel, installation lancee par SettingsRoute (I/O Activity).
+    data object InstallUpdate : SettingsEvent
 }

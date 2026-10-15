@@ -11,6 +11,12 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.11.0] - 2026-10-15
+
+### Ajoute
+- Repli Drive : un chapitre traduit envoye en direct mais jamais recupere (Tailscale coupe, PC eteint) est telecharge et installe depuis la copie que le PC depose sur Drive. Une seule installation, jamais de double traduction.
+- Reglages : ligne « Application » qui verifie la derniere release GitHub et installe l'APK (verifie avant ouverture de l'installateur Android).
+
 ## [1.8.1] - 2026-10-14
 
 ### Corrige
