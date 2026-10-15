@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.13.1] - 2026-10-16
+
+### Corrige
+- Serie : un chapitre telecharge dont la source a change l'adresse apres le telechargement n'est plus marque « Pas telecharge ».
+
 ## [1.13.0] - 2026-10-15
 
 ### Ajoute
