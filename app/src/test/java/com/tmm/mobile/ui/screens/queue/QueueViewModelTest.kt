@@ -12,7 +12,12 @@ import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.QueueCounts
 import com.tmm.mobile.workers.WorkerTestEnvironment
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -33,8 +38,17 @@ class QueueViewModelTest {
     @Before
     fun setUp() = env.setUp()
 
+    private val vms = mutableListOf<QueueViewModel>()
+
+    // Comme TranslateViewModelTest : arreter les flux du ViewModel avant de fermer la base, sinon une
+    // requete en vol leve « already-closed » pendant le test suivant (UncaughtExceptionsBeforeTest).
     @After
-    fun tearDown() = env.tearDown()
+    fun tearDown() {
+        runBlocking { vms.forEach { withTimeoutOrNull(5_000) { it.viewModelScope.coroutineContext.job.cancelAndJoin() } } }
+        env.tearDown()
+    }
+
+    private fun newVm() = QueueViewModel(env.container).also { vms += it }
 
     private fun baseJob(jobId: String, mihonPath: String, phoneState: String) = JobEntity(
         jobId = jobId, mode = "translate", pages = null, translate = true,
@@ -72,7 +86,7 @@ class QueueViewModelTest {
         )
         jobs.forEach { env.db.jobDao().upsert(it) }
         env.prefs.setHeartbeatJson(heartbeatJson(jobs.map { it.jobId } + "sent"))
-        val state = QueueViewModel(env.container).state.first { it.transfers.size == 2 && it.activeJobs.size == 2 }
+        val state = newVm().state.first { it.transfers.size == 2 && it.activeJobs.size == 2 }
         assertEquals(4, state.activeCount)
         assertEquals(2, state.slotsCount)
         assertTrue(state.waitingJobs.isEmpty())
@@ -86,7 +100,7 @@ class QueueViewModelTest {
         env.db.jobDao().upsert(baseJob("job-2", "Mihon/one-piece/1120", "PREPARING"))
         env.prefs.setHeartbeatJson(heartbeatJson(listOf("job-1")))
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         val state = vm.state.first { it.activeJobs.size == 1 }
 
         assertEquals(1, state.activeJobs.size)
@@ -106,7 +120,7 @@ class QueueViewModelTest {
             ),
         )
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         val state = vm.state.first { it.doneJobs.isNotEmpty() }
 
         val done = state.doneJobs.first()
@@ -125,7 +139,7 @@ class QueueViewModelTest {
                 untranslatedBubbles = 0, sfxKept = 0, verifiedAt = null, alerts = emptyList(), jobId = "job-5",
             ),
         )
-        val done = QueueViewModel(env.container).state.first { it.doneJobs.isNotEmpty() }.doneJobs.first()
+        val done = newVm().state.first { it.doneJobs.isNotEmpty() }.doneJobs.first()
         assertEquals(null, done.totalBubbles)
         assertEquals(14, done.totalPages)
     }
@@ -159,7 +173,7 @@ class QueueViewModelTest {
         env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/138"))
         env.db.jobDao().upsert(baseJob("job-4", "Mihon/frieren/138", "FAILED").copy(pcErrorMessage = "moteur indisponible", pcErrorPage = 5))
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         val withFailure = vm.state.first { it.failedJobs.isNotEmpty() }
         assertEquals(1, withFailure.failedJobs.size)
         assertEquals("job-4", withFailure.failedJobs.first().jobId)
@@ -191,7 +205,7 @@ class QueueViewModelTest {
             ),
         )
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         val state = vm.state.first { it.failedJobs.size >= 2 }
 
         assertEquals(setOf("job-dl", "job-pc"), state.failedJobs.map { it.jobId }.toSet())
@@ -203,7 +217,7 @@ class QueueViewModelTest {
     fun removeWaitingJob_cancelsThroughJobRepository() = runTest {
         env.db.jobDao().upsert(baseJob("job-5", "Mihon/frieren/137", "SENT"))
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         vm.state.first { it.waitingJobs.size == 1 }
 
         vm.onEvent(QueueEvent.RemoveWaitingJob("job-5"))
@@ -221,7 +235,7 @@ class QueueViewModelTest {
         env.db.jobDao().upsert(baseJob("job-30", "Mihon/invincible/30", "SENT"))
         env.prefs.setHeartbeatJson(heartbeatJson(emptyList()))
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         vm.state.first { it.waitingJobs.size == 1 }
 
         vm.onEvent(QueueEvent.RemoveWaitingJob("job-30"))
@@ -238,7 +252,7 @@ class QueueViewModelTest {
         env.db.jobDao().upsert(baseJob("wait-2", "Mihon/s/3", "PREPARING"))
         env.prefs.setHeartbeatJson(heartbeatJson(listOf("active")))
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         vm.state.first { it.waitingJobs.size == 2 && it.activeJobs.size == 1 }
 
         vm.onEvent(QueueEvent.CancelAllWaiting)
@@ -255,7 +269,7 @@ class QueueViewModelTest {
         env.db.jobDao().upsert(baseJob("up-2", "Mihon/s/2", "UPLOADING"))
         env.db.jobDao().upsert(baseJob("down", "Mihon/s/3", "DOWNLOADING"))
 
-        val vm = QueueViewModel(env.container)
+        val vm = newVm()
         vm.state.first { it.uploadCount == 2 && it.transfers.size == 3 }
 
         vm.onEvent(QueueEvent.CancelAllUploads)
