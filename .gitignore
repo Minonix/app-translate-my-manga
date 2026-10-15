@@ -10,3 +10,7 @@ local.properties
 keystore.properties
 .serena/
 .kotlin/
+*.log
+.agents/
+.claude/
+.gemini/
