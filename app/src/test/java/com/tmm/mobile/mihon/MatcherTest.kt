@@ -64,4 +64,23 @@ class MatcherTest {
     @Test fun assignChapters_noCandidate_horsCatalogue() {
         assertEquals(ChapterMatch(null, null), Matcher.assignChapters(listOf("x"), emptyList())["x"])
     }
+
+    @Test fun assignChapters_urlChangedAfterDownload_matchesByNumber() {
+        val serie = MatchableSeries("s", "MangaDot", "Off to an Invincible Start")
+        val ch103 = MatchableChapter("c103", "Chapter 103: Hanlan Pavilion", "BRS Manhua", "/new-url/103", 103f)
+        val ch104 = MatchableChapter("c104", "Chapter 104", "BRS Manhua", "/104", 104f)
+        val dir104 = MihonNaming.getChapterDirName(ch104.name, ch104.scanlator, ch104.url)
+        val oldDir103 = MihonNaming.getChapterDirName(ch103.name, ch103.scanlator, "/old-url/103")
+        val result = Matcher.assignChapters(listOf(oldDir103, dir104), listOf(serie to listOf(ch103, ch104)))
+        assertEquals(ChapterMatch(serie, ch103), result[oldDir103])
+        assertEquals(ChapterMatch(serie, ch104), result[dir104])
+    }
+
+    @Test fun assignChapters_twoChaptersSameNumber_noGuess() {
+        val serie = MatchableSeries("s", "Src", "T")
+        val a = MatchableChapter("a", "Chapter 5", null, "/a", 5f)
+        val b = MatchableChapter("b", "Chapter 5 (v2)", null, "/b", 5f)
+        val dir = MihonNaming.getChapterDirName("Chapter 5", null, "/old")
+        assertEquals(ChapterMatch(serie, null), Matcher.assignChapters(listOf(dir), listOf(serie to listOf(a, b)))[dir])
+    }
 }

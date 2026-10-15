@@ -46,8 +46,23 @@ object Matcher {
         val exact = chapterDirNames.associateWith { name ->
             candidates.firstNotNullOfOrNull { (series, chapters) -> findChapter(name, chapters)?.let { ChapterMatch(series, it) } }
         }
-        val fallback = candidates.maxBy { (series, _) -> exact.values.count { it?.series == series } }.first
-        return exact.mapValues { (_, match) -> match ?: ChapterMatch(fallback, null) }
+        val (fallback, fallbackChapters) = candidates.maxBy { (series, _) -> exact.values.count { it?.series == series } }
+        val taken = exact.values.mapNotNullTo(HashSet()) { it?.chapter?.chapterKey }
+        return exact.mapValues { (name, match) -> match ?: ChapterMatch(fallback, byNumber(name, fallbackChapters, taken)) }
+    }
+
+    /**
+     * Le suffixe de hachage vient de l'URL du chapitre : si la source change cette URL apres le
+     * telechargement, le nom exact ne correspond plus (ch. 103 reste « Pas telecharge » alors que
+     * le CBZ est la). Repli : le seul chapitre libre du meme numero, et de la meme scantrad si le
+     * dossier en porte une. Plusieurs candidats : on ne devine pas.
+     */
+    private fun byNumber(dirName: String, chapters: List<MatchableChapter>, taken: Set<String>): MatchableChapter? {
+        val number = DownloadOnlySeries.guessNumber(dirName) ?: return null
+        val scanlator = DownloadOnlySeries.guessScanlator(dirName)
+        return chapters.filter { it.number == number && it.chapterKey !in taken }
+            .filter { scanlator == null || it.scanlator.isNullOrBlank() || MihonNaming.buildValidFilename(it.scanlator) == scanlator }
+            .singleOrNull()
     }
 
     /** Retrouve la ChapterEntity dont le nom de dossier chapitre correspond, ou null si "hors catalogue". */
