@@ -4,6 +4,9 @@
 
     <!-- ui/components/RefreshButton.kt (partagé, corrigé en E4.1 : 4.10 impose une ressource) -->
     <string name="common_refresh_cd">Rafraîchir</string>
+    <string name="pull_hint">Tirer pour actualiser</string>
+    <string name="pull_release">Relâcher pour actualiser</string>
+    <string name="pull_refreshing">Actualisation…</string>
     <string name="home_sync">Synchroniser</string>
     <string name="common_refresh_cooldown_cd_fmt">Rafraîchir, disponible dans %1$d secondes</string>
 

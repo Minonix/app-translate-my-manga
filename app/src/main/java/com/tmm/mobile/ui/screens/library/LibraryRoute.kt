@@ -31,5 +31,7 @@ fun LibraryRoute(nav: NavController, categoryOrder: Long?, picking: Boolean = fa
         onEvent = vm::onEvent,
         onOpenSeries = { seriesKey -> nav.navigate(SeriesRoute(seriesKey)) },
         onOpenQueue = { nav.navigate(QueueRoute) },
+        // Tirer pour recharger : rescan complet de Mihon (sans le cache par date de dossier).
+        onRefresh = { container.startup.run(forceRescan = true) },
     )
 }

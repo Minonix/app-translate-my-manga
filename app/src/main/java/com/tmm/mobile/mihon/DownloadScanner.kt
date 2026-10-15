@@ -24,7 +24,8 @@ private val LOCAL_CHAPTER_NUMBER = Regex("""^c(\d+(?:\.\d+)?)""")
 // supprimes dans Mihon) sont retires du cache Room.
 class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
 
-    suspend fun scanDownloads(downloadsRootDocId: String) {
+    /** [force] relit chaque dossier serie sans tenir compte du cache (tirer pour recharger). */
+    suspend fun scanDownloads(downloadsRootDocId: String, force: Boolean = false) {
         // Lignes posees par les versions qui comptaient aussi les fichiers/dossiers sans page : le cache
         // par date de dossier ne les relirait jamais, on les retire ici.
         db.downloadedChapterDao().deleteWithoutPages()
@@ -38,13 +39,17 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
             for (seriesDirEntry in fs.children(sourceDir.docId).filter { it.isDirectory }) {
                 val key = sourceDir.name to seriesDirEntry.name
                 seen += key
-                if (cached[key] == seriesDirEntry.lastModified) continue
+                if (!force && cached[key] == seriesDirEntry.lastModified) continue
 
                 val allSeries = series ?: matchableSeries().also { series = it }
                 // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
                 // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
+                var downloading = false
                 val entries = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
-                    if (MihonNaming.isIncompleteChapterDirName(chapterEntry.name.removeSuffix(".cbz"))) return@mapNotNull null
+                    if (MihonNaming.isIncompleteChapterDirName(chapterEntry.name.removeSuffix(".cbz"))) {
+                        downloading = true
+                        return@mapNotNull null
+                    }
                     val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
                     if (!chapterEntry.isDirectory && !isCbz) return@mapNotNull null
                     val pageCount = CbzPacker.pageCount(entryNames(chapterEntry, isCbz))
@@ -75,9 +80,16 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 db.withTransaction {
                     db.downloadedChapterDao().deleteForSeriesDir(sourceDir.name, seriesDirEntry.name)
                     db.downloadedChapterDao().upsertAll(rows)
-                    db.scannedSeriesDirDao().upsert(
-                        ScannedSeriesDirEntity(sourceDir.name, seriesDirEntry.name, seriesDirEntry.lastModified),
-                    )
+                    // Telechargement en cours ("_tmp") : Mihon renomme le dossier a la fin, souvent dans la
+                    // meme seconde que la date deja lue. Garder cette date en cache masquait le chapitre
+                    // fini pour toujours (« Pas telecharge » alors qu'il l'est) : on relira ce dossier.
+                    if (downloading) {
+                        db.scannedSeriesDirDao().delete(sourceDir.name, seriesDirEntry.name)
+                    } else {
+                        db.scannedSeriesDirDao().upsert(
+                            ScannedSeriesDirEntity(sourceDir.name, seriesDirEntry.name, seriesDirEntry.lastModified),
+                        )
+                    }
                 }
             }
         }

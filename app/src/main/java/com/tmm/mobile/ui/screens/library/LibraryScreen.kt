@@ -55,6 +55,7 @@ import com.tmm.mobile.ui.icons.TmmIcon
 import com.tmm.mobile.ui.icons.TmmIconId
 import com.tmm.mobile.ui.mock.MockSeries
 import com.tmm.mobile.ui.screens.series.DeleteSheetContent
+import com.tmm.mobile.ui.components.PullToRefresh
 import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmType
 import java.time.Instant
@@ -73,11 +74,12 @@ fun LibraryScreen(
     onOpenSeries: (String) -> Unit = {},
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onRefresh: suspend () -> Unit = {},
 ) {
     Box(modifier = modifier.background(TmmColors.paper)) {
         Column(modifier = Modifier.fillMaxSize()) {
             LibraryHeader(state = state, onEvent = onEvent)
-            Box(modifier = Modifier.weight(1f)) {
+            PullToRefresh(onRefresh, Modifier.weight(1f)) {
                 LibraryGrid(state = state, onEvent = onEvent, onOpenSeries = onOpenSeries)
             }
             if (state.hasSelection) {
