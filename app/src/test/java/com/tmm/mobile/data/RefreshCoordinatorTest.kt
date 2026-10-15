@@ -21,6 +21,7 @@ import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -263,6 +264,32 @@ class RefreshCoordinatorTest {
             env.db, env.prefs, env.router, env.container.workManager, env.clock,
             CoroutineScope(StandardTestDispatcher()),
         ) {}
+        env.pc.writeHeartbeat()
+        val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20) }
+        try {
+            withContext(Dispatchers.Default) {
+                withTimeout(20_000) { env.prefs.heartbeatSeenAt.first { it != null } }
+                env.clock.millis += 6 * 60_000L
+                env.pc.writeHeartbeat()
+                withTimeout(20_000) { env.prefs.heartbeatSeenAt.first { it != null && it >= env.clock.millis - 60_000L } }
+            }
+        } finally {
+            loop.cancel()
+        }
+    }
+
+    // Test reel 14/10 : « PC vu il y a 51 min » sans erreur alors que le PC ecrivait son heartbeat. Un refresh
+    // qui ne rendait jamais la main gardait le verrou et tous les suivants etaient ignores en silence.
+    // Le faux suspend a l'infini : il prouve la borne du coordinateur, pas celle d'un socket OkHttp.
+    @Test fun refreshWhileForeground_recovers_afterAStepThatNeverReturns() = runTest {
+        var calls = 0
+        val coordinator = RefreshCoordinator(
+            env.db, env.prefs, env.router, env.container.workManager, env.clock,
+            CoroutineScope(StandardTestDispatcher()),
+            timeoutMillis = 300,
+        ) {
+            if (calls++ == 0) awaitCancellation()
+        }
         env.pc.writeHeartbeat()
         val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20) }
         try {

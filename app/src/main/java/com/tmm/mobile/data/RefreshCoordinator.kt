@@ -25,6 +25,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class RefreshState(
     val running: Boolean = false,
@@ -45,6 +48,9 @@ enum class RefreshError { NETWORK, DRIVE_QUOTA, AUTH }
 
 private const val DRIVE_COOLDOWN_SECONDS = 30
 private const val DIRECT_COOLDOWN_SECONDS = 5
+// Un refresh qui ne rend jamais la main (autorisation Google ou socket fige sur une liaison instable) gardait le
+// verrou : tous les refresh suivants rendaient la main en silence et l'accueil restait sur « PC vu il y a 51 min ».
+const val REFRESH_TIMEOUT_MILLIS = 120_000L
 
 // 1 : boite aux lettres dans APP/TranslateMyManga. 2 : retour dans App/TranslateMyManga.
 private const val DRIVE_LAYOUT_VERSION = 2
@@ -79,6 +85,7 @@ class RefreshCoordinator(
     private val resendStalledDriveJobs: suspend () -> Unit = {},
     // R12 : rapproche les commandes de reglages en attente de chaque settings.json recu.
     private val onSettings: suspend (PcSettings) -> Unit = {},
+    private val timeoutMillis: Long = REFRESH_TIMEOUT_MILLIS,
     private val autoTranslate: suspend () -> Unit,
 ) {
     private val mutex = Mutex()
@@ -99,52 +106,25 @@ class RefreshCoordinator(
         }
         _state.value = _state.value.copy(running = true, error = null)
         try {
-            // Direct d'abord (health 2 s) : il renvoie les statuts de tous les jobs et les resultats des
-            // jobs directs. Drive n'est interroge que s'il reste des jobs Drive actifs, ou si le direct
-            // est indisponible (repli silencieux, et decouverte de l'URL via pc/remote.json).
-            var directOk = false
-            if (router.activeChannel() == CHANNEL_DIRECT) {
-                directOk = try {
-                    applyPoll(router.direct.poll(null), CHANNEL_DIRECT)
-                    true
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // IOException, mais aussi reponse illisible (SerializationException) : repli sur Drive.
-                    AppLog.d("RefreshCoordinator", "poll direct impossible, repli sur Drive : ${e.message}")
-                    false
-                }
+            // withTimeoutOrNull et non withTimeout : sa CancellationException sortirait de refreshWhileForeground.
+            // Sur Dispatchers.Default, le delai suit l'horloge reelle (et non le temps virtuel d'un runTest).
+            val finished = withContext(Dispatchers.Default) { withTimeoutOrNull(timeoutMillis) { refreshOnce() } }
+            if (finished == null) {
+                AppLog.d("RefreshCoordinator", "refresh sans reponse apres ${timeoutMillis / 1000} s, abandonne")
+                _state.value = _state.value.copy(running = false, error = RefreshError.NETWORK)
             }
-            if (directOk) {
-                try {
-                    resendStalledDriveJobs()
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    AppLog.d("RefreshCoordinator", "renvoi en direct impossible : ${e.javaClass.simpleName} ${e.message}")
-                }
-            }
-            val driveActive = db.jobDao().observeAll().first().any { it.channel == CHANNEL_DRIVE && it.isActive() }
-            // Apres un nouveau consentement, seul un poll Drive reussi fait tomber authExpired : sans lui,
-            // le bandeau "Reconnecter" restait affiche tant que le direct suffisait.
-            val authExpired = prefs.authExpired.first()
-            var driveResult: PollResult? = null
-            if (!directOk || driveActive || authExpired) driveResult = pollDrive()
-            autoTranslate()
-            // Le curseur direct n'est pas celui de Drive : seul le poll Drive le fait avancer.
-            driveResult?.let { prefs.setLastChangesCursor(it.cursor) }
-            lastCooldown = if (directOk) DIRECT_COOLDOWN_SECONDS else DRIVE_COOLDOWN_SECONDS
-            val now = clock.nowMillis()
-            prefs.setLastRefreshAt(now)
-            _state.value = _state.value.copy(running = false, lastCheckedAt = now)
         } catch (e: AuthExpiredException) {
+            AppLog.d("RefreshCoordinator", "refresh en echec : autorisation Google expiree")
             prefs.setAuthExpired(true)
             _state.value = _state.value.copy(running = false, error = RefreshError.AUTH)
         } catch (e: DriveQuotaException) {
+            AppLog.d("RefreshCoordinator", "refresh en echec : Drive plein")
             // R5 : 403 storageQuotaExceeded -> bandeau « Google Drive plein ».
             prefs.setDriveFull(true)
             _state.value = _state.value.copy(running = false, error = RefreshError.DRIVE_QUOTA)
         } catch (e: IOException) {
+            // Nom de classe seulement : le message d'une ConnectException contient l'adresse du PC.
+            AppLog.d("RefreshCoordinator", "refresh en echec : ${e.javaClass.simpleName}")
             _state.value = _state.value.copy(running = false, error = RefreshError.NETWORK)
         } catch (e: CancellationException) {
             _state.value = _state.value.copy(running = false)
@@ -152,12 +132,54 @@ class RefreshCoordinator(
         } catch (e: Exception) {
             // Echec Play Services hors ligne (ApiException), reponse Drive illisible... : jamais de crash
             // au demarrage ni de spinner fige, on l'affiche comme une erreur reseau.
-            AppLog.d("RefreshCoordinator", "refresh en echec : ${e.javaClass.simpleName} ${e.message}")
+            AppLog.d("RefreshCoordinator", "refresh en echec : ${e.javaClass.simpleName}")
             _state.value = _state.value.copy(running = false, error = RefreshError.NETWORK)
         } finally {
             mutex.unlock()
             startCooldown()
         }
+    }
+
+    private suspend fun refreshOnce() {
+        // Direct d'abord (health 2 s) : il renvoie les statuts de tous les jobs et les resultats des
+        // jobs directs. Drive n'est interroge que s'il reste des jobs Drive actifs, ou si le direct
+        // est indisponible (repli silencieux, et decouverte de l'URL via pc/remote.json).
+        var directOk = false
+        if (router.activeChannel() == CHANNEL_DIRECT) {
+            directOk = try {
+                applyPoll(router.direct.poll(null), CHANNEL_DIRECT)
+                true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // IOException, mais aussi reponse illisible (SerializationException) : repli sur Drive.
+                AppLog.d("RefreshCoordinator", "poll direct impossible, repli sur Drive : ${e.javaClass.simpleName}")
+                false
+            }
+        }
+        if (directOk) {
+            try {
+                resendStalledDriveJobs()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("RefreshCoordinator", "renvoi en direct impossible : ${e.javaClass.simpleName} ${e.message}")
+            }
+        }
+        val driveActive = db.jobDao().observeAll().first().any { it.channel == CHANNEL_DRIVE && it.isActive() }
+        // Apres un nouveau consentement, seul un poll Drive reussi fait tomber authExpired : sans lui,
+        // le bandeau "Reconnecter" restait affiche tant que le direct suffisait.
+        val authExpired = prefs.authExpired.first()
+        var driveResult: PollResult? = null
+        if (!directOk || driveActive || authExpired) driveResult = pollDrive()
+        autoTranslate()
+        // Le curseur direct n'est pas celui de Drive : seul le poll Drive le fait avancer.
+        driveResult?.let { prefs.setLastChangesCursor(it.cursor) }
+        lastCooldown = if (directOk) DIRECT_COOLDOWN_SECONDS else DRIVE_COOLDOWN_SECONDS
+        val now = clock.nowMillis()
+        prefs.setLastRefreshAt(now)
+        AppLog.d("RefreshCoordinator", "refresh termine : ${if (directOk) "direct" else "Drive"}${if (driveResult != null && directOk) " + Drive" else ""}")
+        _state.value = _state.value.copy(running = false, lastCheckedAt = now)
     }
 
     /**
@@ -293,10 +315,13 @@ class RefreshCoordinator(
             )
             prefs.setIndexUpdatedAt(index.updatedAt)
         }
+        if (result.heartbeat == null) AppLog.d("RefreshCoordinator", "aucun heartbeat dans ce poll")
         result.heartbeat?.let { heartbeat ->
             val known = prefs.heartbeatJson.first()
                 ?.let { runCatching { ProtocolJson.decodeFromString(Heartbeat.serializer(), it) }.getOrNull() }
-            if (isNotOlder(heartbeat.updatedAt, known?.updatedAt)) {
+            val accepted = isNotOlder(heartbeat.updatedAt, known?.updatedAt)
+            AppLog.d("RefreshCoordinator", "heartbeat ${heartbeat.updatedAt} ${if (accepted) "applique" else "ignore (plus ancien que ${known?.updatedAt})"}")
+            if (accepted) {
                 prefs.setHeartbeatJson(ProtocolJson.encodeToString(Heartbeat.serializer(), heartbeat))
                 prefs.setHeartbeatSeenAt(heartbeatSeenAt(result))
                 // §2 : driveOk == false signale une panne du Drive du PC (lastErrorCode null ou drive_quota,
