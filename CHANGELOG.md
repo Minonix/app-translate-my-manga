@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.11.1] - 2026-10-15
+
+### Corrige
+- Fiche serie : un chapitre telecharge en .cbz, traduit par le PC puis supprime des telechargements de Mihon (lu) n'apparait plus « Non telechargee ». Il redevient « Pret a installer » (ou « Dans Mihon ») et « Installer » le redemande au PC : plus de chapitres manquants dans la serie FR.
+
 ## [1.11.0] - 2026-10-15
 
 ### Ajoute

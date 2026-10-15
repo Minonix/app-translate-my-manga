@@ -4,6 +4,7 @@ import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.flatten
+import com.tmm.mobile.data.unflattenMihonPath
 import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.protocol.MihonPath
 import kotlinx.coroutines.flow.Flow
@@ -19,8 +20,8 @@ import kotlinx.coroutines.flow.combine
  * job par chapitre. Limite connue : si le dossier reel differe de cette reconstruction (renommage
  * manuel cote PC, source dont le nom differe de SeriesEntity.sourceName), le rapprochement echoue
  * silencieusement et le chapitre reste CATALOG_ONLY au lieu de NOT_TRANSLATED/TO_FETCH.
- * La reconstruction ne connait pas la langue de la source (" (EN)" que Mihon ajoute au dossier) :
- * la recherche retombe donc sur un chemin dont la source est privee de ce suffixe.
+ * La reconstruction ne connait ni la langue de la source (" (EN)" que Mihon ajoute au dossier) ni
+ * le format du telechargement (dossier ou ".cbz") : la recherche retombe donc sur un chemin prive des deux.
  */
 data class ChapterJoinRow(
     val seriesKey: String,
@@ -73,10 +74,15 @@ class ChapterJoinIndex(inputs: ChapterJoinInputs) {
     internal val indexByLoosePath = indexByPath.mapKeys { (path, _) -> loosePath(path) }
 }
 
-/** Chemin "source/serie/chapitre" dont la source est privee du suffixe de langue Mihon (" (EN)"). */
+/**
+ * Chemin "source/serie/chapitre" dont la source est privee du suffixe de langue Mihon (" (EN)") et le
+ * chapitre de l'extension ".cbz" : la reconstruction donne le nom de dossier, alors que l'index du PC,
+ * les jobs et la FR installee gardent le nom du fichier telecharge ("Chapter 47_8a1b52.cbz").
+ */
 internal fun loosePath(flat: String): String {
     val slash = flat.indexOf('/')
-    return if (slash < 0) flat else MihonNaming.stripSourceLang(flat.substring(0, slash)) + flat.substring(slash)
+    val path = if (slash < 0) flat else MihonNaming.stripSourceLang(flat.substring(0, slash)) + flat.substring(slash)
+    return path.removeSuffix(".cbz")
 }
 
 /**
@@ -119,7 +125,10 @@ fun buildChapterJoinRows(
             latestJob = index.latestJobByPath[flat] ?: loose?.let { index.latestJobByLoosePath[it] },
             localFr = flat in index.localFrPaths || (loose != null && loose in index.localFrLoosePaths),
         )
-        return ChapterJoinRow(seriesKey, chapter, downloaded, mihonPath, facts, deriveStatus(facts))
+        // Chapitre absent du telephone mais connu du PC ou d'un job : on garde leur vrai chemin, celui que
+        // le PC attend pour une redemande ou une retraduction (sinon il ne retrouvait pas le chapitre).
+        val knownPath = if (downloaded == null) (facts.index?.mihonPath ?: facts.latestJob?.mihonPath)?.let(::unflattenMihonPath) else null
+        return ChapterJoinRow(seriesKey, chapter, downloaded, knownPath ?: mihonPath, facts, deriveStatus(facts))
     }
 
     val catalogRows = index.chaptersBySeries[seriesKey].orEmpty()
