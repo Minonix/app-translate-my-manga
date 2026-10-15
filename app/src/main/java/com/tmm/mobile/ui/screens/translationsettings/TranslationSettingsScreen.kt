@@ -166,6 +166,13 @@ fun TranslationSettingsScreen(
                         description = stringResource(R.string.settings_v2_failover_hint),
                         checked = state.autoFailoverToLocalLlm,
                         onCheckedChange = { onEvent(TranslationSettingsEvent.SetAutoFailover(it)) },
+                        enabled = enabled,
+                    )
+                    ToggleRow(
+                        label = stringResource(R.string.settings_v2_page_images),
+                        description = stringResource(R.string.settings_v2_page_images_hint),
+                        checked = state.sendPageImages,
+                        onCheckedChange = { onEvent(TranslationSettingsEvent.SetSendPageImages(it)) },
                         showDivider = false,
                         enabled = enabled,
                     )

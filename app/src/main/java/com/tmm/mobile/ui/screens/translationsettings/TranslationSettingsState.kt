@@ -102,6 +102,7 @@ data class TranslationSettingsState(
     val translationProvider: TranslationProvider = TranslationProvider.Gemini,
     val autoFailoverToLocalLlm: Boolean = true,
     val autoVerifyAfterTranslate: Boolean = true,
+    val sendPageImages: Boolean = true,
     val chapterConcurrency: Int = 4,
     val concurrency: Int = 2,
     val pileSize: Int = 3,
@@ -128,6 +129,7 @@ sealed interface TranslationSettingsEvent {
     data class SelectTargetLanguage(val value: TargetLanguage) : TranslationSettingsEvent
     data class SelectTranslationProvider(val value: TranslationProvider) : TranslationSettingsEvent
     data class SetAutoFailover(val value: Boolean) : TranslationSettingsEvent
+    data class SetSendPageImages(val value: Boolean) : TranslationSettingsEvent
     data class SetAutoVerify(val value: Boolean) : TranslationSettingsEvent
     data class SetChapterConcurrency(val value: Int) : TranslationSettingsEvent
     data class SetConcurrency(val value: Int) : TranslationSettingsEvent

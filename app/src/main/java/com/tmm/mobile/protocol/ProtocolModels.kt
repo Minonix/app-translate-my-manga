@@ -178,6 +178,9 @@ data class SettingsValues(
     val preferredOcr: String,
     val inpainter: String,
     val inpaintingSize: Int,
+    // Image de la page envoyee au modele (Gemini, OpenRouter qui lit les images). Absent d'un PC plus
+    // ancien : vrai, son comportement d'alors.
+    val sendPageImages: Boolean = true,
     // ponytail: le PC emet toujours "font" (le mobile ne l'affiche ni ne l'envoie plus, R12) ; champ garde pour
     // decoder settings.json sans erreur. A retirer si le protocole PC abandonne la cle.
     val font: String,
@@ -329,6 +332,7 @@ object SettingsSchema {
         "useGpu" to listOf("true", "false"),
         "autoVerifyAfterTranslate" to listOf("true", "false"),
         "autoFailoverToLocalLlm" to listOf("true", "false"),
+        "sendPageImages" to listOf("true", "false"),
     )
 
     fun isAllowed(key: String, value: String): Boolean = allowedValues[key]?.contains(value) ?: false

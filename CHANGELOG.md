@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.12.0] - 2026-10-15
+
+### Ajoute
+- Reglages de traduction : « Montrer la page au modele » active ou coupe l'envoi d'une miniature de chaque page au modele (Gemini, ou modele OpenRouter qui lit les images). Synchronise avec le PC comme les autres reglages.
+
 ## [1.11.1] - 2026-10-15
 
 ### Corrige

@@ -129,6 +129,28 @@ class TranslationSettingsViewModelTest {
         assertEquals(TargetLanguage.French, vm.state.value.targetLanguage)
     }
 
+    // Image de la page envoyee au modele : lue depuis le PC, renvoyee comme les autres reglages.
+    @Test fun sendPageImages_loadsFromPc_andIsSentAsSchemaString() = runTest {
+        seedSettings(values = settingsValues().copy(sendPageImages = false))
+        val vm = TranslationSettingsViewModel(env.container)
+        val state = vm.state.first { !it.isReadOnly }
+        assertEquals(false, state.sendPageImages)
+
+        vm.onEvent(TranslationSettingsEvent.SetSendPageImages(true))
+
+        assertEquals(true, vm.state.value.sendPageImages)
+        val pendingJson = requireNotNull(env.prefs.pendingCommandsJson.first { it != null })
+        assertTrue(pendingJson.contains("\"sendPageImages\":\"true\""))
+    }
+
+    // Un PC plus ancien ne publie pas la cle : le reglage reste lisible et vaut vrai.
+    @Test fun settingsJson_fromOlderPc_withoutSendPageImages_decodesAsOn() {
+        val json = ProtocolJson.encodeToString(SettingsValues.serializer(), settingsValues())
+            .replace(",\"sendPageImages\":true", "")
+        assertTrue(!json.contains("sendPageImages"))
+        assertTrue(ProtocolJson.decodeFromString(SettingsValues.serializer(), json).sendPageImages)
+    }
+
     @Test fun onEvent_whileReadOnly_isIgnored() = runTest {
         val vm = TranslationSettingsViewModel(env.container)
         vm.state.first { it.isReadOnly }
