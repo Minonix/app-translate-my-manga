@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.13.1] - 2026-10-16
+
+### Corrige
+- Un chapitre bien telecharge dans Mihon restait « Pas telecharge » quand son URL ou son titre avait change depuis la sauvegarde : il est rattache par son numero s'il est le seul a le porter.
+
 ## [1.13.0] - 2026-10-15
 
 ### Ajoute
