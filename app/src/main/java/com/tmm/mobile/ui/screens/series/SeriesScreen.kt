@@ -62,6 +62,7 @@ import com.tmm.mobile.R
 import com.tmm.mobile.ui.components.AutoTag
 import com.tmm.mobile.ui.components.Cover
 import com.tmm.mobile.ui.components.PillTone
+import com.tmm.mobile.ui.components.PullToRefresh
 import com.tmm.mobile.ui.components.StatusPill
 import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.components.V2ActionRow
@@ -98,94 +99,97 @@ fun SeriesScreen(
     onBack: () -> Unit = {},
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onRefresh: suspend () -> Unit = {},
 ) {
-    Box(modifier.fillMaxSize().background(C.bg)) {
-        // Liste paresseuse : une serie longue a plus de 1000 chapitres, tous composes d'un coup
-        // dans une Column a chaque ouverture de la fiche.
-        val listState = rememberLazyListState()
-        LazyColumn(
-            Modifier.fillMaxSize().dragToSelect(listState, state.rows, onEvent),
-            state = listState,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 110.dp),
-        ) {
-            item(key = "top", contentType = "top") {
-                Column {
-                    TopRow(showMore = !state.selecting, onBack = onBack, onMore = { onEvent(SeriesEvent.OpenSeriesMore) })
-                    if (state.selecting) {
-                        TmmText(
-                            text = state.title,
-                            style = TmmType.display(28, weight = 800, letterSpacingEm = -0.3f / 28f),
-                            color = C.ink,
-                            modifier = Modifier.padding(top = 18.dp),
-                        )
-                    } else {
-                        Header(state)
-                        ProgressCard(state.progress)
-                        FollowCard(state, onEvent)
-                        if (state.sentOnFollow.isNotEmpty()) SentOnFollowCard(state.sentOnFollow, onOpenQueue)
-                        if (state.toTranslateNumbers.isNotEmpty()) {
-                            V2Button(
-                                label = translateLabel(state.toTranslateNumbers),
-                                onClick = { onEvent(SeriesEvent.TranslateAll) },
-                                modifier = Modifier.padding(top = 14.dp),
-                                size = V2ButtonSize.Block,
-                                icon = TmmIconId.V2Translate,
+    PullToRefresh(onRefresh, modifier.fillMaxSize().background(C.bg)) {
+        Box(Modifier.fillMaxSize()) {
+            // Liste paresseuse : une serie longue a plus de 1000 chapitres, tous composes d'un coup
+            // dans une Column a chaque ouverture de la fiche.
+            val listState = rememberLazyListState()
+            LazyColumn(
+                Modifier.fillMaxSize().dragToSelect(listState, state.rows, onEvent),
+                state = listState,
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 110.dp),
+            ) {
+                item(key = "top", contentType = "top") {
+                    Column {
+                        TopRow(showMore = !state.selecting, onBack = onBack, onMore = { onEvent(SeriesEvent.OpenSeriesMore) })
+                        if (state.selecting) {
+                            TmmText(
+                                text = state.title,
+                                style = TmmType.display(28, weight = 800, letterSpacingEm = -0.3f / 28f),
+                                color = C.ink,
+                                modifier = Modifier.padding(top = 18.dp),
                             )
+                        } else {
+                            Header(state)
+                            ProgressCard(state.progress)
+                            FollowCard(state, onEvent)
+                            if (state.sentOnFollow.isNotEmpty()) SentOnFollowCard(state.sentOnFollow, onOpenQueue)
+                            if (state.toTranslateNumbers.isNotEmpty()) {
+                                V2Button(
+                                    label = translateLabel(state.toTranslateNumbers),
+                                    onClick = { onEvent(SeriesEvent.TranslateAll) },
+                                    modifier = Modifier.padding(top = 14.dp),
+                                    size = V2ButtonSize.Block,
+                                    icon = TmmIconId.V2Translate,
+                                )
+                            }
+                            // « Sélectionner » seul, petit lien rouge, passait inapercu : traduire, retraduire ou
+                            // verifier certains chapitres passe par ce bouton puis « Que faire ? ».
+                            V2Button(
+                                label = stringResource(R.string.series_choose_chapters),
+                                onClick = { onEvent(SeriesEvent.StartSelection) },
+                                modifier = Modifier.padding(top = 10.dp),
+                                style = V2ButtonStyle.Ghost,
+                                size = V2ButtonSize.Block,
+                            )
+                            if (state.showGap && state.missing.isNotEmpty()) GapBanner(state.missing) { onEvent(SeriesEvent.DismissGap) }
                         }
-                        // « Sélectionner » seul, petit lien rouge, passait inapercu : traduire, retraduire ou
-                        // verifier certains chapitres passe par ce bouton puis « Que faire ? ».
-                        V2Button(
-                            label = stringResource(R.string.series_choose_chapters),
-                            onClick = { onEvent(SeriesEvent.StartSelection) },
-                            modifier = Modifier.padding(top = 10.dp),
-                            style = V2ButtonStyle.Ghost,
-                            size = V2ButtonSize.Block,
+                        SectionHeader(
+                            link = stringResource(if (state.selecting) R.string.series_select_done else R.string.series_select),
+                            onLink = { onEvent(if (state.selecting) SeriesEvent.EndSelection else SeriesEvent.StartSelection) },
                         )
-                        if (state.showGap && state.missing.isNotEmpty()) GapBanner(state.missing) { onEvent(SeriesEvent.DismissGap) }
                     }
-                    SectionHeader(
-                        link = stringResource(if (state.selecting) R.string.series_select_done else R.string.series_select),
-                        onLink = { onEvent(if (state.selecting) SeriesEvent.EndSelection else SeriesEvent.StartSelection) },
+                }
+                chapterItems(state, onEvent)
+            }
+
+            if (state.selecting && state.selectionCount > 0) {
+                V2SelectionBar(
+                    label = pluralStringResource(R.plurals.series_chapters_selected, state.selectionCount, state.selectionCount),
+                    actionLabel = stringResource(R.string.series_selection_bar_action),
+                    onAction = { onEvent(SeriesEvent.OpenSelectionMore) },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 16.dp),
+                )
+            }
+
+            val sheet = state.sheet
+            V2Sheet(visible = sheet is SeriesSheet.More, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+                if (sheet is SeriesSheet.More) MoreSheetContent(state, sheet.allSeries, onEvent)
+            }
+            V2Sheet(visible = sheet is SeriesSheet.Follow, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+                if (sheet is SeriesSheet.Follow) FollowSheetContent(state.title, sheet.numbers, onEvent)
+            }
+            V2Sheet(visible = sheet is SeriesSheet.Delete, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+                if (sheet is SeriesSheet.Delete) {
+                    DeleteSheetContent(
+                        sheet = sheet,
+                        onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(it)) },
+                        onCancel = { onEvent(SeriesEvent.CloseSheet) },
+                        onConfirm = { onEvent(SeriesEvent.ConfirmDelete) },
                     )
                 }
             }
-            chapterItems(state, onEvent)
-        }
 
-        if (state.selecting && state.selectionCount > 0) {
-            V2SelectionBar(
-                label = pluralStringResource(R.plurals.series_chapters_selected, state.selectionCount, state.selectionCount),
-                actionLabel = stringResource(R.string.series_selection_bar_action),
-                onAction = { onEvent(SeriesEvent.OpenSelectionMore) },
+            SeriesToastHost(
+                toast = state.toast,
+                title = state.title,
+                onEvent = onEvent,
+                onOpenQueue = onOpenQueue,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 16.dp),
             )
         }
-
-        val sheet = state.sheet
-        V2Sheet(visible = sheet is SeriesSheet.More, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
-            if (sheet is SeriesSheet.More) MoreSheetContent(state, sheet.allSeries, onEvent)
-        }
-        V2Sheet(visible = sheet is SeriesSheet.Follow, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
-            if (sheet is SeriesSheet.Follow) FollowSheetContent(state.title, sheet.numbers, onEvent)
-        }
-        V2Sheet(visible = sheet is SeriesSheet.Delete, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
-            if (sheet is SeriesSheet.Delete) {
-                DeleteSheetContent(
-                    sheet = sheet,
-                    onToggle = { onEvent(SeriesEvent.ToggleDeleteTarget(it)) },
-                    onCancel = { onEvent(SeriesEvent.CloseSheet) },
-                    onConfirm = { onEvent(SeriesEvent.ConfirmDelete) },
-                )
-            }
-        }
-
-        SeriesToastHost(
-            toast = state.toast,
-            title = state.title,
-            onEvent = onEvent,
-            onOpenQueue = onOpenQueue,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 16.dp),
-        )
     }
 }
 

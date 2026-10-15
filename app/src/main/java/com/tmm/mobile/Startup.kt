@@ -45,7 +45,7 @@ class Startup(
 
     // Tout sur IO : les appels SAF (children, openInput) et la lecture du .tachibk sont bloquants, et
     // TmmRoot/Reglages/Accueil lancaient run() depuis le thread principal (UI figee au lancement).
-    suspend fun run(): StartupResult = withContext(Dispatchers.IO) { runLocked() }.also { _results.tryEmit(it) }
+    suspend fun run(forceRescan: Boolean = false): StartupResult = withContext(Dispatchers.IO) { runLocked(forceRescan) }.also { _results.tryEmit(it) }
 
     /**
      * Porte rapide du premier affichage : onboarding, permission SAF et lecture de la racine Mihon,
@@ -74,7 +74,7 @@ class Startup(
         }
     }
 
-    private suspend fun runLocked(): StartupResult = mutex.withLock {
+    private suspend fun runLocked(forceRescan: Boolean): StartupResult = mutex.withLock {
         val (gate, root) = gateOrRoot()
         if (root == null) return@withLock gate
         val (fs, rootDocId) = root
@@ -83,7 +83,7 @@ class Startup(
         // Room et on poursuit, plutot que de faire planter l'app a chaque retour au premier plan.
         try {
             val backupImported = importBackupIfNeeded(fs, rootDocId)
-            scanDownloads(fs, rootDocId, rematch = backupImported)
+            scanDownloads(fs, rootDocId, rematch = backupImported, force = forceRescan)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -134,9 +134,9 @@ class Startup(
         return true
     }
 
-    private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean) {
+    private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean, force: Boolean) {
         val scanner = DownloadScanner(fs, db)
-        fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId) }
+        fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId, force) }
         val matcherOutdated = prefs.matcherVersion.first() < MATCHER_VERSION
         if (rematch || matcherOutdated) scanner.rematch()
         if (matcherOutdated) prefs.setMatcherVersion(MATCHER_VERSION)

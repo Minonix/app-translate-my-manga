@@ -76,6 +76,44 @@ class DownloadScannerTest {
         assertEquals(0, db.downloadedChapterDao().observeAll().first().size)
     }
 
+    // Ch. 103 « Pas telecharge » : scan pendant le telechargement ("_tmp"), puis Mihon renomme le
+    // dossier sans que la date du dossier serie change (meme seconde). Le cache masquait le chapitre.
+    @Test fun scanDownloads_seriesScannedDuringDownload_findsChapterOnceRenamed() = runTest {
+        seedSeries()
+        val seriesDir = File(root, "MangaSource/One Piece").apply { mkdirs() }
+        chapter(seriesDir, "Chapitre 1")
+        val tmp = chapter(seriesDir, "Chapitre 2_abc123_tmp")
+        val stamp = seriesDir.lastModified()
+
+        val fs = FakeMihonFs(root)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+        assertEquals(1, db.downloadedChapterDao().observeAll().first().size)
+
+        tmp.renameTo(File(seriesDir, "Chapitre 2"))
+        seriesDir.setLastModified(stamp)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+
+        assertEquals(setOf("Chapitre 1", "Chapitre 2"), db.downloadedChapterDao().observeAll().first().map { it.chapterDir }.toSet())
+    }
+
+    // Tirer pour recharger : relit un dossier meme si sa date n'a pas bouge.
+    @Test fun scanDownloads_force_ignoresDirCache() = runTest {
+        seedSeries()
+        val seriesDir = File(root, "MangaSource/One Piece").apply { mkdirs() }
+        chapter(seriesDir, "Chapitre 1")
+        val stamp = seriesDir.lastModified()
+        val fs = FakeMihonFs(root)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+
+        chapter(seriesDir, "Chapitre 2")
+        seriesDir.setLastModified(stamp)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+        assertEquals(1, db.downloadedChapterDao().observeAll().first().size)
+
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath, force = true)
+        assertEquals(2, db.downloadedChapterDao().observeAll().first().size)
+    }
+
     @Test fun scanDownloads_unmatchedSeries_becomesItsOwnSeries() = runTest {
         val sourceDir = File(root, "MangaSource").apply { mkdirs() }
         val seriesDir = File(sourceDir, "Bleach").apply { mkdirs() }

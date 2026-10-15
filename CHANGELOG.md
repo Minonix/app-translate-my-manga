@@ -11,6 +11,14 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.13.0] - 2026-10-15
+
+### Ajoute
+- Bibliotheque et fiche serie : tirer la liste vers le bas, en haut, relance un scan complet de Mihon (sans le cache) et une synchronisation avec le PC.
+
+### Corrige
+- Un chapitre dont le telechargement se terminait pendant un scan restait « Pas telecharge » : le dossier serie n'est plus mis en cache tant qu'un telechargement y est en cours.
+
 ## [1.12.0] - 2026-10-15
 
 ### Ajoute

@@ -27,5 +27,7 @@ fun SeriesRoute(nav: NavController, seriesKey: String) {
         onEvent = vm::onEvent,
         onBack = { nav.popBackStack() },
         onOpenQueue = { nav.navigate(QueueRoute) },
+        // Tirer pour recharger : rescan complet de Mihon (sans le cache par date de dossier).
+        onRefresh = { container.startup.run(forceRescan = true) },
     )
 }
