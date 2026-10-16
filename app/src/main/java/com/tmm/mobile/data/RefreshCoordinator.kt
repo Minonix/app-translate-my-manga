@@ -204,7 +204,13 @@ class RefreshCoordinator(
             drive.ensureLayout()
         }
         if (layoutOutdated) prefs.setDriveLayoutVersion(DRIVE_LAYOUT_VERSION)
-        val result = drive.poll(prefs.lastChangesCursor.first())
+        val cursor = prefs.lastChangesCursor.first()
+        // Etage leger d'abord : « PC allume », file et compteurs s'affichent des ces quelques fichiers lus, meme
+        // si le poll complet (un fichier par job) est long apres une nuit de traduction. Son curseur n'est pas garde.
+        val light = drive.pollPc(cursor)
+        applyPoll(light, CHANNEL_DRIVE)
+        light.remote?.url?.let { prefs.setDirectUrl(it) }
+        val result = drive.poll(cursor)
         // Rien ne levait ce drapeau : le bandeau "reconnecter" restait affiche apres un nouveau consentement.
         if (prefs.authExpired.first()) prefs.setAuthExpired(false)
         applyPoll(result, CHANNEL_DRIVE)

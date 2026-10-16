@@ -12,7 +12,7 @@ class TransportRouter(val drive: JobTransport, val direct: DirectTransport) {
 
     fun forJob(job: JobEntity): JobTransport = forChannel(job.channel)
 
-    // Direct seulement si un PC est associe ET repond au health-check (2 s) ; sinon Drive, en silence.
+    // Direct seulement si un PC est associe ET repond au health-check (6 s) ; sinon Drive, en silence.
     suspend fun activeChannel(): String =
         if (direct.isPaired() && direct.health() != null) CHANNEL_DIRECT else CHANNEL_DRIVE
 

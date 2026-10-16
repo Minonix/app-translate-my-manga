@@ -30,6 +30,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -302,5 +303,23 @@ class RefreshCoordinatorTest {
         } finally {
             loop.cancel()
         }
+    }
+
+    // Test reel 16/10 : apres une nuit de traduction, 4 Actualiser sans « PC allume » ni file a jour, puis tout
+    // d'un coup. Le heartbeat n'etait applique qu'a la fin du poll complet, perdu entier s'il depassait le delai.
+    @Test fun refresh_showsPcOnline_evenWhenJobFilesAreTooSlowToRead() = runTest {
+        val coordinator = RefreshCoordinator(
+            env.db, env.prefs, env.router, env.container.workManager, env.clock,
+            CoroutineScope(StandardTestDispatcher()),
+            timeoutMillis = 1_500,
+        ) {}
+        env.db.jobDao().upsert(job("job-lent"))
+        writeOwnRequest("job-lent")
+        env.pc.accept("job-lent")
+        env.pc.writeHeartbeat()
+        val statusIds = env.drive.files.values.filter { it.name == "status.json" }.map { it.id }.toSet()
+        env.drive.beforeMediaGet = { id -> if (id in statusIds) Thread.sleep(4_000) }
+        withContext(Dispatchers.Default) { coordinator.refresh() }
+        assertNotNull(env.prefs.heartbeatSeenAt.first())
     }
 }
