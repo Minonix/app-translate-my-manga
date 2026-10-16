@@ -96,6 +96,46 @@ class DownloadScannerTest {
         assertEquals(setOf("Chapitre 1", "Chapitre 2"), db.downloadedChapterDao().observeAll().first().map { it.chapterDir }.toSet())
     }
 
+    // Chapitres « manquants » apres un Actualiser pendant le telechargement : Mihon ecrit "X.cbz.tmp" puis
+    // le renomme en ".cbz" dans la meme seconde. Le dossier serie ne doit pas etre mis en cache entre-temps.
+    @Test fun scanDownloads_cbzTmpDuringDownload_findsCbzOnceRenamed() = runTest {
+        seedSeries()
+        val seriesDir = File(root, "MangaSource/One Piece").apply { mkdirs() }
+        chapter(seriesDir, "Chapitre 1")
+        val tmp = File(seriesDir, "Chapitre 2.cbz.tmp").apply { writeBytes(cbzWithOnePage()) }
+        val stamp = seriesDir.lastModified()
+
+        val fs = FakeMihonFs(root)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+        tmp.renameTo(File(seriesDir, "Chapitre 2.cbz"))
+        seriesDir.setLastModified(stamp)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+
+        assertEquals(setOf("Chapitre 1", "Chapitre 2.cbz"), db.downloadedChapterDao().observeAll().first().map { it.chapterDir }.toSet())
+    }
+
+    // Un CBZ illisible dans une serie ne doit pas empecher de lire les series suivantes.
+    @Test fun scanDownloads_unreadableSeries_doesNotStopScan() = runTest {
+        seedSeries()
+        val broken = File(root, "AAA/Broken").apply { mkdirs() }
+        File(broken, "Chapter 1.cbz").writeBytes(byteArrayOf(0x50, 0x4b, 0x03, 0x04, 1, 2, 3))
+        chapter(File(root, "MangaSource/One Piece").apply { mkdirs() }, "Chapitre 1")
+
+        DownloadScanner(FakeMihonFs(root), db).scanDownloads(root.absolutePath)
+
+        assertEquals(listOf("Chapitre 1"), db.downloadedChapterDao().observeAll().first().map { it.chapterDir })
+    }
+
+    private fun cbzWithOnePage(): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(out).use { zos ->
+            zos.putNextEntry(java.util.zip.ZipEntry("1.jpg"))
+            zos.write(byteArrayOf(1))
+            zos.closeEntry()
+        }
+        return out.toByteArray()
+    }
+
     // Tirer pour recharger : relit un dossier meme si sa date n'a pas bouge.
     @Test fun scanDownloads_force_ignoresDirCache() = runTest {
         seedSeries()
