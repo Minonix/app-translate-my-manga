@@ -21,6 +21,11 @@ import java.io.IOException
 import java.io.RandomAccessFile
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.first
 
 private const val CHUNK_SIZE = 8 * 1024 * 1024
@@ -32,11 +37,17 @@ private val PC_FILES = listOf("heartbeat.json", "index.json", "settings.json", "
 private val JOB_FILES = listOf("status.json", "result.json")
 private const val PROTOCOL_FILE = "protocol.json"
 
+// Lectures simultanees du poll : assez pour ne plus depasser le delai, sans declencher le 429 de Drive.
+private const val POLL_PARALLEL_READS = 6
+
+private class Fetched(val text: String, val resultCbz: String?)
+
 // CdC 7.1/7.3. Canal Drive de JobTransport (le canal direct est DirectTransport).
 class DriveTransport(
     private val driveApi: DriveApi,
     private val prefs: AppPrefs,
 ) : JobTransport {
+    private val readGate = Semaphore(POLL_PARALLEL_READS)
 
     override suspend fun ensureLayout(): LayoutInfo {
         var created = false
@@ -206,7 +217,15 @@ class DriveTransport(
 
     // CdC 5.9 : liste les fichiers modifies depuis `since`, classe chacun par nom, decode son
     // contenu et en tire jobId directement plutot que de maintenir une table dossier->jobId.
-    override suspend fun poll(since: String?): PollResult {
+    override suspend fun poll(since: String?): PollResult = poll(since, PC_FILES + JOB_FILES + PROTOCOL_FILE)
+
+    /**
+     * Etage leger : seulement les fichiers de pc/ (heartbeat, index, reglages, adresse directe), quelques
+     * requetes. Lu avant le poll complet pour afficher « PC allume » et la file sans attendre les jobs.
+     */
+    override suspend fun pollPc(since: String?): PollResult = poll(since, PC_FILES)
+
+    private suspend fun poll(since: String?, names: List<String>): PollResult {
         val sinceIso = since ?: Instant.EPOCH.toString()
         // R3 : status le plus recent par job, result le plus ancien par job (doublons de nom).
         val statusByJob = HashMap<String, Pair<String, StatusJson>>()
@@ -231,24 +250,50 @@ class DriveTransport(
         val jobsId = prefs.driveJobsId.first()
         var jobFolderIds: Set<String>? = null
         do {
-            val page = driveApi.listChanged(sinceIso, pageToken, PC_FILES + JOB_FILES + PROTOCOL_FILE)
+            val page = driveApi.listChanged(sinceIso, pageToken, names)
             if (serverTime == null) serverTime = page.serverTime
+            // Tri d'abord (sequentiel, peu couteux), puis lectures en parallele : apres une nuit de traduction,
+            // une centaine de fichiers lus un par un depassait REFRESH_TIMEOUT_MILLIS et tout le refresh etait perdu.
+            val toRead = ArrayList<DriveFile>()
+            val fetched = HashMap<String, Result<Fetched>>()
             for (entry in page.files) {
-                val modified = entry.modifiedTime ?: ""
-                if (modified.isNotEmpty() && (maxModified == null || modified > maxModified!!)) maxModified = modified
-                try {
-                    val parent = entry.parents.firstOrNull()
-                    val inMailbox = when (entry.name) {
+                val parent = entry.parents.firstOrNull()
+                val inMailbox = runCatching {
+                    when (entry.name) {
                         in PC_FILES -> parent != null && parent == pcId
                         in JOB_FILES -> parent != null && jobsId != null &&
                             parent in (jobFolderIds ?: driveApi.listChildFolderIds(jobsId).also { jobFolderIds = it })
                         PROTOCOL_FILE -> parent != null && parent == rootId
                         else -> false
                     }
-                    if (!inMailbox) continue
+                }
+                inMailbox.onFailure { fetched[entry.id] = Result.failure(it) }
+                if (inMailbox.getOrDefault(false)) toRead += entry
+            }
+            coroutineScope {
+                toRead.map { entry ->
+                    async {
+                        readGate.withPermit {
+                            entry.id to runCatching {
+                                val resultCbz = if (entry.name == "result.json") {
+                                    entry.parents.firstOrNull()?.let { driveApi.findChild(it, "result.cbz", folder = false)?.id }
+                                } else {
+                                    null
+                                }
+                                Fetched(driveApi.readText(entry.id), resultCbz)
+                            }
+                        }
+                    }
+                }.awaitAll()
+            }.toMap(fetched)
+            for (entry in page.files) {
+                val modified = entry.modifiedTime ?: ""
+                if (modified.isNotEmpty() && (maxModified == null || modified > maxModified!!)) maxModified = modified
+                try {
+                    val read = fetched[entry.id]?.getOrThrow() ?: continue
                     when (entry.name) {
                         "status.json" -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(StatusJson.serializer(), text)
                             if (decoded.protocol > 1) {
                                 protocolTooNew = true
@@ -257,19 +302,17 @@ class DriveTransport(
                             }
                         }
                         "result.json" -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(ResultJson.serializer(), text)
                             val known = resultByJob[decoded.jobId]
                             if (decoded.protocol > 1) {
                                 protocolTooNew = true
                             } else if (known == null || modified < known.first) {
-                                val resultCbz = entry.parents.firstOrNull()
-                                    ?.let { driveApi.findChild(it, "result.cbz", folder = false)?.id }
-                                resultByJob[decoded.jobId] = Triple(modified, decoded, resultCbz)
+                                resultByJob[decoded.jobId] = Triple(modified, decoded, read.resultCbz)
                             }
                         }
                         "heartbeat.json" -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(Heartbeat.serializer(), text)
                             if (decoded.protocol > 1) {
                                 protocolTooNew = true
@@ -279,22 +322,22 @@ class DriveTransport(
                             }
                         }
                         "index.json" -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(PcIndex.serializer(), text)
                             if (decoded.protocol > 1) protocolTooNew = true else if (newer(modified, index)) index = modified to decoded
                         }
                         "settings.json" -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(PcSettings.serializer(), text)
                             if (decoded.protocol > 1) protocolTooNew = true else if (newer(modified, settings)) settings = modified to decoded
                         }
                         "remote.json" -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(RemoteInfo.serializer(), text)
                             if (decoded.protocol > 1) protocolTooNew = true else if (newer(modified, remote)) remote = modified to decoded
                         }
                         PROTOCOL_FILE -> {
-                            val text = driveApi.readText(entry.id)
+                            val text = read.text
                             val decoded = ProtocolJson.decodeFromString(ProtocolMarker.serializer(), text)
                             if (decoded.protocol > 1) protocolTooNew = true else protocolSeen = true
                         }

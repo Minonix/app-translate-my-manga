@@ -67,10 +67,11 @@ class DirectTransport(
     private val client: OkHttpClient,
     private val prefs: AppPrefs,
     private val tokens: DirectTokenStore,
-    healthTimeoutSeconds: Long = 2,
+    healthTimeoutSeconds: Long = 6,
 ) : JobTransport {
 
-    // Client dedie : le health-check doit repondre en 2 s, jamais attendre les delais d'un transfert.
+    // Client dedie : le health-check repond en 6 s au plus (2 s ratait un Tailscale qui se reveille), jamais
+    // les delais d'un transfert.
     private val healthClient = client.newBuilder()
         .connectTimeout(healthTimeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(healthTimeoutSeconds, TimeUnit.SECONDS)

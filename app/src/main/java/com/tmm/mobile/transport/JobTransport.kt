@@ -36,6 +36,9 @@ interface JobTransport {
     suspend fun writeReceived(job: JobEntity, received: ReceivedJson)
     suspend fun writeCommand(command: SettingsCommand)
     suspend fun poll(since: String?): PollResult
+
+    // Etage leger (fichiers pc/ seulement) ; par defaut le poll complet.
+    suspend fun pollPc(since: String?): PollResult = poll(since)
     suspend fun readSettings(): PcSettings?
     suspend fun downloadResult(
         job: JobEntity,
