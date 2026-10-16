@@ -11,7 +11,7 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
-## [1.13.3] - 2026-10-16
+## [1.13.4] - 2026-10-17
 
 ### Corrige
 - Des chapitres bien telecharges restaient « Pas telecharge » ou « manquants », meme apres avoir tire pour recharger : un CBZ illisible arretait tout le scan, et un CBZ en cours d'ecriture (« .cbz.tmp ») laissait le dossier serie en cache. Le scan continue desormais, et relit le dossier tant qu'un chapitre est en cours ou illisible.
