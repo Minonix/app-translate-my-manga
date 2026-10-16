@@ -136,8 +136,10 @@ class Startup(
 
     private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean, force: Boolean) {
         val scanner = DownloadScanner(fs, db)
-        fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId, force) }
         val matcherOutdated = prefs.matcherVersion.first() < MATCHER_VERSION
+        // Mise a jour du scan : le cache par date de dossier garde les trous laisses par l'ancienne
+        // version, on relit donc tout une fois.
+        fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId, force || matcherOutdated) }
         if (rematch || matcherOutdated) scanner.rematch()
         if (matcherOutdated) prefs.setMatcherVersion(MATCHER_VERSION)
         fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
@@ -148,4 +150,5 @@ class Startup(
 // 1 : Matcher tolere le suffixe de langue des dossiers source Mihon ("MangaDex (EN)").
 // 2 : une serie en double (ajoutee deux fois, ou FR + EN sur une meme source) recoit ses propres chapitres.
 // 3 : un dossier sans serie dans la sauvegarde devient sa propre serie (numeros lus dans le nom).
-private const val MATCHER_VERSION = 4
+// 5 : relecture complete une fois (CBZ ".cbz.tmp" en cours, dossier illisible qui stoppait le scan).
+private const val MATCHER_VERSION = 5

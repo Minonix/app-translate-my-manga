@@ -5,7 +5,13 @@ import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
 import com.tmm.mobile.data.db.ScannedSeriesDirEntity
 import com.tmm.mobile.data.db.TmmDatabase
+import com.tmm.mobile.core.AppLog
+import java.io.File
+import java.io.IOException
+import java.util.zip.ZipException
+import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.first
 
 // Cle "source" des dossiers de local/ dans scanned_series_dir : un nom de dossier source Mihon ne
@@ -41,55 +47,76 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 seen += key
                 if (!force && cached[key] == seriesDirEntry.lastModified) continue
 
-                val allSeries = series ?: matchableSeries().also { series = it }
-                // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
-                // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
-                var downloading = false
-                val entries = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
-                    if (MihonNaming.isIncompleteChapterDirName(chapterEntry.name.removeSuffix(".cbz"))) {
-                        downloading = true
-                        return@mapNotNull null
+                // Un dossier illisible (CBZ abime, erreur SAF passagere) ne doit pas interrompre tout le scan :
+                // les series suivantes n'etaient alors jamais relues, meme en tirant pour recharger.
+                try {
+                    val allSeries = series ?: matchableSeries().also { series = it }
+                    // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
+                    // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
+                    var downloading = false
+                    val entries = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
+                        if (isInProgress(chapterEntry.name)) {
+                            downloading = true
+                            return@mapNotNull null
+                        }
+                        val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
+                        if (!chapterEntry.isDirectory && !isCbz) return@mapNotNull null
+                        val pageCount = try {
+                            CbzPacker.pageCount(entryNames(chapterEntry, isCbz))
+                        } catch (e: IOException) {
+                            AppLog.d("Scan", "chapitre illisible : ${e.javaClass.simpleName} ${e.message}")
+                            0
+                        }
+                        // Un chapitre sans page lisible est en cours d'ecriture (ou abime) : on le relira.
+                        if (pageCount == 0) {
+                            downloading = true
+                            null
+                        } else {
+                            ScannedChapter(chapterEntry, isCbz, pageCount)
+                        }
                     }
-                    val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
-                    if (!chapterEntry.isDirectory && !isCbz) return@mapNotNull null
-                    val pageCount = CbzPacker.pageCount(entryNames(chapterEntry, isCbz))
-                    if (pageCount == 0) null else ScannedChapter(chapterEntry, isCbz, pageCount)
-                }
-                val matches = matchFolder(sourceDir.name, seriesDirEntry.name, entries.map { it.entry.name.removeSuffix(".cbz") }, allSeries)
+                    val matches = matchFolder(sourceDir.name, seriesDirEntry.name, entries.map { it.entry.name.removeSuffix(".cbz") }, allSeries)
 
-                val rows = entries.map { (chapterEntry, isCbz, pageCount) ->
-                    val match = matches[chapterEntry.name.removeSuffix(".cbz")]
-                    DownloadedChapterEntity(
-                        mihonPath = "${sourceDir.name}/${seriesDirEntry.name}/${chapterEntry.name}",
-                        sourceDir = sourceDir.name,
-                        seriesDir = seriesDirEntry.name,
-                        chapterDir = chapterEntry.name,
-                        documentUri = chapterEntry.docId,
-                        isCbz = isCbz,
-                        sizeBytes = chapterEntry.size,
-                        lastModified = chapterEntry.lastModified,
-                        pageCount = pageCount,
-                        seriesKey = match?.series?.seriesKey,
-                        chapterKey = match?.chapter?.chapterKey,
-                        number = match?.chapter?.number ?: DownloadOnlySeries.guessNumber(chapterEntry.name),
-                    )
-                }
-
-                // Une transaction par serie : les chapitres supprimes disparaissent, et Room n'emet
-                // qu'une invalidation (la Bibliotheque ne se recalcule pas a chaque chapitre).
-                db.withTransaction {
-                    db.downloadedChapterDao().deleteForSeriesDir(sourceDir.name, seriesDirEntry.name)
-                    db.downloadedChapterDao().upsertAll(rows)
-                    // Telechargement en cours ("_tmp") : Mihon renomme le dossier a la fin, souvent dans la
-                    // meme seconde que la date deja lue. Garder cette date en cache masquait le chapitre
-                    // fini pour toujours (« Pas telecharge » alors qu'il l'est) : on relira ce dossier.
-                    if (downloading) {
-                        db.scannedSeriesDirDao().delete(sourceDir.name, seriesDirEntry.name)
-                    } else {
-                        db.scannedSeriesDirDao().upsert(
-                            ScannedSeriesDirEntity(sourceDir.name, seriesDirEntry.name, seriesDirEntry.lastModified),
+                    val rows = entries.map { (chapterEntry, isCbz, pageCount) ->
+                        val match = matches[chapterEntry.name.removeSuffix(".cbz")]
+                        DownloadedChapterEntity(
+                            mihonPath = "${sourceDir.name}/${seriesDirEntry.name}/${chapterEntry.name}",
+                            sourceDir = sourceDir.name,
+                            seriesDir = seriesDirEntry.name,
+                            chapterDir = chapterEntry.name,
+                            documentUri = chapterEntry.docId,
+                            isCbz = isCbz,
+                            sizeBytes = chapterEntry.size,
+                            lastModified = chapterEntry.lastModified,
+                            pageCount = pageCount,
+                            seriesKey = match?.series?.seriesKey,
+                            chapterKey = match?.chapter?.chapterKey,
+                            number = match?.chapter?.number ?: DownloadOnlySeries.guessNumber(chapterEntry.name),
                         )
                     }
+
+                    // Une transaction par serie : les chapitres supprimes disparaissent, et Room n'emet
+                    // qu'une invalidation (la Bibliotheque ne se recalcule pas a chaque chapitre).
+                    db.withTransaction {
+                        db.downloadedChapterDao().deleteForSeriesDir(sourceDir.name, seriesDirEntry.name)
+                        db.downloadedChapterDao().upsertAll(rows)
+                        // Telechargement en cours ("_tmp") : Mihon renomme le dossier a la fin, souvent dans la
+                        // meme seconde que la date deja lue. Garder cette date en cache masquait le chapitre
+                        // fini pour toujours (« Pas telecharge » alors qu'il l'est) : on relira ce dossier.
+                        if (downloading) {
+                            db.scannedSeriesDirDao().delete(sourceDir.name, seriesDirEntry.name)
+                        } else {
+                            db.scannedSeriesDirDao().upsert(
+                                ScannedSeriesDirEntity(sourceDir.name, seriesDirEntry.name, seriesDirEntry.lastModified),
+                            )
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("Scan", "dossier serie illisible : ${e.javaClass.simpleName} ${e.message}")
+                    // Pas de date en cache : il sera relu au prochain scan.
+                    db.scannedSeriesDirDao().delete(sourceDir.name, seriesDirEntry.name)
                 }
             }
         }
@@ -250,11 +277,33 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
 
     private data class ScannedChapter(val entry: MihonDocEntry, val isCbz: Boolean, val pageCount: Int)
 
+    /**
+     * Fichier ou dossier que Mihon ecrit encore : "Chapter 5_tmp" (pages en cours), "Chapter 5.cbz.tmp"
+     * (archive en cours, renommee en ".cbz" a la fin). Le second n'etait pas reconnu : le dossier serie
+     * restait en cache et le CBZ fini, souvent renomme dans la meme seconde, n'etait jamais vu.
+     */
+    private fun isInProgress(name: String): Boolean =
+        MihonNaming.isIncompleteChapterDirName(name.removeSuffix(".cbz")) || name.endsWith(".tmp")
+
     private fun entryNames(entry: MihonDocEntry, isCbz: Boolean): List<String> = when {
         entry.isDirectory -> fs.children(entry.docId).filter { !it.isDirectory }.map { it.name }
-        isCbz -> ZipInputStream(fs.openInput(entry.docId)).use { zis ->
+        isCbz -> cbzEntryNames(entry)
+        else -> emptyList()
+    }
+
+    // Lecture en flux d'abord (rapide, pas de copie). Certains CBZ la font echouer (entree STORED avec
+    // descripteur de donnees) : on relit alors le repertoire central depuis une copie temporaire.
+    private fun cbzEntryNames(entry: MihonDocEntry): List<String> = try {
+        ZipInputStream(fs.openInput(entry.docId)).use { zis ->
             generateSequence { zis.nextEntry }.map { it.name }.toList()
         }
-        else -> emptyList()
+    } catch (e: ZipException) {
+        val tmp = File.createTempFile("tmm-scan", ".cbz")
+        try {
+            fs.openInput(entry.docId).use { input -> tmp.outputStream().use { input.copyTo(it) } }
+            ZipFile(tmp).use { zip -> zip.entries().asSequence().map { it.name }.toList() }
+        } finally {
+            tmp.delete()
+        }
     }
 }
