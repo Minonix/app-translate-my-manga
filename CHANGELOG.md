@@ -11,6 +11,12 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.13.2] - 2026-10-16
+
+### Corrige
+- Apres une nuit de traduction, « PC allume », la file et les compteurs ne s'affichaient qu'apres plusieurs Actualiser : l'etat du PC est lu en premier, les resultats ensuite et en parallele.
+- Le canal direct attend 6 s la reponse du PC au lieu de 2 avant de passer par Drive.
+
 ## [1.13.1] - 2026-10-16
 
 ### Corrige
