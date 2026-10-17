@@ -18,7 +18,7 @@ object Matcher {
         seriesDirName == MihonNaming.getMangaDirName(seriesTitle)
 
     fun matchChapter(chapterDirName: String, chapterName: String, scanlator: String?, chapterUrl: String): Boolean =
-        chapterDirName == MihonNaming.getChapterDirName(chapterName, scanlator, chapterUrl)
+        chapterDirName in MihonNaming.getValidChapterDirNames(chapterName, scanlator, chapterUrl)
 
     /** Retrouve la SeriesEntity dont le nom de dossier (source + serie) correspond, ou null si "hors catalogue". */
     fun findSeries(sourceDirName: String, seriesDirName: String, series: List<MatchableSeries>): MatchableSeries? =

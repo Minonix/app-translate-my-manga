@@ -45,8 +45,27 @@ object MihonNaming {
 
     fun getMangaDirName(title: String): String = buildValidFilename(title)
 
-    fun getChapterDirName(chapterName: String, scanlator: String?, chapterUrl: String): String {
-        val base = if (!scanlator.isNullOrBlank()) "$scanlator: $chapterName" else chapterName
+    // Mihon colle la team au nom par "_" ("unofficial_Ch. 22_14b780"). TMM ecrivait "team: nom", devenu
+    // "team_ nom" : aucun chapitre d'une team n'etait reconnu et restait « Pas telecharge ».
+    fun getChapterDirName(chapterName: String, scanlator: String?, chapterUrl: String): String =
+        chapterDirName(if (!scanlator.isNullOrBlank()) "${scanlator}_${chapterName.ifBlank { "Chapter" }}" else chapterName.ifBlank { "Chapter" }, chapterUrl)
+
+    /**
+     * Noms sous lesquels Mihon a pu ranger ce chapitre : le nom actuel, l'ancien separateur "team: nom"
+     * (versions de Mihon/TMM precedentes), et les anciens dossiers sans hachage d'URL.
+     */
+    fun getValidChapterDirNames(chapterName: String, scanlator: String?, chapterUrl: String): Set<String> {
+        val current = getChapterDirName(chapterName, scanlator, chapterUrl)
+        val names = linkedSetOf(current, current.substringBeforeLast('_'))
+        if (!scanlator.isNullOrBlank()) {
+            val colon = chapterDirName("$scanlator: $chapterName", chapterUrl)
+            names += colon
+            names += colon.substringBeforeLast('_')
+        }
+        return names
+    }
+
+    private fun chapterDirName(base: String, chapterUrl: String): String {
         val hash = md5(chapterUrl).take(6)
         val truncated = buildValidFilename(base, MAX_FILE_NAME_BYTES - 11)
         return "${truncated}_$hash"

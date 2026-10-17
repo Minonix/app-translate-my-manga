@@ -12,6 +12,7 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.runAutoTranslate
 import com.tmm.mobile.mihon.BackupImporter
 import com.tmm.mobile.mihon.BackupReader
+import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.mihon.DownloadScanner
 import com.tmm.mobile.mihon.MihonFs
 import com.tmm.mobile.mihon.MihonNaming
@@ -182,8 +183,21 @@ class Startup(
         fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
         prefs.setLastScanAt(System.currentTimeMillis())
         // Diagnostic dans le journal exporte : duree du scan et nombre de chapitres vus.
-        val count = db.downloadedChapterDao().observeAll().first().size
-        AppLog.d("Startup", "scan Mihon termine en ${(System.currentTimeMillis() - startedAt) / 1000} s, $count chapitres telecharges")
+        val rows = db.downloadedChapterDao().observeAll().first()
+        AppLog.d("Startup", "scan Mihon termine en ${(System.currentTimeMillis() - startedAt) / 1000} s, ${rows.size} chapitres telecharges")
+        // Fichiers d'une serie du catalogue qu'aucun chapitre ne reconnait : ils restent « Pas telecharge »
+        // cote catalogue. Liste par serie pour comprendre un rattachement rate a partir du seul journal.
+        rows.filter { it.chapterKey == null && it.seriesKey != null && !DownloadOnlySeries.isDownloadOnly(it.seriesKey) }
+            .groupBy { it.seriesDir }
+            .forEach { (seriesDir, orphans) ->
+                AppLog.d(
+                    "Startup",
+                    "non rattaches ($seriesDir) : ${orphans.size} : " + orphans.take(5).joinToString { "${it.chapterDir} (n°${it.number})" },
+                )
+            }
+        rows.filter { it.seriesKey == null }.groupBy { it.seriesDir }.forEach { (seriesDir, lost) ->
+            AppLog.d("Startup", "sans serie ($seriesDir) : ${lost.size}")
+        }
     }
 }
 
@@ -191,4 +205,5 @@ class Startup(
 // 2 : une serie en double (ajoutee deux fois, ou FR + EN sur une meme source) recoit ses propres chapitres.
 // 3 : un dossier sans serie dans la sauvegarde devient sa propre serie (numeros lus dans le nom).
 // 5 : relecture complete une fois (CBZ ".cbz.tmp" en cours, dossier illisible qui stoppait le scan).
-private const val MATCHER_VERSION = 5
+// 6 : nom de dossier "team_nom" (et non "team_ nom") : rattache les chapitres des teams de traduction.
+private const val MATCHER_VERSION = 6

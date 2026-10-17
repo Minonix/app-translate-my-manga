@@ -20,14 +20,20 @@ class MihonNamingTest {
 
     @Test fun getChapterDirName_appendsMd5HashSuffix() {
         val name = MihonNaming.getChapterDirName("Chapitre 1", "TeamX", "https://example.com/ch1")
-        // le ':' du separateur "scanlator: nom" est lui-meme un caractere FAT invalide -> '_'
-        assertTrue(name.startsWith("TeamX_ Chapitre 1_"))
+        // Format Mihon : "team_nom_hachage", sans espace (fichier reel : "unofficial_Ch. 22_14b780.cbz").
+        assertTrue(name.startsWith("TeamX_Chapitre 1_"))
         assertEquals(6, name.substringAfterLast('_').length)
     }
 
     @Test fun getChapterDirName_noScanlator_usesNameOnly() {
         val name = MihonNaming.getChapterDirName("Chapitre 1", null, "https://example.com/ch1")
         assertTrue(name.startsWith("Chapitre 1_"))
+    }
+
+    @Test fun getValidChapterDirNames_acceptsOldColonSeparatorAndNoHash() {
+        val names = MihonNaming.getValidChapterDirNames("Chapitre 1", "TeamX", "https://example.com/ch1")
+        assertTrue(names.any { it.startsWith("TeamX_ Chapitre 1_") })
+        assertTrue("TeamX_Chapitre 1" in names)
     }
 
     @Test fun isIncompleteChapterDirName_detectsTmpSuffix() {
