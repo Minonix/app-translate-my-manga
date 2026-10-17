@@ -22,8 +22,8 @@ android {
         applicationId = "com.tmm.mobile"
         minSdk = 26
         targetSdk = 37
-        versionCode = 32
-        versionName = "1.13.4"
+        versionCode = 33
+        versionName = "1.13.5"
     }
 
     buildFeatures {

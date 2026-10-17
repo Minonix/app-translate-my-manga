@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.13.5] - 2026-10-17
+
+### Corrige
+- Fiche serie : tirer pour recharger tournait plus d'une minute. Seuls les dossiers Mihon de la serie sont relus, et la synchro avec le PC continue en arriere-plan.
+
 ## [1.13.4] - 2026-10-17
 
 ### Corrige
