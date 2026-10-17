@@ -11,6 +11,13 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.13.6] - 2026-10-17
+
+### Corrige
+- Cause principale des chapitres « Pas telecharge » ou « manquants » alors qu'ils sont dans Mihon : le nom de dossier attendu pour un chapitre d'une team de traduction ("team_ nom") ne correspondait pas a celui de Mihon ("team_nom"). Les anciens noms restent reconnus et tout est rattache a nouveau a la mise a jour.
+- Un mot du titre ("Watch 2", "Deep 3") ne donne plus un faux numero de chapitre.
+- Le journal liste les fichiers qu'aucun chapitre du catalogue ne reconnait.
+
 ## [1.13.5] - 2026-10-17
 
 ### Corrige
