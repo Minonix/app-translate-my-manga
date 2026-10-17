@@ -30,8 +30,11 @@ private val LOCAL_CHAPTER_NUMBER = Regex("""^c(\d+(?:\.\d+)?)""")
 // supprimes dans Mihon) sont retires du cache Room.
 class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
 
-    /** [force] relit chaque dossier serie sans tenir compte du cache (tirer pour recharger). */
-    suspend fun scanDownloads(downloadsRootDocId: String, force: Boolean = false) {
+    /**
+     * [force] relit chaque dossier serie sans tenir compte du cache (tirer pour recharger la Bibliotheque),
+     * [forceSeriesDirs] seulement ces dossiers serie (Fiche serie : ne relit pas les ~2000 autres).
+     */
+    suspend fun scanDownloads(downloadsRootDocId: String, force: Boolean = false, forceSeriesDirs: Set<String> = emptySet()) {
         // Lignes posees par les versions qui comptaient aussi les fichiers/dossiers sans page : le cache
         // par date de dossier ne les relirait jamais, on les retire ici.
         db.downloadedChapterDao().deleteWithoutPages()
@@ -45,7 +48,8 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
             for (seriesDirEntry in fs.children(sourceDir.docId).filter { it.isDirectory }) {
                 val key = sourceDir.name to seriesDirEntry.name
                 seen += key
-                if (!force && cached[key] == seriesDirEntry.lastModified) continue
+                val forced = force || seriesDirEntry.name in forceSeriesDirs
+                if (!forced && cached[key] == seriesDirEntry.lastModified) continue
 
                 // Un dossier illisible (CBZ abime, erreur SAF passagere) ne doit pas interrompre tout le scan :
                 // les series suivantes n'etaient alors jamais relues, meme en tirant pour recharger.

@@ -14,13 +14,17 @@ import com.tmm.mobile.mihon.BackupImporter
 import com.tmm.mobile.mihon.BackupReader
 import com.tmm.mobile.mihon.DownloadScanner
 import com.tmm.mobile.mihon.MihonFs
+import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.mihon.MihonTree
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,6 +41,8 @@ class Startup(
     private val refreshCoordinator: RefreshCoordinator,
 ) {
     private val mutex = Mutex()
+    // Synchro PC lancee sans l'attendre (rescanSeries) : survit a la sortie de la Fiche serie.
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _results = MutableSharedFlow<StartupResult>(extraBufferCapacity = 1)
 
     // Chaque resultat, quel que soit l'appelant : Actualiser (Accueil) relance run() sans lire le retour,
@@ -46,6 +52,18 @@ class Startup(
     // Tout sur IO : les appels SAF (children, openInput) et la lecture du .tachibk sont bloquants, et
     // TmmRoot/Reglages/Accueil lancaient run() depuis le thread principal (UI figee au lancement).
     suspend fun run(forceRescan: Boolean = false): StartupResult = withContext(Dispatchers.IO) { runLocked(forceRescan) }.also { _results.tryEmit(it) }
+
+    /**
+     * Tirer pour recharger sur la Fiche serie : relit seulement les dossiers de cette serie (le rescan
+     * complet relisait toute la bibliotheque Mihon) et rend la main sans attendre la synchro avec le PC,
+     * qui continue en arriere-plan (plus d'une minute sur Drive apres une nuit de traduction).
+     */
+    suspend fun rescanSeries(seriesKey: String): StartupResult = withContext(Dispatchers.IO) {
+        val series = db.seriesDao().get(seriesKey)
+        val dirs = db.downloadedChapterDao().observeForSeries(seriesKey).first().mapTo(HashSet()) { it.seriesDir }
+        series?.let { dirs += MihonNaming.getMangaDirName(it.title) }
+        runLocked(forceRescan = false, forceSeriesDirs = dirs, awaitSync = false)
+    }.also { _results.tryEmit(it) }
 
     /**
      * Porte rapide du premier affichage : onboarding, permission SAF et lecture de la racine Mihon,
@@ -74,7 +92,11 @@ class Startup(
         }
     }
 
-    private suspend fun runLocked(forceRescan: Boolean): StartupResult = mutex.withLock {
+    private suspend fun runLocked(
+        forceRescan: Boolean,
+        forceSeriesDirs: Set<String> = emptySet(),
+        awaitSync: Boolean = true,
+    ): StartupResult = mutex.withLock {
         val (gate, root) = gateOrRoot()
         if (root == null) return@withLock gate
         val (fs, rootDocId) = root
@@ -83,7 +105,7 @@ class Startup(
         // Room et on poursuit, plutot que de faire planter l'app a chaque retour au premier plan.
         try {
             val backupImported = importBackupIfNeeded(fs, rootDocId)
-            scanDownloads(fs, rootDocId, rematch = backupImported, force = forceRescan)
+            scanDownloads(fs, rootDocId, rematch = backupImported, force = forceRescan, forceSeriesDirs = forceSeriesDirs)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -98,8 +120,22 @@ class Startup(
             // Jamais de crash au demarrage : la remise a plat sera retentee au prochain lancement.
             AppLog.d("Startup", "remise a plat interrompue : ${e.javaClass.simpleName} ${e.message}")
         }
-        runAutoTranslate(db, jobRepository)
-        refreshCoordinator.refresh()
+        if (awaitSync) {
+            runAutoTranslate(db, jobRepository)
+            refreshCoordinator.refresh()
+        } else {
+            syncScope.launch {
+                // Hors de tout appelant : une exception ici ferait planter l'app.
+                try {
+                    runAutoTranslate(db, jobRepository)
+                    refreshCoordinator.refresh()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLog.d("Startup", "synchro en arriere-plan interrompue : ${e.javaClass.simpleName}")
+                }
+            }
+        }
         StartupResult.DONE
     }
 
@@ -134,12 +170,12 @@ class Startup(
         return true
     }
 
-    private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean, force: Boolean) {
+    private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean, force: Boolean, forceSeriesDirs: Set<String>) {
         val scanner = DownloadScanner(fs, db)
         val matcherOutdated = prefs.matcherVersion.first() < MATCHER_VERSION
         // Mise a jour du scan : le cache par date de dossier garde les trous laisses par l'ancienne
         // version, on relit donc tout une fois.
-        fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId, force || matcherOutdated) }
+        fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId, force || matcherOutdated, forceSeriesDirs) }
         if (rematch || matcherOutdated) scanner.rematch()
         if (matcherOutdated) prefs.setMatcherVersion(MATCHER_VERSION)
         fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
