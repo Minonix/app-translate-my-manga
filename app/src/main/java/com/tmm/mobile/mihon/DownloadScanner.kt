@@ -43,6 +43,9 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
             .associate { (it.sourceDir to it.seriesDir) to it.lastModified }
         val seen = HashSet<Pair<String, String>>()
         var series: List<MatchableSeries>? = null
+        // Pages deja comptees : un chapitre inchange (meme taille, meme date) n'est pas relu. Sans ca, un
+        // rescan force ouvrait chaque CBZ de la bibliotheque via SAF (plusieurs minutes, spinner fige).
+        val known = db.downloadedChapterDao().observeAll().first().associateBy { it.mihonPath }
 
         for (sourceDir in fs.children(downloadsRootDocId).filter { it.isDirectory }) {
             for (seriesDirEntry in fs.children(sourceDir.docId).filter { it.isDirectory }) {
@@ -65,7 +68,13 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                         }
                         val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
                         if (!chapterEntry.isDirectory && !isCbz) return@mapNotNull null
-                        val pageCount = try {
+                        val previous = known["${sourceDir.name}/${seriesDirEntry.name}/${chapterEntry.name}"]
+                        val pageCount = if (
+                            previous != null && previous.pageCount > 0 &&
+                            previous.sizeBytes == chapterEntry.size && previous.lastModified == chapterEntry.lastModified
+                        ) {
+                            previous.pageCount
+                        } else try {
                             CbzPacker.pageCount(entryNames(chapterEntry, isCbz))
                         } catch (e: IOException) {
                             AppLog.d("Scan", "chapitre illisible : ${e.javaClass.simpleName} ${e.message}")

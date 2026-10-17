@@ -158,6 +158,23 @@ class DownloadScannerTest {
         assertEquals(setOf("One Piece" to "Chapitre 1", "One Piece" to "Chapitre 2", "Other" to "Chapter 1"), dirs)
     }
 
+    // Rescan force : un CBZ inchange garde son nombre de pages sans etre rouvert.
+    @Test fun scanDownloads_force_reusesPageCountOfUnchangedCbz() = runTest {
+        seedSeries()
+        val seriesDir = File(root, "MangaSource/One Piece").apply { mkdirs() }
+        val cbz = File(seriesDir, "Chapitre 1.cbz").apply { writeBytes(cbzWithOnePage()) }
+        val fs = FakeMihonFs(root)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+
+        // Meme taille et meme date, contenu illisible : seul le cache peut donner la page.
+        val stamp = cbz.lastModified()
+        cbz.writeBytes(ByteArray(cbz.length().toInt()))
+        cbz.setLastModified(stamp)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath, force = true)
+
+        assertEquals(listOf(1), db.downloadedChapterDao().observeAll().first().map { it.pageCount })
+    }
+
     // Tirer pour recharger : relit un dossier meme si sa date n'a pas bouge.
     @Test fun scanDownloads_force_ignoresDirCache() = runTest {
         seedSeries()

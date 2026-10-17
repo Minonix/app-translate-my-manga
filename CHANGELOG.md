@@ -14,6 +14,7 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 ## [1.13.5] - 2026-10-17
 
 ### Corrige
+- Tirer pour recharger (et la relecture complete de la mise a jour) rouvrait chaque CBZ de la bibliotheque : le spinner tournait plusieurs minutes et les chapitres n'apparaissaient qu'a la fin. Un chapitre inchange (meme taille, meme date) n'est plus relu.
 - Fiche serie : tirer pour recharger tournait plus d'une minute. Seuls les dossiers Mihon de la serie sont relus, et la synchro avec le PC continue en arriere-plan.
 
 ## [1.13.4] - 2026-10-17
