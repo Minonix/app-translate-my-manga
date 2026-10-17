@@ -100,6 +100,8 @@ fun SeriesScreen(
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
     onRefresh: suspend () -> Unit = {},
+    // Bouton dossier d'une ligne non telechargee ou manquante : ouvre le selecteur de fichier (SeriesRoute).
+    onLinkFile: (String) -> Unit = {},
 ) {
     PullToRefresh(onRefresh, modifier.fillMaxSize().background(C.bg)) {
         Box(Modifier.fillMaxSize()) {
@@ -152,7 +154,7 @@ fun SeriesScreen(
                         )
                     }
                 }
-                chapterItems(state, onEvent)
+                chapterItems(state, onEvent, onLinkFile)
             }
 
             if (state.selecting && state.selectionCount > 0) {
@@ -180,6 +182,10 @@ fun SeriesScreen(
                         onConfirm = { onEvent(SeriesEvent.ConfirmDelete) },
                     )
                 }
+            }
+
+            V2Sheet(visible = sheet is SeriesSheet.LinkConfirm, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
+                if (sheet is SeriesSheet.LinkConfirm) LinkConfirmSheetContent(sheet, onEvent)
             }
 
             SeriesToastHost(
@@ -500,7 +506,7 @@ private fun Modifier.dragToSelect(
 }
 
 // Pas de cle LazyColumn : la position suffit, l'etat (selection par SeriesRow.key) vit dans le ViewModel.
-private fun LazyListScope.chapterItems(state: SeriesState, onEvent: (SeriesEvent) -> Unit) {
+private fun LazyListScope.chapterItems(state: SeriesState, onEvent: (SeriesEvent) -> Unit, onLinkFile: (String) -> Unit) {
     val rows = state.rows
     items(rows.size, contentType = { "chapter" }) { index ->
         val row = rows[index]
@@ -512,6 +518,7 @@ private fun LazyListScope.chapterItems(state: SeriesState, onEvent: (SeriesEvent
                 selected = row.key in state.selected,
                 expanded = row.key in state.expandedStats,
                 onEvent = onEvent,
+                onLinkFile = onLinkFile,
             )
         }
     }
@@ -525,6 +532,7 @@ private fun ChapterRow(
     selected: Boolean,
     expanded: Boolean,
     onEvent: (SeriesEvent) -> Unit,
+    onLinkFile: (String) -> Unit = {},
 ) {
     val selectable = !row.locked && row.kind != ChapterKind.NotDownloaded
     val hasStats = row.stats != null && row.kind == ChapterKind.InMihon
@@ -560,6 +568,9 @@ private fun ChapterRow(
             )
             val (tone, label) = statusOf(row)
             StatusPill(tone, label)
+            if (!selecting && row.number >= 0 && (row.kind == ChapterKind.NotDownloaded || row.kind == ChapterKind.Missing)) {
+                LinkFileButton(row.label) { onLinkFile(row.key) }
+            }
             if (hasStats && !selecting) {
                 TmmIcon(
                     TmmIconId.V2Chev,
@@ -594,6 +605,55 @@ private fun ChapterRow(
             }
         }
     }
+}
+
+/** Petit bouton dossier : relier a la main le fichier .cbz que le scan n'a pas rattache a ce chapitre. */
+@Composable
+private fun LinkFileButton(label: String, onClick: () -> Unit) {
+    val cd = stringResource(R.string.series_link_file_cd_fmt, label)
+    Box(
+        Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .border(1.5.dp, C.line, CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = cd },
+        contentAlignment = Alignment.Center,
+    ) {
+        TmmIcon(TmmIconId.V2Folder, size = 17.dp, tint = C.muted)
+    }
+}
+
+/** Le fichier choisi etait relie a un autre chapitre : confirmer avant de le deplacer. */
+@Composable
+private fun LinkConfirmSheetContent(sheet: SeriesSheet.LinkConfirm, onEvent: (SeriesEvent) -> Unit) {
+    V2SheetHeader(kick = null, title = stringResource(R.string.series_link_confirm_title_fmt, sheet.targetLabel))
+    TmmText(text = sheet.file.row.chapterDir, style = TmmType.mono(13), color = C.ink, modifier = Modifier.padding(top = 10.dp))
+    val previous = sheet.replacing.number?.let { n ->
+        stringResource(R.string.series_chapter_number_fmt, if (n == n.toInt().toFloat()) n.toInt().toString() else n.toString())
+    } ?: stringResource(R.string.series_link_previous_unnumbered)
+    TmmText(
+        text = sheet.replacing.seriesTitle?.let { stringResource(R.string.series_link_confirm_other_series_fmt, previous, it, sheet.targetLabel) }
+            ?: stringResource(R.string.series_link_confirm_body_fmt, previous, sheet.targetLabel),
+        style = TmmType.sans(14).px(14.5f, lineHeight = 1.45f),
+        color = C.muted,
+        modifier = Modifier.padding(top = 10.dp),
+    )
+    V2Button(
+        label = stringResource(R.string.series_link_confirm_action_fmt, sheet.targetLabel),
+        onClick = { onEvent(SeriesEvent.ConfirmLink) },
+        modifier = Modifier.padding(top = 18.dp),
+        size = V2ButtonSize.Block,
+        icon = TmmIconId.V2Folder,
+    )
+    V2Button(
+        label = stringResource(R.string.common_cancel),
+        onClick = { onEvent(SeriesEvent.CloseSheet) },
+        modifier = Modifier.padding(top = 6.dp),
+        style = V2ButtonStyle.Plain,
+        size = V2ButtonSize.Block,
+        contentColor = C.muted,
+    )
 }
 
 @Composable
@@ -949,6 +1009,16 @@ private fun SeriesToastHost(
             PcDeleteOutcome.REJECTED -> stringResource(R.string.series_toast_pc_delete_rejected)
             PcDeleteOutcome.WAITING -> stringResource(R.string.series_toast_pc_delete_waiting)
         }
+        is SeriesToast.Linked -> stringResource(R.string.series_toast_linked_fmt, toast.label)
+        is SeriesToast.LinkRefused -> stringResource(
+            when (toast.reason) {
+                LinkRefusal.OUTSIDE -> R.string.series_toast_link_outside
+                LinkRefusal.NOT_CBZ -> R.string.series_toast_link_not_cbz
+                LinkRefusal.NO_PAGES -> R.string.series_toast_link_no_pages
+                LinkRefusal.ALREADY_LINKED -> R.string.series_toast_link_already
+                LinkRefusal.NO_ACCESS -> R.string.series_toast_link_no_access
+            },
+        )
         is SeriesToast.Followed -> if (toast.chapterCount > 0) {
             pluralStringResource(R.plurals.series_toast_followed, toast.chapterCount, title, toast.chapterCount)
         } else {
@@ -966,8 +1036,10 @@ private fun SeriesToastHost(
             onAction = { onEvent(SeriesEvent.UndoFollow) },
             durationMs = 7000L,
         )
-        is SeriesToast.Deleted, is SeriesToast.PcDeleteResult ->
+        is SeriesToast.Deleted, is SeriesToast.PcDeleteResult, is SeriesToast.Linked ->
             V2Toast(visible = true, message = message, onDismiss = dismiss, modifier = modifier, icon = TmmIconId.V2Check)
+        is SeriesToast.LinkRefused ->
+            V2Toast(visible = true, message = message, onDismiss = dismiss, modifier = modifier, icon = TmmIconId.V2Info, durationMs = 6000L)
         null -> V2Toast(visible = false, message = message, onDismiss = dismiss, modifier = modifier)
         else -> V2Toast(
             visible = true,

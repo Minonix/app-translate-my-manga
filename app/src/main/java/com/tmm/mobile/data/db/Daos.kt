@@ -118,6 +118,15 @@ interface DownloadedChapterDao {
 }
 
 @Dao
+interface ManualChapterLinkDao {
+    @Query("SELECT * FROM manual_chapter_link")
+    suspend fun getAll(): List<ManualChapterLinkEntity>
+
+    @Upsert
+    suspend fun upsert(link: ManualChapterLinkEntity)
+}
+
+@Dao
 interface ScannedSeriesDirDao {
     @Query("SELECT * FROM scanned_series_dir")
     fun observeAll(): Flow<List<ScannedSeriesDirEntity>>

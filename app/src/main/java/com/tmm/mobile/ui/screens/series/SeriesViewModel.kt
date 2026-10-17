@@ -29,6 +29,10 @@ import com.tmm.mobile.data.status.joinInputsFlow
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.mihon.DownloadOnlySeries
+import com.tmm.mobile.mihon.LinkCheck
+import com.tmm.mobile.mihon.LinkTarget
+import com.tmm.mobile.mihon.ManualChapterLinker
+import com.tmm.mobile.mihon.PickedFile
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.theme.TmmColors
@@ -41,6 +45,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel de la Fiche serie (maquette v2, ecrans 3 a 5) : liste a etiquette unique, feuille
@@ -218,6 +223,58 @@ class SeriesViewModel(
             SeriesEvent.ConfirmFollow -> confirmFollow()
             SeriesEvent.UndoFollow -> undoFollow()
             SeriesEvent.DismissToast -> ui.update { it.copy(toast = null) }
+            is SeriesEvent.FilePicked -> onFilePicked(event.key, event.docId)
+            SeriesEvent.ConfirmLink -> (ui.value.sheet as? SeriesSheet.LinkConfirm)?.let { link(it.file, it.targetLabel) }
+        }
+    }
+
+    private suspend fun linker(): ManualChapterLinker? =
+        container.mihonRoot()?.let { ManualChapterLinker(it.fs, it.rootDocId, container.db) }
+
+    /** Bouton dossier : docId SAF du dossier ou ouvrir le selecteur (celui de la serie si connu). */
+    suspend fun linkStartDocId(): String? = withContext(Dispatchers.IO) { runCatching { linker()?.startDirDocId(seriesKey) }.getOrNull() }
+
+    /** Ligne « manquante » : numero seul ; sinon le chapitre du catalogue de la ligne. */
+    private fun linkTargetOf(key: String): Pair<LinkTarget, String>? {
+        val row = state.value.rows.firstOrNull { it.key == key } ?: return null
+        if (row.kind == ChapterKind.Missing) return LinkTarget(seriesKey, null, row.number.toFloat()) to row.label
+        val join = dataState.value.joinRows.firstOrNull { it.flatPath == key } ?: return null
+        val number = join.exactNumber ?: return null
+        return LinkTarget(seriesKey, join.chapter?.chapterKey, number) to row.label
+    }
+
+    private fun onFilePicked(key: String, docId: String?) {
+        val (target, label) = linkTargetOf(key) ?: return
+        if (docId == null) {
+            showToast(SeriesToast.LinkRefused(LinkRefusal.OUTSIDE))
+            return
+        }
+        viewModelScope.launch {
+            val linker = linker() ?: return@launch showToast(SeriesToast.LinkRefused(LinkRefusal.NO_ACCESS))
+            val check = try {
+                withContext(Dispatchers.IO) { linker.check(target, docId) }
+            } catch (e: SecurityException) {
+                return@launch showToast(SeriesToast.LinkRefused(LinkRefusal.NO_ACCESS))
+            }
+            when (check) {
+                is LinkCheck.Ok -> if (check.replacing == null) {
+                    link(check.file, label)
+                } else {
+                    ui.update { it.copy(sheet = SeriesSheet.LinkConfirm(check.file, label, check.replacing)) }
+                }
+                LinkCheck.OutsideDownloads -> showToast(SeriesToast.LinkRefused(LinkRefusal.OUTSIDE))
+                LinkCheck.NotCbz -> showToast(SeriesToast.LinkRefused(LinkRefusal.NOT_CBZ))
+                LinkCheck.NoPages -> showToast(SeriesToast.LinkRefused(LinkRefusal.NO_PAGES))
+                LinkCheck.AlreadyLinked -> showToast(SeriesToast.LinkRefused(LinkRefusal.ALREADY_LINKED))
+            }
+        }
+    }
+
+    private fun link(file: PickedFile, label: String) {
+        viewModelScope.launch {
+            val linker = linker() ?: return@launch showToast(SeriesToast.LinkRefused(LinkRefusal.NO_ACCESS))
+            linker.link(file)
+            showToast(SeriesToast.Linked(label))
         }
     }
 

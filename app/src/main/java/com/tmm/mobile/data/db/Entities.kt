@@ -64,6 +64,19 @@ data class DownloadedChapterEntity(
     val number: Float?,
 )
 
+/**
+ * Fichier telecharge relie a la main a un chapitre (bouton dossier de la Fiche serie), quand le
+ * rapprochement automatique l'a rate. Le scan et le rematch l'appliquent en priorite sur le Matcher.
+ * `chapterKey` est null pour un numero absent du catalogue (ligne « manquante »).
+ */
+@Entity(tableName = "manual_chapter_link")
+data class ManualChapterLinkEntity(
+    @PrimaryKey val mihonPath: String,
+    val seriesKey: String,
+    val chapterKey: String?,
+    val number: Float,
+)
+
 @Entity(tableName = "scanned_series_dir", primaryKeys = ["sourceDir", "seriesDir"])
 data class ScannedSeriesDirEntity(
     val sourceDir: String,

@@ -104,6 +104,20 @@ class MigrationTest {
         }
     }
 
+    // Lien manuel (bouton dossier) : la table manual_chapter_link apparait, les telechargements restent.
+    @Test fun migrate3To4_addsManualChapterLinkTable() = runTest {
+        createFromSchema(3) { _, _ -> }
+
+        val room = TmmDatabase.build(context)
+        try {
+            assertTrue(room.manualChapterLinkDao().getAll().isEmpty())
+            room.manualChapterLinkDao().upsert(ManualChapterLinkEntity("Src/Serie/Ch 1.cbz", "sk", null, 1f))
+            assertEquals(1, room.manualChapterLinkDao().getAll().size)
+        } finally {
+            room.close()
+        }
+    }
+
     // Base d'une version plus recente (retour a un APK plus ancien) : recreee vide, sans crash.
     @Test fun downgrade_isDestructive_neverCrashes() = runTest {
         dbFile.parentFile?.mkdirs()

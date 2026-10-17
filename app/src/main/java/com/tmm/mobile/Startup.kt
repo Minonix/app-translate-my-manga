@@ -206,4 +206,5 @@ class Startup(
 // 3 : un dossier sans serie dans la sauvegarde devient sa propre serie (numeros lus dans le nom).
 // 5 : relecture complete une fois (CBZ ".cbz.tmp" en cours, dossier illisible qui stoppait le scan).
 // 6 : nom de dossier "team_nom" (et non "team_ nom") : rattache les chapitres des teams de traduction.
-private const val MATCHER_VERSION = 6
+// 7 : CBZ relus par ZipFile quand la lecture en flux ne trouve aucune page, images .heif/.heic.
+private const val MATCHER_VERSION = 7
