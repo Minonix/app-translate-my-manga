@@ -172,6 +172,7 @@ class Startup(
 
     private suspend fun scanDownloads(fs: MihonFs, rootDocId: String, rematch: Boolean, force: Boolean, forceSeriesDirs: Set<String>) {
         val scanner = DownloadScanner(fs, db)
+        val startedAt = System.currentTimeMillis()
         val matcherOutdated = prefs.matcherVersion.first() < MATCHER_VERSION
         // Mise a jour du scan : le cache par date de dossier garde les trous laisses par l'ancienne
         // version, on relit donc tout une fois.
@@ -180,6 +181,9 @@ class Startup(
         if (matcherOutdated) prefs.setMatcherVersion(MATCHER_VERSION)
         fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
         prefs.setLastScanAt(System.currentTimeMillis())
+        // Diagnostic dans le journal exporte : duree du scan et nombre de chapitres vus.
+        val count = db.downloadedChapterDao().observeAll().first().size
+        AppLog.d("Startup", "scan Mihon termine en ${(System.currentTimeMillis() - startedAt) / 1000} s, $count chapitres telecharges")
     }
 }
 
