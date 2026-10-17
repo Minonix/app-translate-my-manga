@@ -136,6 +136,28 @@ class DownloadScannerTest {
         return out.toByteArray()
     }
 
+    // Fiche serie : seul le dossier de la serie est relu, les autres gardent leur cache.
+    @Test fun scanDownloads_forceSeriesDirs_rereadsOnlyThatSeries() = runTest {
+        seedSeries()
+        val seriesDir = File(root, "MangaSource/One Piece").apply { mkdirs() }
+        val otherDir = File(root, "MangaSource/Other").apply { mkdirs() }
+        chapter(seriesDir, "Chapitre 1")
+        chapter(otherDir, "Chapter 1")
+        val fs = FakeMihonFs(root)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath)
+
+        val stamp = seriesDir.lastModified()
+        val otherStamp = otherDir.lastModified()
+        chapter(seriesDir, "Chapitre 2")
+        chapter(otherDir, "Chapter 2")
+        seriesDir.setLastModified(stamp)
+        otherDir.setLastModified(otherStamp)
+        DownloadScanner(fs, db).scanDownloads(root.absolutePath, forceSeriesDirs = setOf("One Piece"))
+
+        val dirs = db.downloadedChapterDao().observeAll().first().map { it.seriesDir to it.chapterDir }.toSet()
+        assertEquals(setOf("One Piece" to "Chapitre 1", "One Piece" to "Chapitre 2", "Other" to "Chapter 1"), dirs)
+    }
+
     // Tirer pour recharger : relit un dossier meme si sa date n'a pas bouge.
     @Test fun scanDownloads_force_ignoresDirCache() = runTest {
         seedSeries()
