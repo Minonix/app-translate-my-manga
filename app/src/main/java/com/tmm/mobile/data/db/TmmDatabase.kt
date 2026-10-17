@@ -23,8 +23,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         IgnoredGapEntity::class,
         BackupImportEntity::class,
         PcIndexChapterEntity::class,
+        ManualChapterLinkEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -42,6 +43,7 @@ abstract class TmmDatabase : RoomDatabase() {
     abstract fun ignoredGapDao(): IgnoredGapDao
     abstract fun backupImportDao(): BackupImportDao
     abstract fun pcIndexChapterDao(): PcIndexChapterDao
+    abstract fun manualChapterLinkDao(): ManualChapterLinkDao
 
     companion object {
         // v1 -> v2 : canal du job (connexion directe). Les jobs existants restent sur Drive.
@@ -59,7 +61,17 @@ abstract class TmmDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        // v3 -> v4 : liaisons manuelles fichier telecharge -> chapitre (Fiche serie).
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `manual_chapter_link` (`mihonPath` TEXT NOT NULL, `seriesKey` TEXT NOT NULL, " +
+                        "`chapterKey` TEXT, `number` REAL NOT NULL, PRIMARY KEY(`mihonPath`))",
+                )
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         // R14 : la base ne doit jamais empecher l'app de demarrer. Un retour a une version anterieure de
         // l'app (downgrade) repart d'une base vide ; une migration montante absente reste un bug (teste).

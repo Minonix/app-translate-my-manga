@@ -1,6 +1,8 @@
 package com.tmm.mobile.ui.screens.series
 
 import androidx.compose.ui.graphics.Color
+import com.tmm.mobile.mihon.LinkedElsewhere
+import com.tmm.mobile.mihon.PickedFile
 
 /** Statistiques de traduction d'un chapitre (pages, bulles, SFX, verification), depliees sous la ligne. */
 data class SeriesChapterStats(
@@ -87,6 +89,9 @@ sealed interface SeriesSheet {
     ) : SeriesSheet {
         val anyChecked: Boolean get() = localFr || mihon || pc
     }
+
+    /** Lien manuel : le fichier choisi etait deja relie a un autre chapitre, a confirmer. */
+    data class LinkConfirm(val file: PickedFile, val targetLabel: String, val replacing: LinkedElsewhere) : SeriesSheet
 }
 
 /** Case de la feuille « Supprimer ». */
@@ -94,6 +99,9 @@ enum class DeleteTarget { LocalFr, Mihon, Pc }
 
 /** Toast bas d'ecran : le compte est mis en forme via stringResource au rendu. */
 enum class PcDeleteOutcome { DONE, PARTIAL, REJECTED, WAITING }
+
+/** Raison du refus d'un fichier choisi pour le lien manuel. */
+enum class LinkRefusal { OUTSIDE, NOT_CBZ, NO_PAGES, ALREADY_LINKED, NO_ACCESS }
 
 sealed interface SeriesToast {
     data class Translated(val chapterCount: Int) : SeriesToast
@@ -108,6 +116,8 @@ sealed interface SeriesToast {
     data class Followed(val chapterCount: Int) : SeriesToast
     /** Resultat de la suppression demandee au PC (accuse du PC, ou pas encore de reponse). */
     data class PcDeleteResult(val outcome: PcDeleteOutcome, val failed: Int = 0) : SeriesToast
+    data class Linked(val label: String) : SeriesToast
+    data class LinkRefused(val reason: LinkRefusal) : SeriesToast
 }
 
 data class SeriesState(
@@ -179,4 +189,8 @@ sealed interface SeriesEvent {
     data object ConfirmFollow : SeriesEvent
     data object UndoFollow : SeriesEvent
     data object DismissToast : SeriesEvent
+
+    /** Fichier choisi dans le selecteur pour la ligne `key` (`docId` null : hors de l'arbre Mihon). */
+    data class FilePicked(val key: String, val docId: String?) : SeriesEvent
+    data object ConfirmLink : SeriesEvent
 }

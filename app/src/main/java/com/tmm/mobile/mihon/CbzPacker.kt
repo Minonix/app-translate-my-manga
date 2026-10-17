@@ -10,7 +10,8 @@ import java.util.zip.ZipOutputStream
 // calcules avant ecriture, pageCount = nombre d'entrees image (insensible a la casse),
 // dossiers/fichiers caches et temporaires Mihon exclus.
 object CbzPacker {
-    private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "avif", "jxl")
+    // "heif" : extension que Mihon donne aux pages HEIF ; sans elle, un chapitre HEIF restait « Pas telecharge ».
+    private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "avif", "jxl", "heif", "heic")
 
     fun isImage(name: String): Boolean = name.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS
 

@@ -11,6 +11,16 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.14.0] - 2026-10-17
+
+### Ajoute
+- Fiche serie : bouton dossier sur chaque chapitre « Pas telecharge » ou « manquant ». Il ouvre le gestionnaire de fichiers dans le dossier Mihon de la serie ; le .cbz choisi est relie a ce chapitre, et le lien resiste aux rescans. Refus si ce fichier est deja relie a ce chapitre, confirmation s'il l'etait a un autre (« deja relie au ch. 32 »).
+
+### Corrige
+- Un CBZ dont la lecture en flux ne trouvait aucune page (archive ecrite sans en-tetes locaux complets) etait ignore sans bruit : il est relu entierement. Les images .heif/.heic comptent comme pages.
+- Le journal nomme chaque fichier ignore et chaque chapitre sans page (taille, premieres entrees) ; le lien manuel note ce que le scan avait fait du fichier.
+- Retroactif : la mise a jour relit une fois tous les dossiers de telechargement.
+
 ## [1.13.6] - 2026-10-17
 
 ### Corrige

@@ -66,6 +66,8 @@ class SeriesScreenBehaviorTest {
         // Le geste est couvert par DragSelectionTest ; ici seul l'entree en selection compte.
         is SeriesEvent.DragSelectStart -> state.copy(selecting = true)
         is SeriesEvent.DragSelectTo, SeriesEvent.DragSelectEnd -> state
+        // Lien manuel : passe par le selecteur systeme et la base, couvert par ManualChapterLinkerTest.
+        is SeriesEvent.FilePicked, SeriesEvent.ConfirmLink -> state
         is SeriesEvent.ToggleStats -> state.copy(expandedStats = toggle(state.expandedStats, event.key))
         SeriesEvent.DismissGap -> state.copy(showGap = false)
         SeriesEvent.TranslateAll -> state.copy(toast = SeriesToast.Translated(state.toTranslateNumbers.size))
