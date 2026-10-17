@@ -38,7 +38,8 @@ object DownloadOnlySeries {
     }
 
     private val HASH_SUFFIX = Regex("_[0-9a-f]{6}$")
-    private val KEYWORD_NUMBER = Regex("""(?i)(?:chap(?:ter|itre)?|ch|ep(?:isode)?)\.?\s*(\d+(?:[.,]\d+)?)""")
+    // Mot-cle en debut de mot seulement : "Watch 2" ou "Deep 3" dans un titre donnaient un faux numero.
+    private val KEYWORD_NUMBER = Regex("""(?i)(?<![a-z])(?:chap(?:ter|itre)?|ch|ep(?:isode)?)\.?\s*(\d+(?:[.,]\d+)?)""")
     private val ANY_NUMBER = Regex("""\d+(?:[.,]\d+)?""")
 
     /**
@@ -48,7 +49,8 @@ object DownloadOnlySeries {
      */
     fun guessNumber(chapterDirName: String): Float? {
         val name = chapterDirName.removeSuffix(".cbz").replace(HASH_SUFFIX, "")
-        val raw = KEYWORD_NUMBER.findAll(name).lastOrNull()?.groupValues?.get(1)
+        // Premier mot-cle : le numero precede le titre ("Ch. 22 - Episode 3" -> 22).
+        val raw = KEYWORD_NUMBER.find(name)?.groupValues?.get(1)
             ?: ANY_NUMBER.findAll(name).lastOrNull()?.value
         return raw?.replace(',', '.')?.toFloatOrNull()
     }
