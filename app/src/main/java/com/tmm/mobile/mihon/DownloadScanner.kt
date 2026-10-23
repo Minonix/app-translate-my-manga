@@ -204,7 +204,8 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
         }
     }
 
-    suspend fun scanLocal(localRootDocId: String) {
+    /** [force] relit chaque dossier de local/ (mise a jour : pose les couvertures manquantes). */
+    suspend fun scanLocal(localRootDocId: String, force: Boolean = false) {
         // Une ligne posee par InstallJobWorker pendant ce scan (date >= debut) ne doit pas etre prise
         // pour un fichier supprime : elle porte le jobId/mihonPath qu'aucun scan ne sait reconstruire.
         val scanStartedAt = System.currentTimeMillis()
@@ -213,9 +214,10 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
 
         for (folderEntry in fs.children(localRootDocId).filter { it.isDirectory }) {
             seen += folderEntry.name
-            if (cached[folderEntry.name] == folderEntry.lastModified) continue
+            if (!force && cached[folderEntry.name] == folderEntry.lastModified) continue
 
             val files = fs.children(folderEntry.docId).filter { !it.isDirectory }
+            addMissingCover(folderEntry, files)
             db.withTransaction {
                 val existing = db.localFrChapterDao().getForFolder(folderEntry.name).associateBy { it.localPath }
                 val rows = files.map { fileEntry ->
@@ -274,6 +276,26 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
             row.copy(mihonPath = chapter.mihonPath)
         }
         if (updates.isNotEmpty()) db.localFrChapterDao().upsertAll(updates)
+    }
+
+    /**
+     * Serie traduite sans couverture dans local/ : la source Locale de Mihon n'en affichait parfois aucune.
+     * On pose la premiere page du premier chapitre ; l'installation suivante y met la vraie couverture
+     * seulement s'il n'y en a toujours pas (jamais d'ecrasement).
+     */
+    private fun addMissingCover(folder: MihonDocEntry, files: List<MihonDocEntry>) {
+        try {
+            val written = LocalInstaller(fs).ensureCoverIn(folder.docId, files) {
+                files.filter { it.name.endsWith(".cbz", ignoreCase = true) }
+                    .sortedWith(compareBy(CbzPacker.NATURAL_ORDER) { it.name })
+                    .take(3)
+                    .firstNotNullOfOrNull { cbz -> fs.openInput(cbz.docId).use { CbzPacker.firstPage(it) } }
+                    ?.let { (name, bytes) -> name.substringAfterLast('.', "jpg") to bytes }
+            }
+            if (written) AppLog.d("Scan", "couverture posee dans local/${folder.name}")
+        } catch (e: Exception) {
+            AppLog.d("Scan", "couverture non posee (local/${folder.name}) : ${e.javaClass.simpleName} ${e.message}")
+        }
     }
 
     private fun looseTitle(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }

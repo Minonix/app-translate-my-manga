@@ -260,7 +260,7 @@ private fun SeriesTile(series: MockSeries, details: LibrarySeriesDetails?, onCli
                 },
             ),
         ) {
-            Cover(seriesKey = series.seriesKey, coverUrl = series.thumbnailUrl, color = TmmColors.fromHexOrPlaceholder(series.colorHex, series.seriesKey), modifier = Modifier.fillMaxSize())
+            Cover(seriesKey = series.seriesKey, coverUrl = series.thumbnailUrl, fallback = series.coverFallback, color = TmmColors.fromHexOrPlaceholder(series.colorHex, series.seriesKey), modifier = Modifier.fillMaxSize())
             LibraryStatusPill(series, details, Modifier.align(Alignment.BottomStart).padding(8.dp))
             if (details?.followed == true) {
                 Box(Modifier.align(Alignment.TopEnd).padding(8.dp).clip(RoundedCornerShape(8.dp))
@@ -303,7 +303,7 @@ private fun PickingTile(series: MockSeries, selected: Boolean, onToggle: () -> U
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(110f / 150f)) {
-            Cover(seriesKey = series.seriesKey, coverUrl = series.thumbnailUrl, color = TmmColors.fromHexOrPlaceholder(series.colorHex, series.seriesKey), modifier = Modifier.fillMaxSize())
+            Cover(seriesKey = series.seriesKey, coverUrl = series.thumbnailUrl, fallback = series.coverFallback, color = TmmColors.fromHexOrPlaceholder(series.colorHex, series.seriesKey), modifier = Modifier.fillMaxSize())
             TmmCheckbox(
                 checked = selected,
                 onCheckedChange = { onToggle() },

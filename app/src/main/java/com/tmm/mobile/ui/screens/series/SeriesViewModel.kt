@@ -35,6 +35,7 @@ import com.tmm.mobile.mihon.ManualChapterLinker
 import com.tmm.mobile.mihon.PickedFile
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
+import com.tmm.mobile.ui.screens.library.coverFallbackOf
 import com.tmm.mobile.ui.theme.TmmColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,6 +126,7 @@ class SeriesViewModel(
             categoryLabel = d.categoryLabel,
             subtitle = d.subtitle,
             coverUrl = d.series?.thumbnailUrl,
+            coverFallback = coverFallbackOf(d.joinRows),
             coverColor = TmmColors.placeholderFor(seriesKey),
             followed = d.followed,
             progress = d.progress,

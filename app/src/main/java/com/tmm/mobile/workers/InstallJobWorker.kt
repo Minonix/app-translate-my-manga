@@ -8,21 +8,28 @@ import androidx.work.WorkerParameters
 import com.tmm.mobile.R
 import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.AppContainer
+import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.LocalErrorCode
+import com.tmm.mobile.mihon.CbzPacker
 import com.tmm.mobile.mihon.LocalInstaller
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.ResultJson
 import com.tmm.mobile.transport.AuthExpiredException
 import com.tmm.mobile.transport.DriveNotFoundException
+import com.tmm.mobile.ui.components.newCoverHttpClient
+import com.tmm.mobile.ui.components.normalizeCoverUrl
+import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 
 private const val NOTIFICATION_ID_INSTALL = 2
@@ -115,6 +122,21 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             if (!installResult.success) {
                 // Cache garde : le prochain essai reinstalle sans retelecharger.
                 return failOrRetry(jobId, db, clock, step, LocalErrorCode.INSTALL, installResult.error ?: "installation locale echouee")
+            }
+            // Couverture de la serie dans local/ : jamais bloquant, le chapitre est deja installe.
+            try {
+                val thumbnailUrl = job.seriesKey?.let { db.seriesDao().get(it)?.thumbnailUrl }
+                val written = withContext(Dispatchers.IO) {
+                    LocalInstaller(root.fs).ensureCover(localRootDocId, result.localFolderName) {
+                        downloadCover(thumbnailUrl) ?: dest.inputStream().use { CbzPacker.firstPage(it) }
+                        ?.let { (name, bytes) -> name.substringAfterLast('.', "jpg") to bytes }
+                    }
+                }
+                if (written) AppLog.d("Install", "couverture posee dans local/${result.localFolderName}")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("Install", "couverture non posee : ${e.javaClass.simpleName} ${e.message}")
             }
             dest.parentFile?.deleteRecursively()
 
@@ -244,3 +266,25 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 }
+
+/** Couverture de la sauvegarde (extension, octets), ou null si absente, refusee ou trop lourde. */
+private fun downloadCover(thumbnailUrl: String?): Pair<String, ByteArray>? {
+    val url = normalizeCoverUrl(thumbnailUrl) ?: return null
+    return runCatching {
+        newCoverHttpClient().newCall(Request.Builder().url(url).build()).execute().use { response ->
+            val body = response.body
+            val type = body.contentType()
+            if (!response.isSuccessful || type?.type != "image" || body.contentLength() > MAX_COVER_BYTES) return@use null
+            val ext = when (type.subtype.lowercase()) {
+                "png" -> "png"
+                "webp" -> "webp"
+                "gif" -> "gif"
+                "avif" -> "avif"
+                else -> "jpg"
+            }
+            ext to body.bytes()
+        }
+    }.getOrNull()
+}
+
+private const val MAX_COVER_BYTES = 10L * 1024 * 1024

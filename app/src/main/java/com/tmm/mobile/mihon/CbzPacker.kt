@@ -4,6 +4,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 // PLAN_GEMINI.md 5.14 : CBZ en zip STORED uniquement, tri en ordre naturel, CRC32/taille
@@ -74,6 +75,16 @@ object CbzPacker {
                 zos.closeEntry()
             }
         }
+    }
+
+    /**
+     * Premiere page d'un CBZ lu en flux (nom, octets) : premiere image eligible dans l'ordre de l'archive,
+     * qu'ecrivent tries Mihon et le PC. Null si l'archive n'en contient aucune.
+     */
+    fun firstPage(input: InputStream): Pair<String, ByteArray>? = ZipInputStream(input).use { zis ->
+        generateSequence { zis.nextEntry }
+            .firstOrNull { !it.isDirectory && isEligible(it.name) && isImage(it.name) }
+            ?.let { it.name to zis.readBytes() }
     }
 
     fun copyExisting(input: InputStream, output: OutputStream) {

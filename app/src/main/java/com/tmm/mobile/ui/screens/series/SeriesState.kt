@@ -125,6 +125,7 @@ data class SeriesState(
     val categoryLabel: String,
     val subtitle: String,
     val coverUrl: String? = null,
+    val coverFallback: String? = null,
     val coverColor: Color,
     val followed: Boolean = false,
     val progress: SeriesProgress = SeriesProgress(0, 0, 0, 0, 0, 0),

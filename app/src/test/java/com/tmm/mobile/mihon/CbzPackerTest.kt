@@ -37,4 +37,12 @@ class CbzPackerTest {
         }
         assertEquals(listOf("2.jpg", "10.jpg"), names)
     }
+
+    @Test fun firstPage_skipsNonImagesAndHiddenFiles() {
+        val out = java.io.ByteArrayOutputStream()
+        CbzPacker.pack(mapOf("ComicInfo.xml" to byteArrayOf(0), "002.png" to byteArrayOf(2), "001.jpg" to byteArrayOf(1)), out)
+        val page = CbzPacker.firstPage(out.toByteArray().inputStream())
+        org.junit.Assert.assertEquals("001.jpg", page?.first)
+        org.junit.Assert.assertEquals(listOf(1), page?.second?.map { it.toInt() })
+    }
 }
