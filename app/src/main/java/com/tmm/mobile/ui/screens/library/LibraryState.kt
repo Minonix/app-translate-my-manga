@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.screens.library
 
+import com.tmm.mobile.core.matchesQuery
 import com.tmm.mobile.ui.components.StatusTone
 import com.tmm.mobile.ui.mock.MockSeries
 import com.tmm.mobile.ui.screens.series.ActionCounts
@@ -73,7 +74,7 @@ data class LibraryState(
                         (view == LibraryViewFilter.OnPc && s.onPc > 0) ||
                         (view == LibraryViewFilter.Absent && s.tone == StatusTone.Absent)
                     ) &&
-                (query.isBlank() || s.title.contains(query, ignoreCase = true))
+                (query.isBlank() || matchesQuery(s.title, query))
         }.sortedWith(sort.comparator)
 
     private val selectedSeries: List<MockSeries> get() = allSeries.filter { it.seriesKey in selected }

@@ -77,4 +77,18 @@ class MatcherTest {
     @Test fun assignChapters_noCandidate_horsCatalogue() {
         assertEquals(ChapterMatch(null, null), Matcher.assignChapters(listOf("x"), emptyList())["x"])
     }
+
+    // Le stockage peut rendre un nom japonais decompose (NFD) : « スパ » = ス + ハ + U+309A.
+    @Test fun findSeries_matchesDecomposedJapaneseDirName() {
+        val japanese = listOf(MatchableSeries("jp", "MangaSource", "スパイ教室"))
+        val decomposed = java.text.Normalizer.normalize("スパイ教室", java.text.Normalizer.Form.NFD)
+        assertEquals(false, decomposed == "スパイ教室")
+        assertEquals("jp", Matcher.findSeries("MangaSource", decomposed, japanese)?.seriesKey)
+    }
+
+    @Test fun findChapter_matchesDecomposedChapterDirName() {
+        val jp = listOf(MatchableChapter("c1", "第1話 パン", null, "https://x/p1", 1f))
+        val dir = java.text.Normalizer.normalize(MihonNaming.getChapterDirName("第1話 パン", null, "https://x/p1"), java.text.Normalizer.Form.NFD)
+        assertEquals("c1", Matcher.findChapter(dir, jp)?.chapterKey)
+    }
 }
