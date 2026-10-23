@@ -11,6 +11,14 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.14.1] - 2026-10-23
+
+### Corrige
+- Series au titre japonais ou chinois (« スパ… ») introuvables : la recherche ignore desormais la forme Unicode (caracteres decomposes, demi-chasse), et un dossier Mihon dont le nom est rendu decompose par le stockage est bien rattache a sa serie. Tout est rattache a nouveau a la mise a jour.
+- Couvertures vides dans la Bibliotheque et la fiche serie : si la sauvegarde Mihon n'a pas d'URL (serie vue seulement dans les telechargements) ou que le site la refuse, la premiere page du premier chapitre telecharge sert de couverture. Un site qui refuse le Referer est redemande sans.
+- Chapitres traduits installes dans Mihon sans couverture (ex. « Off to an Invincible Start ») : l'installation pose un `cover.*` dans le dossier local de la serie (couverture de la sauvegarde, sinon premiere page). Retroactif pour les series deja installees, sans jamais remplacer une couverture existante.
+- Le journal compte les series sans URL de couverture, avec quelques exemples.
+
 ## [1.14.0] - 2026-10-17
 
 ### Ajoute
