@@ -266,7 +266,7 @@ class RefreshCoordinatorTest {
             CoroutineScope(StandardTestDispatcher()),
         ) {}
         env.pc.writeHeartbeat()
-        val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20) }
+        val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20, directIntervalMillis = 20) }
         try {
             withContext(Dispatchers.Default) {
                 withTimeout(20_000) { env.prefs.heartbeatSeenAt.first { it != null } }
@@ -292,7 +292,7 @@ class RefreshCoordinatorTest {
             if (calls++ == 0) awaitCancellation()
         }
         env.pc.writeHeartbeat()
-        val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20) }
+        val loop = launch(Dispatchers.Default) { coordinator.refreshWhileForeground(intervalMillis = 20, directIntervalMillis = 20) }
         try {
             withContext(Dispatchers.Default) {
                 withTimeout(20_000) { env.prefs.heartbeatSeenAt.first { it != null } }
