@@ -231,6 +231,7 @@ private fun Header(state: SeriesState) {
         Cover(
             seriesKey = state.title,
             coverUrl = state.coverUrl,
+            fallback = state.coverFallback,
             color = state.coverColor,
             modifier = Modifier.size(96.dp, 136.dp).clip(RoundedCornerShape(10.dp)),
         )

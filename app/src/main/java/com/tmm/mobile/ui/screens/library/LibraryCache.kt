@@ -6,6 +6,7 @@ import com.tmm.mobile.data.db.SeriesCategoryEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.ChapterJoinIndex
+import com.tmm.mobile.data.status.ChapterJoinRow
 import com.tmm.mobile.data.status.ChapterJoinInputs
 import com.tmm.mobile.data.status.SeriesBadge
 import com.tmm.mobile.data.status.SeriesSummary
@@ -17,6 +18,7 @@ import com.tmm.mobile.data.status.planTranslation
 import com.tmm.mobile.data.status.toAggregateInputs
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.ui.components.StatusTone
+import com.tmm.mobile.ui.components.pageCoverRef
 import com.tmm.mobile.ui.mock.MockSeries
 import java.io.File
 import java.nio.file.Files
@@ -151,10 +153,15 @@ internal fun buildLibrarySnapshot(
             toTranslate = translation.count,
             toRetranslate = translation.alreadyTranslated,
             dateAdded = series.dateAdded,
+            coverFallback = coverFallbackOf(rows),
         )
     }
     return LibrarySnapshot(categories = chips, series = mockSeries, details = details)
 }
+
+/** Premiere page du premier chapitre telecharge : couverture quand l'URL de la sauvegarde manque ou echoue. */
+internal fun coverFallbackOf(rows: List<ChapterJoinRow>): String? =
+    rows.mapNotNull { it.downloaded }.minByOrNull { it.number ?: Float.MAX_VALUE }?.let { pageCoverRef(it.documentUri, it.isCbz) }
 
 private fun libraryBadgeLabel(badge: SeriesBadge, s: SeriesSummary): String = when (badge) {
     SeriesBadge.BUSY -> "Traduction en cours"

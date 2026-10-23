@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -33,12 +36,17 @@ fun Cover(
     coverUrl: String?,
     modifier: Modifier = Modifier,
     color: Color? = null,
+    // Premiere page d'un chapitre telecharge (pageCoverRef) : affichee si coverUrl manque ou echoue.
+    fallback: String? = null,
 ) {
     val placeholder = color ?: TmmColors.placeholderFor(seriesKey)
     val context = LocalContext.current
     // URL reseau, sinon couverture de la source locale Mihon (cover.* dans local/<serie>/).
     val url = remember(coverUrl) { normalizeCoverUrl(coverUrl) }
-    val model: Any? = remember(coverUrl) { url ?: localCoverUri(context, coverUrl) }
+    val primary: Any? = remember(coverUrl) { url ?: localCoverUri(context, coverUrl) }
+    val backup: Any? = remember(fallback) { pageCoverModel(context, fallback) }
+    var primaryFailed by remember(coverUrl) { mutableStateOf(false) }
+    val model = if (primary != null && !primaryFailed) primary else backup
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
@@ -54,7 +62,13 @@ fun Cover(
                 modifier = Modifier.fillMaxSize(),
                 onError = { error ->
                     val t = error.result.throwable
-                    AppLog.d("Cover", if (url != null) coverErrorLogLine(url, t) else "couverture locale non chargee erreur=${t::class.java.simpleName}")
+                    val line = when {
+                        model !== primary -> "repli premiere page non charge erreur=${t::class.java.simpleName}"
+                        url != null -> coverErrorLogLine(url, t)
+                        else -> "couverture locale non chargee erreur=${t::class.java.simpleName}"
+                    }
+                    AppLog.d("Cover", line)
+                    if (model === primary) primaryFailed = true
                 },
             )
         }

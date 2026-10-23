@@ -1,5 +1,7 @@
 package com.tmm.mobile
 
+import com.tmm.mobile.ui.components.externalStorageCoverDocId
+import com.tmm.mobile.ui.components.normalizeCoverUrl
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -180,7 +182,7 @@ class Startup(
         fs.findChild(rootDocId, "downloads")?.let { scanner.scanDownloads(it.docId, force || matcherOutdated, forceSeriesDirs) }
         if (rematch || matcherOutdated) scanner.rematch()
         if (matcherOutdated) prefs.setMatcherVersion(MATCHER_VERSION)
-        fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId) }
+        fs.findChild(rootDocId, "local")?.let { scanner.scanLocal(it.docId, force = matcherOutdated) }
         prefs.setLastScanAt(System.currentTimeMillis())
         // Diagnostic dans le journal exporte : duree du scan et nombre de chapitres vus.
         val rows = db.downloadedChapterDao().observeAll().first()
@@ -195,6 +197,17 @@ class Startup(
                     "non rattaches ($seriesDir) : ${orphans.size} : " + orphans.take(5).joinToString { "${it.chapterDir} (n°${it.number})" },
                 )
             }
+        // Series sans URL de couverture exploitable : elles s'affichent avec la premiere page d'un chapitre
+        // telecharge, ou en placeholder. Compte et exemples pour expliquer une couverture vide.
+        val noCover = db.seriesDao().observeAll().first()
+            .filter { normalizeCoverUrl(it.thumbnailUrl) == null && externalStorageCoverDocId(it.thumbnailUrl) == null }
+        if (noCover.isNotEmpty()) {
+            AppLog.d(
+                "Startup",
+                "sans URL de couverture : ${noCover.size} serie(s), dont ${noCover.count { DownloadOnlySeries.isDownloadOnly(it.seriesKey) }} hors sauvegarde : " +
+                    noCover.take(5).joinToString { it.title + (it.thumbnailUrl?.let { url -> " [${url.substringBefore(':').take(10)}]" } ?: "") },
+            )
+        }
         rows.filter { it.seriesKey == null }.groupBy { it.seriesDir }.forEach { (seriesDir, lost) ->
             AppLog.d("Startup", "sans serie ($seriesDir) : ${lost.size}")
         }
@@ -207,4 +220,5 @@ class Startup(
 // 5 : relecture complete une fois (CBZ ".cbz.tmp" en cours, dossier illisible qui stoppait le scan).
 // 6 : nom de dossier "team_nom" (et non "team_ nom") : rattache les chapitres des teams de traduction.
 // 7 : CBZ relus par ZipFile quand la lecture en flux ne trouve aucune page, images .heif/.heic.
-private const val MATCHER_VERSION = 7
+// 8 : noms compares en NFC (titres japonais decomposes par le stockage), couvertures manquantes de local/.
+private const val MATCHER_VERSION = 8

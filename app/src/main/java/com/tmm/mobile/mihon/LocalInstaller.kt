@@ -4,6 +4,10 @@ import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.security.MessageDigest
 
+/** "cover.jpg", "Cover.webp"... : nom de couverture que la source Locale de Mihon reconnait. */
+internal fun isCoverName(name: String): Boolean =
+    name.substringBeforeLast('.').equals("cover", ignoreCase = true) && CbzPacker.isImage(name)
+
 data class LocalInstallResult(val success: Boolean, val installedDocId: String?, val error: String?)
 
 // PLAN_GEMINI.md 5.13 / CAHIER_DES_CHARGES.md 8.4 : ecriture sous nom temporaire cache, verification
@@ -88,6 +92,35 @@ class LocalInstaller(private val fs: MihonFs) {
 
         backupDocId?.let { fs.delete(it) }
         return LocalInstallResult(true, renamedDocId, null)
+    }
+
+    /**
+     * Pose `cover.<ext>` dans local/<serie>/ s'il n'y a encore aucune couverture. La source Locale de Mihon
+     * la lit en priorite ; sans elle, elle tente d'extraire une page elle-meme et certaines series
+     * traduites restaient sans couverture. [image] donne (extension, octets), null si rien a poser.
+     * Retourne vrai si une couverture a ete ecrite.
+     */
+    fun ensureCover(localRootDocId: String, localFolderName: String, image: () -> Pair<String, ByteArray>?): Boolean {
+        val folderDocId = fs.findChild(localRootDocId, localFolderName)?.docId ?: return false
+        return ensureCoverIn(folderDocId, fs.children(folderDocId), image)
+    }
+
+    /** Meme chose quand le contenu du dossier est deja liste (scan de local/). */
+    fun ensureCoverIn(folderDocId: String, children: List<MihonDocEntry>, image: () -> Pair<String, ByteArray>?): Boolean {
+        if (children.any { !it.isDirectory && isCoverName(it.name) }) return false
+        val (ext, bytes) = image() ?: return false
+        val name = "cover.${ext.lowercase().ifBlank { "jpg" }}"
+        val tmpName = ".$name.tmm.tmp"
+        fs.findChild(folderDocId, tmpName)?.let { fs.delete(it.docId) }
+        val tmpDocId = fs.createFile(folderDocId, tmpName, "application/octet-stream")
+        try {
+            fs.openOutput(tmpDocId).use { it.write(bytes) }
+            fs.rename(tmpDocId, name)
+        } catch (e: Exception) {
+            runCatching { fs.delete(tmpDocId) }
+            throw e
+        }
+        return true
     }
 
     private fun restore(backupDocId: String?, chapterFileName: String) {

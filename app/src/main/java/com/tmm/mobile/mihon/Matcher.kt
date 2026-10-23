@@ -1,24 +1,29 @@
 package com.tmm.mobile.mihon
 
+import com.tmm.mobile.core.nfc
+
 // Rapprochement telechargements Mihon / catalogue (CAHIER_DES_CHARGES.md 8.5) :
 // 1. source (nom de dossier source vs sourceName de la serie)
 // 2. serie (titre nettoye vs dossier serie)
 // 3. chapitre (scanlator_nom nettoye, sinon nom seul, vs dossier chapitre)
 // 4. echec -> chapitre "hors catalogue" mais reste utilisable via mihonPath.
+// Les noms sont compares en NFC : le stockage peut rendre « スパ » decompose (NFD) alors que la sauvegarde
+// le garde compose, et la serie n'etait jamais rattachee.
 object Matcher {
 
     // La langue est ignoree ici : une meme serie suivie dans deux langues d'une meme source
     // ("MangaDex (EN)" et "MangaDex (FR)") est departagee chapitre par chapitre (assignChapters).
     fun matchSourceName(sourceDirName: String, sourceName: String): Boolean {
-        val expected = MihonNaming.getSourceDirName(sourceName)
-        return sourceDirName == expected || MihonNaming.stripSourceLang(sourceDirName) == expected
+        val expected = nfc(MihonNaming.getSourceDirName(sourceName))
+        val dir = nfc(sourceDirName)
+        return dir == expected || MihonNaming.stripSourceLang(dir) == expected
     }
 
     fun matchSeries(seriesDirName: String, seriesTitle: String): Boolean =
-        seriesDirName == MihonNaming.getMangaDirName(seriesTitle)
+        nfc(seriesDirName) == nfc(MihonNaming.getMangaDirName(seriesTitle))
 
     fun matchChapter(chapterDirName: String, chapterName: String, scanlator: String?, chapterUrl: String): Boolean =
-        chapterDirName in MihonNaming.getValidChapterDirNames(chapterName, scanlator, chapterUrl)
+        nfc(chapterDirName) in MihonNaming.getValidChapterDirNames(nfc(chapterName), scanlator?.let(::nfc), chapterUrl)
 
     /** Retrouve la SeriesEntity dont le nom de dossier (source + serie) correspond, ou null si "hors catalogue". */
     fun findSeries(sourceDirName: String, seriesDirName: String, series: List<MatchableSeries>): MatchableSeries? =

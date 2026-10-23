@@ -76,4 +76,23 @@ class LocalInstallerTest {
         assertTrue(result.success)
         assertEquals(content.toList(), File(folder, "ch1.cbz").readBytes().toList())
     }
+
+    @Test fun ensureCover_writesCoverOnceAndNeverOverwrites() {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        File(root, "Off to an Invincible Start").mkdirs()
+        val installer = LocalInstaller(FakeMihonFs(root))
+
+        assertTrue(installer.ensureCover(root.absolutePath, "Off to an Invincible Start") { "webp" to byteArrayOf(7, 8) })
+        val folder = File(root, "Off to an Invincible Start")
+        assertEquals(listOf("cover.webp"), folder.list()!!.toList())
+        assertFalse(installer.ensureCover(root.absolutePath, "Off to an Invincible Start") { error("pas appele : couverture deja la") })
+        assertEquals(listOf(7, 8), File(folder, "cover.webp").readBytes().map { it.toInt() })
+    }
+
+    @Test fun ensureCover_nothingToWrite_leavesFolderUntouched() {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        File(root, "S").mkdirs()
+        assertFalse(LocalInstaller(FakeMihonFs(root)).ensureCover(root.absolutePath, "S") { null })
+        assertTrue(File(root, "S").list()!!.isEmpty())
+    }
 }

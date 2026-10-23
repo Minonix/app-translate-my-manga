@@ -66,6 +66,8 @@ data class MockSeries(
     val toRetranslate: Int = 0,
     // Date d'ajout Mihon (SeriesEntity.dateAdded) : tri "Ajoutees recemment".
     val dateAdded: Long = 0L,
+    // Couverture de repli (pageCoverRef) : premiere page du premier chapitre telecharge.
+    val coverFallback: String? = null,
 )
 
 object MockupData {
