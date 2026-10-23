@@ -66,6 +66,8 @@ const val PC_STALLED_INACTIVE_MILLIS = 10 * 60_000L
 const val CANCEL_UNANSWERED_MILLIS = 15 * 60_000L
 // N16 : app ouverte, etat relu toutes les minutes (le PC ecrit son heartbeat toutes les 60 s).
 const val FOREGROUND_REFRESH_MILLIS = 60_000L
+// Connexion directe (Tailscale) : poll quasi gratuit, l'avancement remonte toutes les 10 s au lieu d'une minute.
+const val FOREGROUND_DIRECT_REFRESH_MILLIS = 10_000L
 private val PC_TERMINAL_STATES = setOf("done", "failed", "cancelled")
 // heartbeat.activeJobIds ne liste que les jobs en traduction (processing/paused cote PC) : un job
 // « fetching » (recuperation de la source, parfois longue) n'y figure jamais et ne doit pas etre juge bloque.
@@ -187,9 +189,13 @@ class RefreshCoordinator(
      * resultats et annulations restaient figes. Lance sous repeatOnLifecycle(STARTED) : s'arrete en
      * arriere-plan. Un tick pendant le cooldown est ignore par refresh().
      */
-    suspend fun refreshWhileForeground(intervalMillis: Long = FOREGROUND_REFRESH_MILLIS) {
+    suspend fun refreshWhileForeground(
+        intervalMillis: Long = FOREGROUND_REFRESH_MILLIS,
+        directIntervalMillis: Long = FOREGROUND_DIRECT_REFRESH_MILLIS,
+    ) {
         while (true) {
-            delay(intervalMillis)
+            // Rythme choisi d'apres le dernier refresh : 10 s si le direct a repondu, sinon 1 min (quota Drive).
+            delay(if (lastCooldown == DIRECT_COOLDOWN_SECONDS) directIntervalMillis else intervalMillis)
             refresh()
         }
     }
