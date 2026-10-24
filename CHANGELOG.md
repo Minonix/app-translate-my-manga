@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.14.3] - 2026-10-24
+
+### Performance
+- A l'ouverture, l'etat du PC et la file s'affichent pendant le scan Mihon au lieu d'attendre sa fin.
+
 ## [1.14.2] - 2026-10-24
 
 Premiere publication des correctifs de la 1.14.1 (son APK n'avait pas ete construit).
