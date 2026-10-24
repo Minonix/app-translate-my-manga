@@ -15,7 +15,12 @@ import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.QualityAlert
 import com.tmm.mobile.workers.WorkerTestEnvironment
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -38,8 +43,17 @@ class SeriesViewModelTest {
     @Before
     fun setUp() = env.setUp()
 
+    private val vms = mutableListOf<SeriesViewModel>()
+
+    // Comme QueueViewModelTest : arreter les flux du ViewModel (Eagerly) avant de fermer la base, sinon une
+    // requete en vol leve « already-closed » pendant le test suivant (UncaughtExceptionsBeforeTest).
     @After
-    fun tearDown() = env.tearDown()
+    fun tearDown() {
+        runBlocking { vms.forEach { withTimeoutOrNull(5_000) { it.viewModelScope.coroutineContext.job.cancelAndJoin() } } }
+        env.tearDown()
+    }
+
+    private fun newVm() = SeriesViewModel(env.container, seriesKey).also { vms += it }
 
     private fun mihonPathFor(number: Int, url: String): MihonPath = MihonPath(
         MihonNaming.getSourceDirName(sourceName),
@@ -91,7 +105,7 @@ class SeriesViewModelTest {
         seedSeries()
         seedToTranslateChapter(number = 1)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val state = vm.state.first { it.rows.isNotEmpty() }
 
         assertEquals(title, state.title)
@@ -106,7 +120,7 @@ class SeriesViewModelTest {
         seedSeries()
         seedInMihonChapter(number = 2)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val state = vm.state.first { it.rows.isNotEmpty() }
 
         val row = state.rows.single { it.number == 2 }
@@ -120,7 +134,7 @@ class SeriesViewModelTest {
         seedToTranslateChapter(number = 1)
         seedInMihonChapter(number = 3)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val state = vm.state.first { it.rows.size >= 3 }
 
         assertEquals(listOf(2), state.missing)
@@ -139,7 +153,7 @@ class SeriesViewModelTest {
             },
         )
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val state = vm.state.first { it.rows.size >= 2 }
 
         assertEquals(listOf(2 to ChapterKind.NotDownloaded, 1 to ChapterKind.ToTranslate), state.rows.map { it.number to it.kind })
@@ -151,7 +165,7 @@ class SeriesViewModelTest {
         seedToTranslateChapter(number = 1)
         seedInMihonChapter(number = 3)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         vm.state.first { it.missing.isNotEmpty() }
 
         vm.onEvent(SeriesEvent.DismissGap)
@@ -164,7 +178,7 @@ class SeriesViewModelTest {
         seedSeries()
         seedToTranslateChapter(number = 1)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         vm.state.first { it.toTranslateNumbers.isNotEmpty() }
         vm.onEvent(SeriesEvent.TranslateAll)
         val state = vm.state.first { it.toast != null }
@@ -181,7 +195,7 @@ class SeriesViewModelTest {
         val flat = mihonPathFor(1, "https://x/$seriesKey-1").flatten()
         env.db.pcIndexChapterDao().replaceAll(listOf(PcIndexChapterEntity(flat, original = true, fr = true)))
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val ready = vm.state.first { it.rows.isNotEmpty() && it.seriesCounts.install == 1 }
         assertEquals(0, ready.seriesCounts.translate)
         vm.onEvent(SeriesEvent.OpenSeriesMore)
@@ -200,7 +214,7 @@ class SeriesViewModelTest {
         seedSeries()
         seedToTranslateChapter(number = 1)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         vm.state.first { it.rows.isNotEmpty() }
         vm.onEvent(SeriesEvent.OpenSeriesMore)
         vm.state.first { it.sheet == SeriesSheet.More(allSeries = true) }
@@ -217,7 +231,7 @@ class SeriesViewModelTest {
         seedToTranslateChapter(number = 1)
         seedInMihonChapter(number = 2)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         vm.state.first { it.rows.size >= 2 }
         vm.onEvent(SeriesEvent.SetFollow(true))
         assertEquals(SeriesSheet.Follow(listOf(1)), vm.state.first { it.sheet is SeriesSheet.Follow }.sheet)
@@ -242,7 +256,7 @@ class SeriesViewModelTest {
         env.db.localFrChapterDao().upsert(env.db.localFrChapterDao().observeAll().first().single().copy(documentUri = frFile.absolutePath))
         env.container.mihonFs = FakeMihonFs(root)
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val key = vm.state.first { it.rows.isNotEmpty() }.rows.single { it.number == 2 }.key
         vm.onEvent(SeriesEvent.StartSelection)
         vm.onEvent(SeriesEvent.ToggleChapter(key))
@@ -288,7 +302,7 @@ class SeriesViewModelTest {
         val b = seedEdition(12f, "Team B")
         val half = seedEdition(12.5f, "Team A")
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val rows = vm.state.first { it.rows.size == 3 }.rows
         assertEquals(listOf("12.5", "12", "12"), rows.map { it.label })
         assertEquals(setOf("Team A", "Team B"), rows.filter { it.duplicate }.map { it.edition }.toSet())
@@ -316,7 +330,7 @@ class SeriesViewModelTest {
         seedEdition(2f, "Team A")
         seedEdition(3f, "Team A")
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val keys = vm.state.first { it.rows.size == 3 }.rows.map { it.key }
 
         vm.onEvent(SeriesEvent.DragSelectStart(keys[0]))
@@ -340,7 +354,7 @@ class SeriesViewModelTest {
         val a2 = seedEdition(12f, "Team A")
         seedEdition(12f, "Team B")
 
-        val vm = SeriesViewModel(env.container, seriesKey)
+        val vm = newVm()
         val state = vm.state.first { it.rows.size == 3 }
         assertEquals(2, state.seriesCounts.translate)
         vm.onEvent(SeriesEvent.TranslateAll)
