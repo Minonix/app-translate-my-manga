@@ -104,6 +104,26 @@ class Startup(
         if (root == null) return@withLock gate
         val (fs, rootDocId) = root
 
+        // Avant toute traduction automatique ou poll : sinon le premier refresh relancerait la file.
+        try {
+            jobRepository.resetPendingJobsOnce()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Jamais de crash au demarrage : la remise a plat sera retentee au prochain lancement.
+            AppLog.d("Startup", "remise a plat interrompue : ${e.javaClass.simpleName} ${e.message}")
+        }
+        // Le poll part pendant le scan Mihon (plusieurs secondes sur une grosse bibliotheque) : « PC allume »
+        // et la file s'affichent des l'ouverture au lieu d'attendre la fin du scan.
+        val earlyRefresh = syncScope.launch {
+            try {
+                refreshCoordinator.refresh()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("Startup", "synchro anticipee interrompue : ${e.javaClass.simpleName}")
+            }
+        }
         // Sauvegarde ou dossier Mihon devenus illisibles en cours de route (SAF) : on garde le cache
         // Room et on poursuit, plutot que de faire planter l'app a chaque retour au premier plan.
         try {
@@ -114,24 +134,16 @@ class Startup(
         } catch (e: Exception) {
             AppLog.d("Startup", "scan Mihon interrompu : ${e.javaClass.simpleName} ${e.message}")
         }
-        // Avant toute traduction automatique ou poll : sinon le premier refresh relancerait la file.
-        try {
-            jobRepository.resetPendingJobsOnce()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // Jamais de crash au demarrage : la remise a plat sera retentee au prochain lancement.
-            AppLog.d("Startup", "remise a plat interrompue : ${e.javaClass.simpleName} ${e.message}")
-        }
+        // Les chapitres decouverts par le scan partent maintenant ; le refresh suivant (10 s) suivra leur envoi.
         if (awaitSync) {
+            earlyRefresh.join()
             runAutoTranslate(db, jobRepository)
-            refreshCoordinator.refresh()
         } else {
             syncScope.launch {
                 // Hors de tout appelant : une exception ici ferait planter l'app.
                 try {
+                    earlyRefresh.join()
                     runAutoTranslate(db, jobRepository)
-                    refreshCoordinator.refresh()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
