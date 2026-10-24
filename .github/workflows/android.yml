@@ -51,5 +51,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk "TMM-Mobile-${GITHUB_REF_NAME}.apk"
-          gh release create "$GITHUB_REF_NAME" "TMM-Mobile-${GITHUB_REF_NAME}.apk" \
-            --title "TMM Mobile ${GITHUB_REF_NAME}" --generate-notes
+          # Release deja creee depuis le site GitHub (qui pose aussi le tag) : on y ajoute l'APK.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "TMM-Mobile-${GITHUB_REF_NAME}.apk" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "TMM-Mobile-${GITHUB_REF_NAME}.apk" \
+              --title "TMM Mobile ${GITHUB_REF_NAME}" --generate-notes
+          fi
