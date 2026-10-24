@@ -11,6 +11,14 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.14.2] - 2026-10-24
+
+Premiere publication des correctifs de la 1.14.1 (son APK n'avait pas ete construit).
+
+### Corrige
+- Publication : l'APK s'ajoute a une release deja creee depuis le site GitHub au lieu de faire echouer la CI.
+- Test instable de la fiche serie (flux du ViewModel encore actifs a la fermeture de la base).
+
 ## [1.14.1] - 2026-10-23
 
 ### Corrige
