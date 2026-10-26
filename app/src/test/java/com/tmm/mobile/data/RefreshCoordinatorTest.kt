@@ -140,6 +140,62 @@ class RefreshCoordinatorTest {
         }
     }
 
+    // Hub VPS 24/7 : le Hub repond en direct alors que le PC est eteint depuis 2 h (cursor frais,
+    // heartbeat.updatedAt vieux de 2 h). heartbeatSeenAt doit refléter l'age reel (now - 2 h) pour que
+    // le PC apparaisse hors ligne et qu'un job en attente sur le VPS ne soit pas marque pc_stalled.
+    @Test fun refresh_viaVpsHubWithOfflinePc_computesRealHeartbeatAgeAndDoesNotStallQueuedJob() = runTest {
+        val vps = MockWebServer().apply {
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse =
+                    if (request.url.encodedPath.endsWith("/health")) {
+                        MockResponse(code = 200, body = """{"protocol":1,"pcName":"PC-Minonix","appVersion":"1.0.0"}""")
+                    } else {
+                        MockResponse(
+                            code = 200,
+                            body = """{
+                                "cursor": "2026-10-26T12:00:00Z",
+                                "heartbeat": {
+                                    "protocol": 1,
+                                    "pcName": "PC-Minonix",
+                                    "appVersion": "1.0.0",
+                                    "updatedAt": "2026-10-26T10:00:00Z",
+                                    "slots": 2,
+                                    "activeJobIds": [],
+                                    "queue": {"active": 0, "waiting": 1, "failed": 0}
+                                },
+                                "statuses": [{
+                                    "protocol": 1,
+                                    "jobId": "job-vps-1",
+                                    "updatedAt": "2026-10-26T11:30:00Z",
+                                    "mode": "translate",
+                                    "state": "queued",
+                                    "queuePosition": 1
+                                }],
+                                "results": []
+                            }""",
+                        )
+                    }
+            }
+            start()
+        }
+        try {
+            val thirtyMinAgo = env.clock.millis - 30 * 60_000L
+            env.db.jobDao().upsert(job("job-vps-1").copy(channel = CHANNEL_DIRECT, createdAt = thirtyMinAgo, updatedAt = thirtyMinAgo))
+            env.prefs.setDirectUrl(vps.url("/").toString())
+            DirectTokenStore(env.prefs, FakeTokenCipher).set("jeton")
+
+            env.container.refreshCoordinator.refresh()
+
+            val seenAt = env.prefs.heartbeatSeenAt.first()!!
+            assertEquals(env.clock.millis - 2 * 3600_000L, seenAt)
+            val updated = env.db.jobDao().get("job-vps-1")!!
+            assertEquals("queued", updated.pcState)
+            assertNull(updated.errorCode)
+        } finally {
+            vps.close()
+        }
+    }
+
     @Test fun refresh_updatesPcState_forOwnJob() = runTest {
         writeOwnRequest("job-1")
         env.db.jobDao().upsert(job("job-1"))

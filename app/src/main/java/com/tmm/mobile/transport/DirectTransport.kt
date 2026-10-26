@@ -58,7 +58,7 @@ fun normalizeDirectUrl(input: String): HttpUrl? {
 }
 
 /**
- * Connexion directe au PC (Tailscale) : memes contrats JSON que Drive, sur HTTPS.
+ * Connexion directe au Hub VPS ou au PC (Tailscale) : memes contrats JSON que Drive, sur HTTPS.
  * Un job reste sur le canal choisi a l'envoi ; ce transport ne sert que les jobs `channel == "direct"`.
  * ponytail: l'envoi n'est pas reprenable (un PUT unique) ; sur une coupure, le renvoi repart de zero.
  * A revoir si des chapitres de plusieurs centaines de Mo passent souvent par une 4G instable.
@@ -67,11 +67,11 @@ class DirectTransport(
     private val client: OkHttpClient,
     private val prefs: AppPrefs,
     private val tokens: DirectTokenStore,
-    healthTimeoutSeconds: Long = 6,
+    healthTimeoutSeconds: Long = 3,
 ) : JobTransport {
 
-    // Client dedie : le health-check repond en 6 s au plus (2 s ratait un Tailscale qui se reveille), jamais
-    // les delais d'un transfert.
+    // Client dedie : le health-check vers le Hub VPS repond en quelques dizaines de ms ; 3 s suffisent
+    // meme au reveil de Tailscale tout en basculant vite sur Drive si Tailscale est coupe.
     private val healthClient = client.newBuilder()
         .connectTimeout(healthTimeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(healthTimeoutSeconds, TimeUnit.SECONDS)
@@ -82,7 +82,7 @@ class DirectTransport(
 
     suspend fun isPaired(): Boolean = baseUrl() != null && tokens.get() != null
 
-    // Joignable en moins de 2 s : null sinon (URL/jeton absents, reseau coupe, reponse illisible).
+    // Joignable en moins de 3 s : null sinon (URL/jeton absents, reseau coupe, reponse illisible).
     suspend fun health(): HealthResponse? {
         val base = baseUrl() ?: return null
         val request = Request.Builder().url(endpoint(base, "health")).get().build()
@@ -181,9 +181,9 @@ class DirectTransport(
         call("commands") { post(body) }
     }
 
-    // `since` est ignore par le PC (il renvoie tout) et le curseur direct n'est pas celui de Drive :
-    // RefreshCoordinator ne le persiste pas. Pour un resultat, resultFileId prend la valeur du jobId
-    // (le PC retrouve le fichier a partir du job, jamais d'un chemin fourni par le client).
+    // `since` est ignore par le Hub/PC (il renvoie tout) et le curseur direct n'est pas celui de Drive :
+    // RefreshCoordinator ne le persiste pas, mais l'utilise comme heure serveur pour mesurer l'age reel du
+    // dernier heartbeat PC (indispensable quand le Hub VPS 24/7 repond alors que le PC est eteint).
     override suspend fun poll(since: String?): PollResult {
         val text = call("poll") { get() }
         val doc = ProtocolJson.decodeFromString(DirectPollResponse.serializer(), text)
@@ -194,7 +194,18 @@ class DirectTransport(
         val heartbeat = doc.heartbeat?.let { keep(it.protocol, it) }
         val index = doc.index?.let { keep(it.protocol, it) }
         val settings = doc.settings?.let { keep(it.protocol, it) }
-        return PollResult(doc.cursor, statuses, results, heartbeat, index, settings, tooNew, protocolSeen = heartbeat != null && !tooNew)
+        return PollResult(
+            cursor = doc.cursor,
+            statuses = statuses,
+            results = results,
+            heartbeat = heartbeat,
+            index = index,
+            settings = settings,
+            protocolTooNew = tooNew,
+            protocolSeen = heartbeat != null && !tooNew,
+            heartbeatModifiedTime = heartbeat?.updatedAt,
+            serverTime = doc.cursor?.takeIf { it.isNotBlank() },
+        )
     }
 
     // ponytail: un poll complet pour relire les reglages (index inclus). Suffisant : le PC applique une

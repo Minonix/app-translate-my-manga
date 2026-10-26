@@ -17,6 +17,9 @@ import kotlinx.serialization.builtins.serializer
 
 val Context.tmmDataStore: DataStore<Preferences> by preferencesDataStore(name = "tmm_prefs")
 
+// Hub de synchronisation VPS (Tailscale Serve HTTPS) par defaut.
+const val DEFAULT_DIRECT_URL = "https://v2202610443888545433.tail8ac2b2.ts.net/api/remote/v1/"
+
 enum class Retention { NEVER, DAYS30, AFTER_RECEIVE }
 
 class AppPrefs(private val dataStore: DataStore<Preferences>) {

@@ -143,7 +143,7 @@ class RefreshCoordinator(
     }
 
     private suspend fun refreshOnce() {
-        // Direct d'abord (health 2 s) : il renvoie les statuts de tous les jobs et les resultats des
+        // Direct d'abord (health 3 s) : il renvoie les statuts de tous les jobs et les resultats des
         // jobs directs. Drive n'est interroge que s'il reste des jobs Drive actifs, ou si le direct
         // est indisponible (repli silencieux, et decouverte de l'URL via pc/remote.json).
         var directOk = false
@@ -366,14 +366,17 @@ class RefreshCoordinator(
             .forEach { workManager.enqueueInstallJob(it.jobId, wifiOnly) }
     }
 
-    // R9 : age du heartbeat mesure cote serveur (en-tete Date - modifiedTime Drive), reporte sur
-    // l'horloge du telephone. En direct (ni l'un ni l'autre), l'heure de reception fait foi.
+    // R9 : age du heartbeat mesure cote serveur (en-tete Date - modifiedTime Drive, ou cursor ISO-8601 -
+    // heartbeat.updatedAt sur le Hub VPS), reporte sur l'horloge du telephone.
     private fun heartbeatSeenAt(result: PollResult): Long {
         val now = clock.nowMillis()
         val modified = result.heartbeatModifiedTime?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
             ?: return now
         val server = result.serverTime
-            ?.let { runCatching { ZonedDateTime.parse(it, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli() }.getOrNull() }
+            ?.let {
+                runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
+                    ?: runCatching { ZonedDateTime.parse(it, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli() }.getOrNull()
+            }
             ?: return now
         return now - (server - modified).coerceAtLeast(0)
     }

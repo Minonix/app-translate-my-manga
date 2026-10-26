@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.screens.settings
 
+import com.tmm.mobile.data.DEFAULT_DIRECT_URL
 import com.tmm.mobile.data.Retention
 import com.tmm.mobile.data.db.BackupImportEntity
 import com.tmm.mobile.data.db.SeriesEntity
@@ -92,10 +93,11 @@ class SettingsViewModelTest {
     @Test fun state_withoutHeartbeatOrSettings_isOfflineAndReadOnlySummary() = runTest {
         val vm = SettingsViewModel(env.container)
 
-        val state = vm.state.first { !it.isPcOnline }
+        val state = vm.state.first { !it.isPcOnline && it.directUrl.isNotEmpty() }
 
         assertFalse(state.isPcOnline)
         assertEquals("Aucun signal reçu", state.pcLastSignalText)
+        assertEquals(DEFAULT_DIRECT_URL, state.directUrl)
         val translationState = vm.state.first { it.pcTranslationSummary.isNotEmpty() }
         assertEquals("Réglages non reçus du PC", translationState.pcTranslationSummary)
     }

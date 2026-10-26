@@ -7,6 +7,7 @@ import com.tmm.mobile.BuildConfig
 import com.tmm.mobile.core.AppContainer
 import java.io.File
 import com.tmm.mobile.core.Formatters
+import com.tmm.mobile.data.DEFAULT_DIRECT_URL
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.Retention
 import com.tmm.mobile.data.db.BackupImportEntity
@@ -72,8 +73,8 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    // URL connue (publiee par le PC ou deja associee) pre-remplie ; l'etat suit l'appairage et un
-    // health-check de 2 s a chaque changement.
+    // URL connue (publiee par le PC, deja associee, ou Hub VPS Tailscale par defaut) pre-remplie ;
+    // l'etat suit l'appairage et un health-check rapide a chaque changement.
     private suspend fun observeDirect() {
         combine(container.prefs.directUrl, container.prefs.directPairingExpired) { url, expired -> url to expired }
             .collect { (url, expired) ->
@@ -85,17 +86,18 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                     else -> DirectStatus.Unreachable
                 }
                 _state.update {
-                    it.copy(directStatus = status, directUrl = if (it.directUrl.isEmpty()) url.orEmpty() else it.directUrl)
+                    it.copy(directStatus = status, directUrl = if (it.directUrl.isEmpty()) url ?: DEFAULT_DIRECT_URL else it.directUrl)
                 }
             }
     }
 
     private fun pair() {
         val s = _state.value
-        if (s.pairing || s.pairingCode.length != 6 || s.directUrl.isBlank()) return
-        _state.update { it.copy(pairing = true) }
+        val targetUrl = s.directUrl.ifBlank { DEFAULT_DIRECT_URL }
+        if (s.pairing || s.pairingCode.length != 6 || targetUrl.isBlank()) return
+        _state.update { it.copy(pairing = true, directUrl = targetUrl) }
         viewModelScope.launch {
-            val ok = runCatching { container.router.direct.pair(s.directUrl, s.pairingCode, Build.MODEL ?: "android") }
+            val ok = runCatching { container.router.direct.pair(targetUrl, s.pairingCode, Build.MODEL ?: "android") }
                 .onFailure { AppLog.d("SettingsViewModel", "appairage impossible : ${it.javaClass.simpleName} ${it.message}") }
                 .isSuccess
             if (ok) container.prefs.setDirectPairingExpired(false)
@@ -299,7 +301,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             SettingsEvent.InstallUpdate -> Unit
             SettingsEvent.ForgetPc -> viewModelScope.launch {
                 container.router.direct.forget()
-                _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = "") }
+                _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = DEFAULT_DIRECT_URL) }
             }
         }
     }
