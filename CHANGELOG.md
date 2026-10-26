@@ -11,6 +11,14 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.15.0] - 2026-10-26
+
+### Ajoute
+- Synchronisation directe 24h/24 via le Hub VPS Tailscale (`tmm-sync-hub`) pre-configure par defaut : envoi de chapitres, recuperation des traductions, modification des reglages et annulation fonctionnent meme lorsque le PC est eteint, tout en conservant Google Drive pour les sauvegardes cloud.
+
+### Corrige
+- En connexion directe via le Hub VPS, l'age reel du dernier signal du PC est calcule depuis l'horloge serveur afin d'afficher fidelement ? ?teint ? vu il y a ? ? sans marquer a tort les chapitres en file d'attente comme bloques (`pc_stalled`).
+
 ## [1.14.3] - 2026-10-24
 
 ### Performance
