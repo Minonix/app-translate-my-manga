@@ -30,6 +30,7 @@ import java.security.MessageDigest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -41,8 +42,12 @@ private const val NOTIFICATION_ID_INSTALL = 2
 // OkHttp de couverture, couverture de 10 Mo en memoire, liste SAF par job) -> OutOfMemoryError.
 // Les installations passent donc par ce verrou de processus, quelques-unes a la fois ; les autres
 // attendent suspendues (sans thread bloque) et la file se vide par lots.
-private const val MAX_CONCURRENT_INSTALLS = 2
+private const val MAX_CONCURRENT_INSTALLS = 10
 private val installSlots = Semaphore(MAX_CONCURRENT_INSTALLS)
+// Un job bloque (reseau muet, SAF qui ne repond plus) garde son slot : sans borne, il bloquerait la
+// file entiere, puisque refresh relance les jobs deja en attente sans en annuler le travail (KEEP).
+// Au-dela, le job echoue proprement et reprend au cache verifie.
+private const val INSTALL_TIMEOUT_MINUTES = 20L
 
 // PLAN_GEMINI.md 5.12/5.13/8.4 : RESULT_READY -> DOWNLOADING (telechargement + verif sha256/taille
 // contre ResultJson.file, pas contre JobEntity.sha256/sizeBytes qui decrivent l'envoi) -> installation
@@ -59,7 +64,10 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
         val container = (applicationContext as TmmApp).container
         val job = container.db.jobDao().get(jobId) ?: return Result.success()
         if (job.phoneState != "RESULT_READY" && job.phoneState != "DOWNLOADING") return Result.success()
-        return installSlots.withPermit { install(jobId, container) }
+        return installSlots.withPermit {
+            withTimeoutOrNull(INSTALL_TIMEOUT_MINUTES * 60_000L) { install(jobId, container) }
+                ?: failOrRetry(jobId, container.db, container.clock, "download", LocalErrorCode.DOWNLOAD, "installation trop longue, nouvel essai")
+        }
     }
 
     private suspend fun install(jobId: String, container: AppContainer): Result {
