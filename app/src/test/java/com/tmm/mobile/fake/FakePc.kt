@@ -9,6 +9,7 @@ import com.tmm.mobile.protocol.PcIndexChapter
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.Quality
+import com.tmm.mobile.protocol.RemoteInfo
 import com.tmm.mobile.protocol.QueueCounts
 import com.tmm.mobile.protocol.RequestJson
 import com.tmm.mobile.protocol.ResultJson
@@ -110,6 +111,12 @@ class FakePc(private val drive: FakeDrive, private val nowIso: () -> String) {
     fun writeIndex(chapters: List<PcIndexChapter>) {
         val index = PcIndex(updatedAt = nowIso(), chapters = chapters)
         writeJson(pcId(), "index.json", ProtocolJson.encodeToString(PcIndex.serializer(), index).toByteArray())
+    }
+
+    // pc/remote.json : adresse de connexion directe publiee par le PC (la sienne ou celle du Hub).
+    fun writeRemote(url: String?) {
+        val remote = RemoteInfo(url = url, updatedAt = nowIso())
+        writeJson(pcId(), "remote.json", ProtocolJson.encodeToString(RemoteInfo.serializer(), remote).toByteArray())
     }
 
     fun writeSettings(settings: PcSettings) {

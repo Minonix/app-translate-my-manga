@@ -3,9 +3,11 @@ package com.tmm.mobile.ui.screens.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -52,6 +54,9 @@ class SettingsScreenBehaviorTest {
                             SettingsEvent.DismissToast -> state.copy(toast = null)
                             is SettingsEvent.DirectUrlChanged -> state.copy(directUrl = event.url)
                             is SettingsEvent.PairingCodeChanged -> state.copy(pairingCode = event.code)
+                            is SettingsEvent.PcDirectUrlChanged -> state.copy(pcDirectUrl = event.url)
+                            is SettingsEvent.PcPairingCodeChanged -> state.copy(pcPairingCode = event.code)
+                            SettingsEvent.PairPc, SettingsEvent.ForgetBackupPc -> state
                             SettingsEvent.ChangeMihonFolder, SettingsEvent.ExportLogs,
                             SettingsEvent.Pair, SettingsEvent.ForgetPc -> state
                             SettingsEvent.ToggleAdvanced -> state.copy(advancedExpanded = !state.advancedExpanded)
@@ -203,8 +208,10 @@ class SettingsScreenBehaviorTest {
     fun directPage_notPaired_showsPairingFieldsAndGoesBack() {
         val getState = setState(MockupData.settings.copy(directOpen = true))
         composeRule.onNodeWithText("Non associée").assertExists()
-        composeRule.onNodeWithText("Adresse du PC").assertExists()
-        composeRule.onNodeWithText("Code à 6 chiffres").assertExists()
+        // Deux blocs d'appairage : le Hub, puis le PC en secours.
+        composeRule.onAllNodesWithText("Adresse du PC").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Code à 6 chiffres").assertCountEquals(2)
+        composeRule.onNodeWithText("PC (secours)").assertExists()
         composeRule.onNodeWithText("Oublier ce PC").assertDoesNotExist()
         composeRule.onNodeWithText("Réglages").performClick()
         assertFalse(getState().directOpen)

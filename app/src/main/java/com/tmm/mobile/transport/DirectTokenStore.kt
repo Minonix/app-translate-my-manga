@@ -61,20 +61,24 @@ class KeystoreTokenCipher : TokenCipher {
     }
 }
 
-// Jeton d'appairage : seule la forme chiffree touche le DataStore, et il n'est jamais logge.
-class DirectTokenStore(private val prefs: AppPrefs, private val cipher: TokenCipher) {
+// Jeton d'appairage d'un emplacement (Hub ou PC) : seule la forme chiffree touche le DataStore, et il
+// n'est jamais logge. La cle Keystore est commune aux deux emplacements (IV aleatoire a chaque chiffrement).
+class DirectTokenStore(val slot: AppPrefs.DirectSlot, private val cipher: TokenCipher) {
+
+    // Emplacement Hub par defaut (appels historiques et tests).
+    constructor(prefs: AppPrefs, cipher: TokenCipher) : this(prefs.hubSlot, cipher)
 
     suspend fun get(): String? {
-        val enc = prefs.directTokenEnc.first() ?: return null
+        val enc = slot.tokenEnc.first() ?: return null
         val plain = cipher.decrypt(enc)
-        if (plain == null) prefs.setDirectTokenEnc(null)
+        if (plain == null) slot.setTokenEnc(null)
         return plain
     }
 
     suspend fun set(token: String) {
-        prefs.setDirectTokenEnc(cipher.encrypt(token))
-        prefs.setDirectPairingExpired(false)
+        slot.setTokenEnc(cipher.encrypt(token))
+        slot.setPairingExpired(false)
     }
 
-    suspend fun clear() = prefs.setDirectTokenEnc(null)
+    suspend fun clear() = slot.setTokenEnc(null)
 }

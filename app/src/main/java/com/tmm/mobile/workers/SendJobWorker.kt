@@ -11,8 +11,8 @@ import com.tmm.mobile.TmmApp
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.Clock
 import com.tmm.mobile.data.JobMode
-import com.tmm.mobile.data.db.CHANNEL_DIRECT
 import com.tmm.mobile.data.db.CHANNEL_DRIVE
+import com.tmm.mobile.data.db.isDirectChannel
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.ErrorCatalog
@@ -127,7 +127,7 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         var job = db.jobDao().get(jobId) ?: return Result.success()
         if (job.phoneState != "PREPARING" && job.phoneState != "UPLOADING") return Result.success()
         // Le canal se choisit a chaque essai tant que request.json n'est pas ecrit (PREPARING ou
-        // UPLOADING) : direct si le PC repond au health-check, sinon Drive. Un envoi Drive en cours
+        // UPLOADING) : Hub VPS puis PC en direct s'il repond au health-check, sinon Drive. Un envoi Drive en cours
         // bascule en direct des que le PC repond ; un envoi direct coupe (PC eteint, reponse perdue)
         // repart sur Drive au lieu d'epuiser ses essais sur un PC absent. Meme jobId des deux cotes :
         // le PC ne traduit jamais deux fois (R13). Une fois SENT, le job reste sur son canal.
@@ -147,7 +147,7 @@ class SendJobWorker(appContext: Context, params: WorkerParameters) : CoroutineWo
         return try {
             deliver(jobId, job, container, transport)
         } catch (e: DirectHttpException) {
-            if (job.channel != CHANNEL_DIRECT) throw e
+            if (!isDirectChannel(job.channel)) throw e
             when {
                 // 409 other_channel : le PC a deja ce job par Drive. Ni echec ni « Relancer » (doublon) :
                 // le job passe SENT sur le canal Drive et se suit par le poll Drive.

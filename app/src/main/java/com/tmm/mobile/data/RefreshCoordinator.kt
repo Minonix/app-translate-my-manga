@@ -5,6 +5,8 @@ import com.tmm.mobile.core.Clock
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.db.CHANNEL_DIRECT
 import com.tmm.mobile.data.db.CHANNEL_DRIVE
+import com.tmm.mobile.data.db.CHANNEL_PC_DIRECT
+import com.tmm.mobile.data.db.isDirectChannel
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
 import com.tmm.mobile.data.db.TmmDatabase
@@ -18,6 +20,7 @@ import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.transport.DriveQuotaException
 import com.tmm.mobile.transport.PollResult
 import com.tmm.mobile.transport.TransportRouter
+import com.tmm.mobile.transport.normalizeDirectUrl
 import com.tmm.mobile.workers.enqueueInstallJob
 import java.io.IOException
 import java.time.Instant
@@ -68,6 +71,8 @@ const val CANCEL_UNANSWERED_MILLIS = 15 * 60_000L
 const val FOREGROUND_REFRESH_MILLIS = 60_000L
 // Connexion directe (Tailscale) : poll quasi gratuit, l'avancement remonte toutes les 10 s au lieu d'une minute.
 const val FOREGROUND_DIRECT_REFRESH_MILLIS = 10_000L
+// Le PC ecrit son heartbeat toutes les 60 s : au-dela de 90 s cote Hub, le PC ne lui parle plus (ou est eteint).
+const val HUB_HEARTBEAT_STALE_MILLIS = 90_000L
 private val PC_TERMINAL_STATES = setOf("done", "failed", "cancelled")
 // heartbeat.activeJobIds ne liste que les jobs en traduction (processing/paused cote PC) : un job
 // « fetching » (recuperation de la source, parfois longue) n'y figure jamais et ne doit pas etre juge bloque.
@@ -143,22 +148,23 @@ class RefreshCoordinator(
     }
 
     private suspend fun refreshOnce() {
-        // Direct d'abord (health 3 s) : il renvoie les statuts de tous les jobs et les resultats des
-        // jobs directs. Drive n'est interroge que s'il reste des jobs Drive actifs, ou si le direct
-        // est indisponible (repli silencieux, et decouverte de l'URL via pc/remote.json).
-        var directOk = false
-        if (router.activeChannel() == CHANNEL_DIRECT) {
-            directOk = try {
-                applyPoll(router.direct.poll(null), CHANNEL_DIRECT)
-                true
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // IOException, mais aussi reponse illisible (SerializationException) : repli sur Drive.
-                AppLog.d("RefreshCoordinator", "poll direct impossible, repli sur Drive : ${e.javaClass.simpleName}")
-                false
+        // Chaine de repli : Hub VPS (health 3 s), puis PC en direct, puis Drive. Le Hub renvoie les statuts
+        // de tous les jobs et les resultats des jobs "direct". Chaque poll est applique des sa reception :
+        // l'affichage n'attend pas les canaux suivants.
+        var hubFresh = false
+        val hubOk = router.hub.isPaired() && router.hub.health() != null &&
+            pollDirect(CHANNEL_DIRECT) { result ->
+                // Hub joignable mais heartbeat PC vieux de plus de 90 s : l'etat n'est pas frais (PC deconnecte
+                // du Hub mais peut-etre allume), on tente aussi le PC en direct puis Drive.
+                hubFresh = heartbeatAgeMillis(result)?.let { it <= HUB_HEARTBEAT_STALE_MILLIS } == true
+                if (!hubFresh) AppLog.d("RefreshCoordinator", "Hub joint, heartbeat PC en retard ou absent")
             }
-        }
+        // PC en direct : Hub muet ou en retard, ou jobs "pc_direct" en cours (le Hub ne les connait pas).
+        val pcJobsActive = db.jobDao().observeAll().first().any { it.channel == CHANNEL_PC_DIRECT && it.isActive() }
+        val pcOk = (!hubOk || !hubFresh || pcJobsActive) && router.pc.isPaired() && router.pc.health() != null &&
+            pollDirect(CHANNEL_PC_DIRECT) {}
+        val directOk = hubOk || pcOk
+        val fresh = (hubOk && hubFresh) || pcOk
         if (directOk) {
             try {
                 resendStalledDriveJobs()
@@ -173,15 +179,40 @@ class RefreshCoordinator(
         // le bandeau "Reconnecter" restait affiche tant que le direct suffisait.
         val authExpired = prefs.authExpired.first()
         var driveResult: PollResult? = null
-        if (!directOk || driveActive || authExpired) driveResult = pollDrive()
+        if (!fresh || driveActive || authExpired) driveResult = pollDrive()
         autoTranslate()
         // Le curseur direct n'est pas celui de Drive : seul le poll Drive le fait avancer.
         driveResult?.let { prefs.setLastChangesCursor(it.cursor) }
-        lastCooldown = if (directOk) DIRECT_COOLDOWN_SECONDS else DRIVE_COOLDOWN_SECONDS
+        // Rythme rapide seulement si l'etat est frais : un Hub en retard sans PC joignable repasse au rythme Drive.
+        lastCooldown = if (fresh) DIRECT_COOLDOWN_SECONDS else DRIVE_COOLDOWN_SECONDS
         val now = clock.nowMillis()
         prefs.setLastRefreshAt(now)
-        AppLog.d("RefreshCoordinator", "refresh termine : ${if (directOk) "direct" else "Drive"}${if (driveResult != null && directOk) " + Drive" else ""}")
+        val channels = listOfNotNull("Hub".takeIf { hubOk }, "PC".takeIf { pcOk }, "Drive".takeIf { driveResult != null })
+        AppLog.d("RefreshCoordinator", "refresh termine : ${channels.joinToString(" + ").ifEmpty { "aucun canal" }}")
         _state.value = _state.value.copy(running = false, lastCheckedAt = now)
+    }
+
+    // Poll d'un canal direct deja juge joignable ; false (repli sur le canal suivant) en cas d'echec.
+    private suspend fun pollDirect(channel: String, onApplied: (PollResult) -> Unit): Boolean = try {
+        val result = router.forChannel(channel).poll(null)
+        applyPoll(result, channel)
+        onApplied(result)
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        // IOException, mais aussi reponse illisible (SerializationException) : repli sur le canal suivant.
+        AppLog.d("RefreshCoordinator", "poll $channel impossible, repli : ${e.javaClass.simpleName}")
+        false
+    }
+
+    // Age du heartbeat PC mesure cote serveur (heure serveur - heartbeat), null s'il manque ou est illisible.
+    // Lu sur la reponse elle-meme et non dans les prefs : le heartbeat retenu peut venir d'un autre canal.
+    private fun heartbeatAgeMillis(result: PollResult): Long? {
+        val modified = result.heartbeatModifiedTime?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+            ?: return null
+        val server = result.serverTime?.let { parseServerTime(it) } ?: return null
+        return (server - modified).coerceAtLeast(0)
     }
 
     /**
@@ -215,14 +246,27 @@ class RefreshCoordinator(
         // si le poll complet (un fichier par job) est long apres une nuit de traduction. Son curseur n'est pas garde.
         val light = drive.pollPc(cursor)
         applyPoll(light, CHANNEL_DRIVE)
-        light.remote?.url?.let { prefs.setDirectUrl(it) }
+        rememberPublishedPcUrl(light.remote?.url)
         val result = drive.poll(cursor)
         // Rien ne levait ce drapeau : le bandeau "reconnecter" restait affiche apres un nouveau consentement.
         if (prefs.authExpired.first()) prefs.setAuthExpired(false)
         applyPoll(result, CHANNEL_DRIVE)
-        // Adresse Tailscale publiee par le PC : une URL non nulle ecrase la precedente, null ne l'efface pas.
-        result.remote?.url?.let { prefs.setDirectUrl(it) }
+        rememberPublishedPcUrl(result.remote?.url)
         return result
+    }
+
+    /**
+     * Adresse publiee par le PC dans pc/remote.json : elle ne sert qu'a pre-remplir l'emplacement PC tant
+     * qu'il n'est pas associe. Elle n'ecrase jamais l'URL d'un emplacement associe : le jeton n'est envoye
+     * qu'a l'adresse confirmee a l'appairage. Le PC y publie parfois sa propre adresse Tailscale : ecrite
+     * sur le Hub, elle provoquait un 401 (jetons distincts), effacait le jeton du Hub et renvoyait sur Drive.
+     */
+    private suspend fun rememberPublishedPcUrl(url: String?) {
+        val published = url?.let(::normalizeDirectUrl) ?: return
+        if (router.pc.isPaired()) return
+        if (published == router.hub.baseUrl()) return
+        val text = published.toString()
+        if (prefs.pcSlot.url.first() != text) prefs.pcSlot.setUrl(text)
     }
 
     private suspend fun applyPoll(result: PollResult, channel: String) {
@@ -270,6 +314,11 @@ class RefreshCoordinator(
         for ((resultJson, resultFileId) in result.results) {
             if (resultJson.jobId !in ownJobIds) continue
             val job = db.jobDao().get(resultJson.jobId) ?: continue
+            // Un resultat direct ne vaut que pour les jobs de son canal : InstallJobWorker le telecharge sur le
+            // canal du job, et le Hub n'a pas le fichier d'un job envoye au PC (ni l'inverse). Les statuts, eux,
+            // sont pris de tous les canaux.
+            if (channel == CHANNEL_PC_DIRECT && job.channel != CHANNEL_PC_DIRECT) continue
+            if (channel == CHANNEL_DIRECT && job.channel == CHANNEL_PC_DIRECT) continue
             // R11 : resultat arrive apres la demande d'annulation -> clos localement, non installe.
             if (job.phoneState == "CANCEL_REQUESTED") {
                 if (job.pcState != "cancelled") {
@@ -280,7 +329,7 @@ class RefreshCoordinator(
             // Repli Drive : le PC a aussi depose sur Drive le resultat d'un job direct (Tailscale coupe, PC
             // eteint). Le job passe sur Drive pour le telechargement et l'accuse ; s'il est deja installe,
             // la copie est ignoree (une seule installation).
-            val toDrive = channel == CHANNEL_DRIVE && job.channel == CHANNEL_DIRECT
+            val toDrive = channel == CHANNEL_DRIVE && isDirectChannel(job.channel)
             if (toDrive && job.phoneState in RESULT_PENDING_STATES) {
                 db.jobDao().upsert(job.copy(channel = CHANNEL_DRIVE, resultFileId = resultFileId, updatedAt = clock.nowMillis()))
                 continue
@@ -372,14 +421,14 @@ class RefreshCoordinator(
         val now = clock.nowMillis()
         val modified = result.heartbeatModifiedTime?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
             ?: return now
-        val server = result.serverTime
-            ?.let {
-                runCatching { Instant.parse(it).toEpochMilli() }.getOrNull()
-                    ?: runCatching { ZonedDateTime.parse(it, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli() }.getOrNull()
-            }
-            ?: return now
+        val server = result.serverTime?.let { parseServerTime(it) } ?: return now
         return now - (server - modified).coerceAtLeast(0)
     }
+
+    // Heure serveur : ISO-8601 (cursor du Hub/PC) ou RFC 1123 (en-tete Date de Drive).
+    private fun parseServerTime(text: String): Long? =
+        runCatching { Instant.parse(text).toEpochMilli() }.getOrNull()
+            ?: runCatching { ZonedDateTime.parse(text, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli() }.getOrNull()
 
     /**
      * R8 : PC en ligne (R9) et job SENT sans nouvelles. Le job garde son etat (SENT -> FAILED est hors

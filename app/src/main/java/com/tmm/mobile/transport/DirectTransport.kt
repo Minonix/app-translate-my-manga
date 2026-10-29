@@ -59,7 +59,8 @@ fun normalizeDirectUrl(input: String): HttpUrl? {
 
 /**
  * Connexion directe au Hub VPS ou au PC (Tailscale) : memes contrats JSON que Drive, sur HTTPS.
- * Un job reste sur le canal choisi a l'envoi ; ce transport ne sert que les jobs `channel == "direct"`.
+ * Une instance par emplacement (`slot`) : Hub (jobs `channel == "direct"`) ou PC en secours
+ * (`"pc_direct"`). Un job reste sur le canal choisi a l'envoi.
  * ponytail: l'envoi n'est pas reprenable (un PUT unique) ; sur une coupure, le renvoi repart de zero.
  * A revoir si des chapitres de plusieurs centaines de Mo passent souvent par une 4G instable.
  */
@@ -70,6 +71,9 @@ class DirectTransport(
     healthTimeoutSeconds: Long = 3,
 ) : JobTransport {
 
+    // Emplacement du jeton : URL, nom et drapeau d'expiration y sont lus et ecrits (jamais ceux de l'autre).
+    val slot: AppPrefs.DirectSlot = tokens.slot
+
     // Client dedie : le health-check vers le Hub VPS repond en quelques dizaines de ms ; 3 s suffisent
     // meme au reveil de Tailscale tout en basculant vite sur Drive si Tailscale est coupe.
     private val healthClient = client.newBuilder()
@@ -78,7 +82,7 @@ class DirectTransport(
         .callTimeout(healthTimeoutSeconds, TimeUnit.SECONDS)
         .build()
 
-    suspend fun baseUrl(): HttpUrl? = prefs.directUrl.first()?.let(::normalizeDirectUrl)
+    suspend fun baseUrl(): HttpUrl? = slot.url.first()?.let(::normalizeDirectUrl)
 
     suspend fun isPaired(): Boolean = baseUrl() != null && tokens.get() != null
 
@@ -108,16 +112,16 @@ class DirectTransport(
             authed = false,
         ) { ProtocolJson.decodeFromString(PairResponse.serializer(), it.body.string()) }
         tokens.set(response.token)
-        prefs.setDirectUrl(base.toString())
-        prefs.setDirectPcName(response.pcName)
+        slot.setUrl(base.toString())
+        slot.setPcName(response.pcName)
         return response
     }
 
     suspend fun forget() {
         tokens.clear()
-        prefs.setDirectUrl(null)
-        prefs.setDirectPcName(null)
-        prefs.setDirectPairingExpired(false)
+        slot.setUrl(null)
+        slot.setPcName(null)
+        slot.setPairingExpired(false)
     }
 
     suspend fun putInventory(inventory: PhoneInventory) {
@@ -263,11 +267,12 @@ class DirectTransport(
 
     // Journalise methode + chemin + code seulement : ni en-tete, ni corps, ni jeton.
     private suspend fun ensureOk(request: Request, response: Response, authed: Boolean = true) {
-        AppLog.d("DirectTransport", "${request.method} ${request.url.encodedPath} -> ${response.code}")
+        AppLog.d("DirectTransport", "${slot.id} ${request.method} ${request.url.encodedPath} -> ${response.code}")
         if (response.isSuccessful) return
+        // Seul le jeton de cet emplacement est efface : un 401 du PC ne touche pas l'appairage du Hub.
         if (response.code == 401 && authed) {
             tokens.clear()
-            prefs.setDirectPairingExpired(true)
+            slot.setPairingExpired(true)
             throw DirectPairingExpiredException("Appairage expire : associer a nouveau le PC")
         }
         val detail = try {

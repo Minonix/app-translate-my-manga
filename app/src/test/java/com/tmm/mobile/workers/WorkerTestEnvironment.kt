@@ -79,6 +79,8 @@ class WorkerTestEnvironment {
         private set
     lateinit var transport: JobTransport
     lateinit var direct: DirectTransport
+    // PC en direct, en secours du Hub (`direct`).
+    lateinit var pcDirect: DirectTransport
     lateinit var router: TransportRouter
         private set
     lateinit var container: FakeAppContainer
@@ -110,7 +112,8 @@ class WorkerTestEnvironment {
         val api = DriveApi(client = OkHttpClient(), token = { _ -> "test-token" }, baseUrl = drive.baseUrl())
         transport = DriveTransport(api, prefs)
         direct = DirectTransport(OkHttpClient(), prefs, DirectTokenStore(prefs, FakeTokenCipher))
-        router = TransportRouter(transport, direct)
+        pcDirect = DirectTransport(OkHttpClient(), prefs, DirectTokenStore(prefs.pcSlot, FakeTokenCipher))
+        router = TransportRouter(transport, direct, pcDirect)
         // ensureLayout() une fois pour toutes : SendJobWorker/InstallJobWorker/OutboxWorker
         // supposent le layout Drive deja etabli (seul RefreshCoordinator.refresh() l'appelle en prod).
         kotlinx.coroutines.runBlocking { transport.ensureLayout() }

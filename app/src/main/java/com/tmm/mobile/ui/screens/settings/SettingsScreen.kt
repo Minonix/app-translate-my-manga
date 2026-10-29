@@ -368,15 +368,14 @@ private fun directSummary(state: SettingsState): String = when (state.directStat
 }
 
 /**
- * Sous-ecran « Connexion directe (Tailscale) » : adresse du PC, code d'appairage genere par l'app
- * Windows, et « Oublier ce PC » une fois associe. Rendu par SettingsScreen (pas de route dediee) :
+ * Sous-ecran « Connexion directe (Tailscale) » : Hub VPS (prioritaire) puis PC en secours, chacun avec
+ * son adresse, son code d'appairage genere par l'app Windows, et « Oublier ce PC » une fois associe. Rendu par SettingsScreen (pas de route dediee) :
  * le retour systeme le referme via BackHandler.
  */
 @Composable
 private fun DirectConnectionPage(state: SettingsState, onEvent: (SettingsEvent) -> Unit, modifier: Modifier = Modifier) {
     BackHandler { onEvent(SettingsEvent.CloseDirect) }
     val backLabel = stringResource(R.string.settings_title)
-    val paired = state.directStatus == DirectStatus.Direct || state.directStatus == DirectStatus.Unreachable
     Box(modifier = modifier.fillMaxSize().background(TmmColors.paper)) {
         Column(
             modifier = Modifier
@@ -411,59 +410,16 @@ private fun DirectConnectionPage(state: SettingsState, onEvent: (SettingsEvent) 
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             SettingsList {
-                if (paired) {
-                    SettingsRow(
-                        label = stringResource(R.string.settings_row_direct_url),
-                        value = state.directUrl,
-                        isMono = true,
-                        actionButtonText = stringResource(R.string.settings_action_forget),
-                        onActionClick = { onEvent(SettingsEvent.ForgetPc) },
-                        showBottomDivider = false,
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        SettingsTextField(
-                            value = state.directUrl,
-                            onValueChange = { onEvent(SettingsEvent.DirectUrlChanged(it)) },
-                            placeholder = stringResource(R.string.settings_row_direct_url),
-                            keyboardType = KeyboardType.Uri,
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            SettingsTextField(
-                                value = state.pairingCode,
-                                onValueChange = { onEvent(SettingsEvent.PairingCodeChanged(it)) },
-                                placeholder = stringResource(R.string.settings_direct_code_hint),
-                                keyboardType = KeyboardType.NumberPassword,
-                                modifier = Modifier.weight(1f),
-                            )
-                            val enabled = !state.pairing && state.pairingCode.length == 6 && state.directUrl.isNotBlank()
-                            val pairLabel = stringResource(R.string.settings_action_pair)
-                            Box(
-                                modifier = Modifier
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (enabled) TmmColors.ink else TmmColors.track)
-                                    .clickable(enabled = enabled, role = Role.Button, onClickLabel = pairLabel) {
-                                        onEvent(SettingsEvent.Pair)
-                                    }
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                TmmText(
-                                    text = pairLabel,
-                                    style = TmmType.sans(14, weight = 600),
-                                    color = if (enabled) TmmColors.paper else TmmColors.textMuted,
-                                )
-                            }
-                        }
-                    }
-                }
+                DirectPairingBlock(
+                    status = state.directStatus,
+                    url = state.directUrl,
+                    code = state.pairingCode,
+                    pairing = state.pairing,
+                    onUrlChange = { onEvent(SettingsEvent.DirectUrlChanged(it)) },
+                    onCodeChange = { onEvent(SettingsEvent.PairingCodeChanged(it)) },
+                    onPair = { onEvent(SettingsEvent.Pair) },
+                    onForget = { onEvent(SettingsEvent.ForgetPc) },
+                )
             }
             TmmText(
                 text = stringResource(R.string.settings_v2_direct_explain),
@@ -471,8 +427,106 @@ private fun DirectConnectionPage(state: SettingsState, onEvent: (SettingsEvent) 
                 color = TmmColors.textMuted,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
+            // PC en secours : meme bloc d'appairage, utilise quand le Hub ne repond pas ou est en retard.
+            SettingsGroup(title = stringResource(R.string.settings_direct_pc_group)) {
+                DirectPairingBlock(
+                    status = state.pcDirectStatus,
+                    url = state.pcDirectUrl,
+                    code = state.pcPairingCode,
+                    pairing = state.pcPairing,
+                    onUrlChange = { onEvent(SettingsEvent.PcDirectUrlChanged(it)) },
+                    onCodeChange = { onEvent(SettingsEvent.PcPairingCodeChanged(it)) },
+                    onPair = { onEvent(SettingsEvent.PairPc) },
+                    onForget = { onEvent(SettingsEvent.ForgetBackupPc) },
+                )
+            }
+            TmmText(
+                text = pcDirectSummary(state),
+                style = TmmType.sans(12, lineHeight = 18f),
+                color = TmmColors.textMuted,
+                modifier = Modifier.padding(horizontal = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
         SettingsToastHost(state, onEvent, Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun pcDirectSummary(state: SettingsState): String = when (state.pcDirectStatus) {
+    DirectStatus.Direct -> stringResource(R.string.settings_direct_pc_paired_fmt, state.pcDirectUrl)
+    DirectStatus.Unreachable -> stringResource(R.string.settings_direct_pc_unreachable)
+    DirectStatus.NotPaired -> stringResource(R.string.settings_direct_pc_unpaired)
+    DirectStatus.Expired -> stringResource(R.string.settings_direct_expired)
+}
+
+/**
+ * Appairage d'un emplacement direct (Hub ou PC en secours) : associe, l'adresse et « Oublier ce PC » ;
+ * sinon adresse, code a 6 chiffres et « Associer ».
+ */
+@Composable
+private fun DirectPairingBlock(
+    status: DirectStatus,
+    url: String,
+    code: String,
+    pairing: Boolean,
+    onUrlChange: (String) -> Unit,
+    onCodeChange: (String) -> Unit,
+    onPair: () -> Unit,
+    onForget: () -> Unit,
+) {
+    val paired = status == DirectStatus.Direct || status == DirectStatus.Unreachable
+    if (paired) {
+        SettingsRow(
+            label = stringResource(R.string.settings_row_direct_url),
+            value = url,
+            isMono = true,
+            actionButtonText = stringResource(R.string.settings_action_forget),
+            onActionClick = onForget,
+            showBottomDivider = false,
+        )
+    } else {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SettingsTextField(
+                value = url,
+                onValueChange = onUrlChange,
+                placeholder = stringResource(R.string.settings_row_direct_url),
+                keyboardType = KeyboardType.Uri,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SettingsTextField(
+                    value = code,
+                    onValueChange = onCodeChange,
+                    placeholder = stringResource(R.string.settings_direct_code_hint),
+                    keyboardType = KeyboardType.NumberPassword,
+                    modifier = Modifier.weight(1f),
+                )
+                val enabled = !pairing && code.length == 6 && url.isNotBlank()
+                val pairLabel = stringResource(R.string.settings_action_pair)
+                Box(
+                    modifier = Modifier
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (enabled) TmmColors.ink else TmmColors.track)
+                        .clickable(enabled = enabled, role = Role.Button, onClickLabel = pairLabel) {
+                            onPair()
+                        }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TmmText(
+                        text = pairLabel,
+                        style = TmmType.sans(14, weight = 600),
+                        color = if (enabled) TmmColors.paper else TmmColors.textMuted,
+                    )
+                }
+            }
+        }
     }
 }
 

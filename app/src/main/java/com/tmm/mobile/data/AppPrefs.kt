@@ -17,8 +17,11 @@ import kotlinx.serialization.builtins.serializer
 
 val Context.tmmDataStore: DataStore<Preferences> by preferencesDataStore(name = "tmm_prefs")
 
-// Hub de synchronisation VPS (Tailscale Serve HTTPS) par defaut.
-const val DEFAULT_DIRECT_URL = "https://v2202610443888545433.tail8ac2b2.ts.net/api/remote/v1/"
+// Hub de synchronisation VPS (Tailscale Serve HTTPS) par defaut : servi sur le port 11443, rien n'ecoute sur 443.
+const val DEFAULT_DIRECT_URL = "https://v2202610443888545433.tail8ac2b2.ts.net:11443/api/remote/v1/"
+
+// Ancienne valeur par defaut, sans port (443 implicite, injoignable) : relue comme DEFAULT_DIRECT_URL.
+internal const val LEGACY_DEFAULT_DIRECT_URL = "https://v2202610443888545433.tail8ac2b2.ts.net/api/remote/v1/"
 
 enum class Retention { NEVER, DAYS30, AFTER_RECEIVE }
 
@@ -55,6 +58,11 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val DIRECT_DEVICE_ID = stringPreferencesKey("direct_device_id")
         val DIRECT_PC_NAME = stringPreferencesKey("direct_pc_name")
         val DIRECT_PAIRING_EXPIRED = booleanPreferencesKey("direct_pairing_expired")
+        // PC en connexion directe, en secours du Hub : memes champs que l'emplacement "direct_*".
+        val PC_DIRECT_URL = stringPreferencesKey("pc_direct_url")
+        val PC_DIRECT_TOKEN_ENC = stringPreferencesKey("pc_direct_token_enc")
+        val PC_DIRECT_PC_NAME = stringPreferencesKey("pc_direct_pc_name")
+        val PC_DIRECT_PAIRING_EXPIRED = booleanPreferencesKey("pc_direct_pairing_expired")
         val MATCHER_VERSION = intPreferencesKey("matcher_version")
         val DRIVE_LAYOUT_VERSION = intPreferencesKey("drive_layout_version")
         val JOB_RESET_VERSION = intPreferencesKey("job_reset_version")
@@ -155,22 +163,62 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     val pcDriveDown: Flow<Boolean> = dataStore.data.map { it[Keys.PC_DRIVE_DOWN] ?: false }
     suspend fun setPcDriveDown(value: Boolean) = set(Keys.PC_DRIVE_DOWN, value)
 
-    // Connexion directe (Tailscale). Le jeton n'est jamais stocke en clair : voir DirectTokenStore.
-    val directUrl: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_URL] }
-    suspend fun setDirectUrl(value: String?) = setOrRemove(Keys.DIRECT_URL, value)
+    /**
+     * Un emplacement de connexion directe : adresse, jeton chiffre (jamais en clair, voir DirectTokenStore),
+     * nom du serveur et drapeau « appairage expire » (vrai apres un 401, efface au prochain appairage).
+     * Chaque emplacement a son propre jeton : un 401 de l'un n'efface jamais l'autre.
+     */
+    inner class DirectSlot internal constructor(
+        val id: String,
+        private val urlKey: Preferences.Key<String>,
+        private val tokenKey: Preferences.Key<String>,
+        private val nameKey: Preferences.Key<String>,
+        private val expiredKey: Preferences.Key<Boolean>,
+        private val migrateUrl: (String) -> String = { it },
+    ) {
+        val url: Flow<String?> = dataStore.data.map { prefs -> prefs[urlKey]?.let(migrateUrl) }
+        suspend fun setUrl(value: String?) = setOrRemove(urlKey, value)
 
-    val directTokenEnc: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_TOKEN_ENC] }
-    suspend fun setDirectTokenEnc(value: String?) = setOrRemove(Keys.DIRECT_TOKEN_ENC, value)
+        val tokenEnc: Flow<String?> = dataStore.data.map { it[tokenKey] }
+        suspend fun setTokenEnc(value: String?) = setOrRemove(tokenKey, value)
 
+        val pcName: Flow<String?> = dataStore.data.map { it[nameKey] }
+        suspend fun setPcName(value: String?) = setOrRemove(nameKey, value)
+
+        val pairingExpired: Flow<Boolean> = dataStore.data.map { it[expiredKey] ?: false }
+        suspend fun setPairingExpired(value: Boolean) = set(expiredKey, value)
+    }
+
+    // Hub VPS 24/7, prioritaire : garde les cles historiques "direct_*" pour ne pas perdre l'appairage
+    // deja fait (y compris celui d'un PC associe la avant l'arrivee du Hub).
+    // Migration douce a la lecture : l'URL du Hub enregistree sans port (ancienne valeur par defaut) est lue
+    // avec :11443 ; meme hote, meme serveur, le jeton reste valable. L'ecriture suivante (appairage) la remplace.
+    // ponytail: la valeur stockee n'est pas reecrite ; a retirer quand plus aucune install n'a l'ancienne URL.
+    val hubSlot = DirectSlot(
+        "hub", Keys.DIRECT_URL, Keys.DIRECT_TOKEN_ENC, Keys.DIRECT_PC_NAME, Keys.DIRECT_PAIRING_EXPIRED,
+        migrateUrl = { if (it == LEGACY_DEFAULT_DIRECT_URL) DEFAULT_DIRECT_URL else it },
+    )
+
+    // PC en direct (Tailscale), en secours quand le Hub ne repond pas ou que son etat est en retard.
+    val pcSlot = DirectSlot("pc", Keys.PC_DIRECT_URL, Keys.PC_DIRECT_TOKEN_ENC, Keys.PC_DIRECT_PC_NAME, Keys.PC_DIRECT_PAIRING_EXPIRED)
+
+    // Raccourcis historiques vers l'emplacement Hub.
+    val directUrl: Flow<String?> get() = hubSlot.url
+    suspend fun setDirectUrl(value: String?) = hubSlot.setUrl(value)
+
+    val directTokenEnc: Flow<String?> get() = hubSlot.tokenEnc
+    suspend fun setDirectTokenEnc(value: String?) = hubSlot.setTokenEnc(value)
+
+    // Identite du telephone, commune aux deux emplacements : c'est le meme appareil qui s'associe au Hub et au PC.
     val directDeviceId: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_DEVICE_ID] }
     suspend fun setDirectDeviceId(value: String?) = setOrRemove(Keys.DIRECT_DEVICE_ID, value)
 
-    val directPcName: Flow<String?> = dataStore.data.map { it[Keys.DIRECT_PC_NAME] }
-    suspend fun setDirectPcName(value: String?) = setOrRemove(Keys.DIRECT_PC_NAME, value)
+    val directPcName: Flow<String?> get() = hubSlot.pcName
+    suspend fun setDirectPcName(value: String?) = hubSlot.setPcName(value)
 
-    // Vrai apres un 401 du PC : le jeton a ete efface, l'ecran Reglages affiche "Appairage expire".
-    val directPairingExpired: Flow<Boolean> = dataStore.data.map { it[Keys.DIRECT_PAIRING_EXPIRED] ?: false }
-    suspend fun setDirectPairingExpired(value: Boolean) = set(Keys.DIRECT_PAIRING_EXPIRED, value)
+    // Vrai apres un 401 du Hub : le jeton a ete efface, l'ecran Reglages affiche "Appairage expire".
+    val directPairingExpired: Flow<Boolean> get() = hubSlot.pairingExpired
+    suspend fun setDirectPairingExpired(value: Boolean) = hubSlot.setPairingExpired(value)
 
     // Version des regles de rapprochement (Matcher) deja appliquees aux telechargements connus :
     // Startup refait un rematch() une fois quand elle augmente (le cache de scan ne les relit pas).

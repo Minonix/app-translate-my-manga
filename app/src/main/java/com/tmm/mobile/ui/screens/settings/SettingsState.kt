@@ -71,6 +71,12 @@ data class SettingsState(
     val directUrl: String = "",
     val pairingCode: String = "",
     val pairing: Boolean = false,
+    // PC en direct, en secours du Hub : meme flux d'appairage (adresse + code a 6 chiffres), sans adresse
+    // par defaut (pre-remplie seulement par pc/remote.json).
+    val pcDirectStatus: DirectStatus = DirectStatus.NotPaired,
+    val pcDirectUrl: String = "",
+    val pcPairingCode: String = "",
+    val pcPairing: Boolean = false,
     val update: AppUpdateState = AppUpdateState.Checking,
 )
 
@@ -92,6 +98,10 @@ sealed interface SettingsEvent {
     data class PairingCodeChanged(val code: String) : SettingsEvent
     data object Pair : SettingsEvent
     data object ForgetPc : SettingsEvent
+    data class PcDirectUrlChanged(val url: String) : SettingsEvent
+    data class PcPairingCodeChanged(val code: String) : SettingsEvent
+    data object PairPc : SettingsEvent
+    data object ForgetBackupPc : SettingsEvent
     data object CheckUpdate : SettingsEvent
     // Telechargement par le ViewModel, installation lancee par SettingsRoute (I/O Activity).
     data object InstallUpdate : SettingsEvent

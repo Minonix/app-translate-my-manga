@@ -137,7 +137,8 @@ data class JobEntity(
     val receivedWrittenAt: Long?,
     val cancelWrittenAt: Long?,
     val driveDeletedAt: Long?,
-    // Canal du job, fige a l'envoi : "drive" ou "direct" (Tailscale). Il ne change plus jusqu'au resultat.
+    // Canal du job, fige a l'envoi : "drive", "direct" (Hub VPS, ou PC associe avant le Hub) ou "pc_direct"
+    // (PC en secours). Texte libre : un nouveau canal ne demande pas de migration Room.
     @ColumnInfo(defaultValue = CHANNEL_DRIVE) val channel: String = CHANNEL_DRIVE,
     // Code d'erreur local au telephone (docs/ERREURS_PROTOCOLE.md 1.2), jamais ecrit sur Drive ; null si
     // l'echec vient du PC (pcErrorCode) ou si le job n'a pas echoue.
@@ -148,7 +149,12 @@ data class JobEntity(
 )
 
 const val CHANNEL_DRIVE = "drive"
+// Hub VPS (emplacement historique de la connexion directe) : les jobs "direct" existants y restent.
 const val CHANNEL_DIRECT = "direct"
+// PC joint en direct (Tailscale), en secours du Hub.
+const val CHANNEL_PC_DIRECT = "pc_direct"
+
+fun isDirectChannel(channel: String): Boolean = channel == CHANNEL_DIRECT || channel == CHANNEL_PC_DIRECT
 
 @Entity(tableName = "chapter_quality")
 data class ChapterQualityEntity(

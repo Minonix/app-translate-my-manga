@@ -21,6 +21,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.tmm.mobile.mihon.MihonTree
+import com.tmm.mobile.transport.DirectTransport
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -65,6 +66,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { observeLogsInfo() }
         viewModelScope.launch { loadTranslationSummary() }
         viewModelScope.launch { observeDirect() }
+        viewModelScope.launch { observePcDirect() }
         checkUpdate()
         viewModelScope.launch {
             combine(container.db.seriesDao().observeAll(), container.db.seriesSettingsDao().observeAutoTranslateSeriesKeys()) { series, keys ->
@@ -78,17 +80,30 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     private suspend fun observeDirect() {
         combine(container.prefs.directUrl, container.prefs.directPairingExpired) { url, expired -> url to expired }
             .collect { (url, expired) ->
-                val direct = container.router.direct
-                val status = when {
-                    expired -> DirectStatus.Expired
-                    !direct.isPaired() -> DirectStatus.NotPaired
-                    direct.health() != null -> DirectStatus.Direct
-                    else -> DirectStatus.Unreachable
-                }
+                val status = directStatusOf(container.router.hub, expired)
                 _state.update {
                     it.copy(directStatus = status, directUrl = if (it.directUrl.isEmpty()) url ?: DEFAULT_DIRECT_URL else it.directUrl)
                 }
             }
+    }
+
+    // PC en secours : adresse publiee par le PC (pc/remote.json) ou deja associee, jamais celle du Hub par defaut.
+    private suspend fun observePcDirect() {
+        val slot = container.prefs.pcSlot
+        combine(slot.url, slot.pairingExpired) { url, expired -> url to expired }
+            .collect { (url, expired) ->
+                val status = directStatusOf(container.router.pc, expired)
+                _state.update {
+                    it.copy(pcDirectStatus = status, pcDirectUrl = if (it.pcDirectUrl.isEmpty()) url.orEmpty() else it.pcDirectUrl)
+                }
+            }
+    }
+
+    private suspend fun directStatusOf(direct: DirectTransport, expired: Boolean): DirectStatus = when {
+        expired -> DirectStatus.Expired
+        !direct.isPaired() -> DirectStatus.NotPaired
+        direct.health() != null -> DirectStatus.Direct
+        else -> DirectStatus.Unreachable
     }
 
     private fun pair() {
@@ -97,24 +112,44 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         if (s.pairing || s.pairingCode.length != 6 || targetUrl.isBlank()) return
         _state.update { it.copy(pairing = true, directUrl = targetUrl) }
         viewModelScope.launch {
-            val ok = runCatching { container.router.direct.pair(targetUrl, s.pairingCode, Build.MODEL ?: "android") }
-                .onFailure { AppLog.d("SettingsViewModel", "appairage impossible : ${it.javaClass.simpleName} ${it.message}") }
-                .isSuccess
-            if (ok) container.prefs.setDirectPairingExpired(false)
-            val paired = ok && container.router.direct.health() != null
+            val status = pairSlot(container.router.hub, targetUrl, s.pairingCode)
             _state.update {
                 it.copy(
                     pairing = false,
-                    pairingCode = if (ok) "" else it.pairingCode,
-                    directStatus = when {
-                        !ok -> it.directStatus
-                        paired -> DirectStatus.Direct
-                        else -> DirectStatus.Unreachable
-                    },
+                    pairingCode = if (status != null) "" else it.pairingCode,
+                    directStatus = status ?: it.directStatus,
                 )
             }
-            showToast(if (ok) SettingsToast.Paired else SettingsToast.PairFailed)
         }
+    }
+
+    private fun pairPc() {
+        val s = _state.value
+        val targetUrl = s.pcDirectUrl
+        if (s.pcPairing || s.pcPairingCode.length != 6 || targetUrl.isBlank()) return
+        _state.update { it.copy(pcPairing = true) }
+        viewModelScope.launch {
+            val status = pairSlot(container.router.pc, targetUrl, s.pcPairingCode)
+            _state.update {
+                it.copy(
+                    pcPairing = false,
+                    pcPairingCode = if (status != null) "" else it.pcPairingCode,
+                    pcDirectStatus = status ?: it.pcDirectStatus,
+                )
+            }
+        }
+    }
+
+    // Echange le code contre un jeton pour cet emplacement ; null si l'appairage a echoue.
+    private suspend fun pairSlot(direct: DirectTransport, url: String, code: String): DirectStatus? {
+        val ok = runCatching { direct.pair(url, code, Build.MODEL ?: "android") }
+            .onFailure { AppLog.d("SettingsViewModel", "appairage ${direct.slot.id} impossible : ${it.javaClass.simpleName} ${it.message}") }
+            .isSuccess
+        if (!ok) return null.also { showToast(SettingsToast.PairFailed) }
+        direct.slot.setPairingExpired(false)
+        val status = if (direct.health() != null) DirectStatus.Direct else DirectStatus.Unreachable
+        showToast(SettingsToast.Paired)
+        return status
     }
 
     private suspend fun observeHeartbeat() {
@@ -300,8 +335,16 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             SettingsEvent.CheckUpdate -> checkUpdate()
             SettingsEvent.InstallUpdate -> Unit
             SettingsEvent.ForgetPc -> viewModelScope.launch {
-                container.router.direct.forget()
+                container.router.hub.forget()
                 _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = DEFAULT_DIRECT_URL) }
+            }
+            is SettingsEvent.PcDirectUrlChanged -> _state.update { it.copy(pcDirectUrl = event.url.trim()) }
+            is SettingsEvent.PcPairingCodeChanged ->
+                _state.update { it.copy(pcPairingCode = event.code.filter(Char::isDigit).take(6)) }
+            SettingsEvent.PairPc -> pairPc()
+            SettingsEvent.ForgetBackupPc -> viewModelScope.launch {
+                container.router.pc.forget()
+                _state.update { it.copy(pcDirectStatus = DirectStatus.NotPaired, pcDirectUrl = "") }
             }
         }
     }

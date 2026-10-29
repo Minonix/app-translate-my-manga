@@ -102,6 +102,46 @@ class SettingsViewModelTest {
         assertEquals("Réglages non reçus du PC", translationState.pcTranslationSummary)
     }
 
+    // PC en secours : meme flux d'appairage, ecrit dans l'emplacement PC sans toucher a celui du Hub ; puis oubli.
+    @Test fun pairPc_thenForget_usesPcSlotOnly() = runTest {
+        val pc = mockwebserver3.MockWebServer().apply {
+            dispatcher = object : mockwebserver3.Dispatcher() {
+                override fun dispatch(request: mockwebserver3.RecordedRequest): mockwebserver3.MockResponse =
+                    if (request.url.encodedPath.endsWith("/health")) {
+                        mockwebserver3.MockResponse(code = 200, body = """{"protocol":1,"pcName":"PC-BUREAU","appVersion":"1"}""")
+                    } else {
+                        mockwebserver3.MockResponse(code = 200, body = """{"token":"jeton-pc","pcName":"PC-BUREAU"}""")
+                    }
+            }
+            start()
+        }
+        try {
+            val vm = SettingsViewModel(env.container)
+            vm.state.first { it.directUrl.isNotEmpty() }
+            assertEquals(DirectStatus.NotPaired, vm.state.value.pcDirectStatus)
+            assertEquals("", vm.state.value.pcDirectUrl)
+
+            vm.onEvent(SettingsEvent.PcDirectUrlChanged(pc.url("/").toString()))
+            vm.onEvent(SettingsEvent.PcPairingCodeChanged("12a3456"))
+            assertEquals("123456", vm.state.value.pcPairingCode)
+            vm.onEvent(SettingsEvent.PairPc)
+
+            val paired = vm.state.first { !it.pcPairing && it.pcDirectStatus == DirectStatus.Direct }
+            assertEquals("", paired.pcPairingCode)
+            assertEquals(DirectStatus.NotPaired, paired.directStatus)
+            assertEquals(pc.url("/api/remote/v1/").toString(), env.prefs.pcSlot.url.first())
+            assertTrue(env.container.router.pc.isPaired())
+            assertFalse(env.container.router.hub.isPaired())
+
+            vm.onEvent(SettingsEvent.ForgetBackupPc)
+            vm.state.first { it.pcDirectStatus == DirectStatus.NotPaired }
+            assertFalse(env.container.router.pc.isPaired())
+            assertEquals(null, env.prefs.pcSlot.url.first())
+        } finally {
+            pc.close()
+        }
+    }
+
     @Test fun onEvent_cycleDriveRetention_persistsToPrefs() = runTest {
         val vm = SettingsViewModel(env.container)
         vm.state.first()

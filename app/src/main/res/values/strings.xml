@@ -397,6 +397,10 @@
     <string name="settings_action_forget">Oublier ce PC</string>
     <string name="settings_toast_paired">PC associé</string>
     <string name="settings_toast_pair_failed">Association impossible, vérifiez l\'adresse et le code</string>
+    <string name="settings_direct_pc_group">PC (secours)</string>
+    <string name="settings_direct_pc_paired_fmt">Associé · %1$s. Utilisé si le serveur ne répond pas ou est en retard.</string>
+    <string name="settings_direct_pc_unreachable">PC injoignable en direct</string>
+    <string name="settings_direct_pc_unpaired">Non associé. Saisissez l\'adresse Tailscale du PC et le code affiché dans l\'app Windows.</string>
 
     <!-- TranslationSettings.dc.html (E4.9) -->
     <string name="trans_settings_back_cd">Retour aux réglages</string>

@@ -127,7 +127,7 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     override val transport: JobTransport by lazy { DriveTransport(driveApi, prefs) }
 
     // Delais courts pour les appels de controle, longs pour les transferts de CBZ (le health-check a son
-    // propre client de 2 s dans DirectTransport).
+    // propre client de 3 s dans DirectTransport).
     private val directClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
@@ -137,7 +137,12 @@ class DefaultAppContainer(override val context: Context) : AppContainer {
     }
 
     override val router: TransportRouter by lazy {
-        TransportRouter(transport, DirectTransport(directClient, prefs, DirectTokenStore(prefs, KeystoreTokenCipher())))
+        val cipher = KeystoreTokenCipher()
+        TransportRouter(
+            transport,
+            hub = DirectTransport(directClient, prefs, DirectTokenStore(prefs.hubSlot, cipher)),
+            pc = DirectTransport(directClient, prefs, DirectTokenStore(prefs.pcSlot, cipher)),
+        )
     }
 
     override val jobRepository: JobRepository by lazy { JobRepository(db, prefs, router, workManager, clock) }

@@ -190,7 +190,7 @@ class ErrorRecoveryWorkerTest {
     // AuthExpiredException par DefaultAppContainer.provideToken) -> retry + drapeau, jamais FAILED.
     @Test fun bugD_tokenProviderFailure_retriesAndFlags() = runTest {
         val api = DriveApi(OkHttpClient(), token = { _ -> throw AuthExpiredException("Play Services indisponible") }, baseUrl = env.drive.baseUrl())
-        val container = FakeAppContainer(env.context, env.db, env.prefs, TransportRouter(DriveTransport(api, env.prefs), env.direct), env.clock)
+        val container = FakeAppContainer(env.context, env.db, env.prefs, TransportRouter(DriveTransport(api, env.prefs), env.direct, env.pcDirect), env.clock)
         (env.context as TmmApp).container = container
         env.db.jobDao().upsert(job("job-d2", phoneState = "PREPARING"))
 

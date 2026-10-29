@@ -6,7 +6,7 @@ import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
-import com.tmm.mobile.data.db.CHANNEL_DIRECT
+import com.tmm.mobile.data.db.isDirectChannel
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
@@ -390,7 +390,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
  *  demande vaut accuse de reception ; sur Drive, il faut son premier statut (pcState). */
 internal fun handoffOf(job: JobEntity): Handoff = when {
     job.phoneState == "PREPARING" -> if (job.mode == JobMode.TRANSLATE && !job.redeliver) Handoff.Pending else Handoff.RequestSending
-    job.pcState != null || job.channel == CHANNEL_DIRECT -> Handoff.ReceivedByPc
+    job.pcState != null || isDirectChannel(job.channel) -> Handoff.ReceivedByPc
     else -> Handoff.OnDrive
 }
 
