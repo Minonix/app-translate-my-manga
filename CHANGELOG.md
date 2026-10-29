@@ -11,6 +11,12 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.16.1] - 2026-10-29
+
+### Corrige
+- Telechargements bloques indefiniment en attente d'une nouvelle tentative : la reprise automatique les relance apres 10 min sans progression, quel que soit l'etat du travail.
+- Bouton « Debloquer les telechargements » : relance aussi les jobs comptes comme actifs mais sans progression depuis 30 s, et journalise l'etat de chaque job.
+
 ## [1.16.0] - 2026-10-29
 
 ### Ajoute
