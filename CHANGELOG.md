@@ -11,6 +11,11 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.15.1] - 2026-10-29
+
+### Corrige
+- Installation de nombreuses traductions d'un coup (apres une nuit de traitement) : les chapitres sont installes 2 par 2 au lieu d'en parallele, ce qui evite un `OutOfMemoryError` de l'application.
+
 ## [1.15.0] - 2026-10-26
 
 ### Ajoute
