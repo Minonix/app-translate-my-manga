@@ -11,6 +11,19 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.16.0] - 2026-10-29
+
+### Ajoute
+- Synchronisation : le Hub VPS est la voie prioritaire, puis le PC en connexion directe, puis Google Drive. Le PC de secours s'appaire separement dans Reglages > Connexion directe.
+- Reglages > Avance : nombre d'installations simultanees reglable (1 a 20, 10 par defaut).
+- Reglages > Avance : bouton « Debloquer les telechargements », qui relance les installations figees et affiche un bilan.
+
+### Corrige
+- Adresse par defaut du Hub VPS : le port 11443 manquait, le telephone ne joignait jamais le Hub. Les anciennes adresses enregistrees sont migrees.
+- Installations restees « en cours » a vie apres une `OutOfMemoryError` : a chaque rafraichissement, les telechargements sans travail actif ou sans progression depuis 10 min sont relances (le chapitre repart de zero).
+- Un telechargement sans aucun octet recu depuis 10 min est abandonne puis reessaye ; un telechargement lent qui progresse n'est jamais coupe.
+- Installations simultanees limitees a 10 (au lieu de 2 dans la 1.15.1).
+
 ## [1.15.1] - 2026-10-29
 
 ### Corrige
