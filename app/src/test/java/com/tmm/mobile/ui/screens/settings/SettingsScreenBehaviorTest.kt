@@ -214,7 +214,8 @@ class SettingsScreenBehaviorTest {
         // Deux blocs d'appairage : le Hub, puis le PC en secours.
         composeRule.onAllNodesWithText("Adresse du PC").assertCountEquals(2)
         composeRule.onAllNodesWithText("Code à 6 chiffres").assertCountEquals(2)
-        composeRule.onNodeWithText("PC (secours)").assertExists()
+        // SettingsGroup affiche son titre en majuscules.
+        composeRule.onNodeWithText("PC (SECOURS)").assertExists()
         composeRule.onNodeWithText("Oublier ce PC").assertDoesNotExist()
         composeRule.onNodeWithText("Réglages").performClick()
         assertFalse(getState().directOpen)
