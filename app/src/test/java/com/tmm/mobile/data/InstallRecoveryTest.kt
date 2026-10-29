@@ -74,21 +74,22 @@ class InstallRecoveryTest {
     }
 
     // RESULT_READY en attente d'une place ou du reseau : updatedAt vieux par construction, jamais relance.
-    @Test fun recover_resultReadyWithLiveWork_isUntouchedEvenWhenOld() = runTest {
+    // Travail ENQUEUED sans progression depuis STALL_MINUTES (backoff de plusieurs heures) : relance auto.
+    @Test fun recover_staleEnqueuedWork_isRelaunched() = runTest {
         env.db.jobDao().upsert(job("waiting", "RESULT_READY", updatedAt = env.clock.millis - 3 * stallMillis))
         env.container.workManager.enqueueInstallJob("waiting", wifiOnly = false)
         val before = liveWork("waiting").single().id
 
         val report = recovery().recover()
 
-        assertEquals(InstallRecoveryReport(relaunched = 0, alreadyActive = 1), report)
-        assertEquals(before, liveWork("waiting").single().id)
+        assertEquals(InstallRecoveryReport(relaunched = 1, alreadyActive = 0), report)
+        assertTrue(before != liveWork("waiting").single().id)
     }
 
     // Sans le bouton, un orphelin recent attend STALL_MINUTES ; le bouton le relance tout de suite.
     @Test fun recover_force_relaunchesRecentOrphan_andCountsActiveJobs() = runTest {
         env.db.jobDao().upsert(job("recent-orphan", "DOWNLOADING", updatedAt = env.clock.millis - 60_000L, transferredBytes = 200))
-        env.db.jobDao().upsert(job("active", "DOWNLOADING", updatedAt = env.clock.millis - 60_000L, transferredBytes = 500))
+        env.db.jobDao().upsert(job("active", "DOWNLOADING", updatedAt = env.clock.millis - 10_000L, transferredBytes = 500))
         env.db.jobDao().upsert(job("installed", "INSTALLED", updatedAt = env.clock.millis - 3 * stallMillis))
         env.container.workManager.enqueueInstallJob("active", wifiOnly = false)
         val activeId = liveWork("active").single().id
@@ -102,5 +103,20 @@ class InstallRecoveryTest {
         assertEquals(activeId, liveWork("active").single().id)
         assertTrue(liveWork("installed").isEmpty())
         assertEquals("INSTALLED", env.db.jobDao().get("installed")!!.phoneState)
+    }
+
+    // Bouton : un travail vivant mais sans progression (backoff, contrainte, worker fige) est relance.
+    @Test fun recover_force_relaunchesLiveWorkWithoutRecentProgress() = runTest {
+        env.db.jobDao().upsert(job("stuck", "DOWNLOADING", updatedAt = env.clock.millis - 5 * 60_000L, transferredBytes = 300))
+        env.db.jobDao().upsert(job("stuck-ready", "RESULT_READY", updatedAt = env.clock.millis - 3 * stallMillis))
+        env.container.workManager.enqueueInstallJob("stuck", wifiOnly = false)
+        env.container.workManager.enqueueInstallJob("stuck-ready", wifiOnly = false)
+        val stuckId = liveWork("stuck").single().id
+        val readyId = liveWork("stuck-ready").single().id
+
+        assertEquals(InstallRecoveryReport(relaunched = 2, alreadyActive = 0), recovery().recover(force = true))
+        assertTrue(liveWork("stuck").single().id != stuckId)
+        assertTrue(liveWork("stuck-ready").single().id != readyId)
+        assertEquals(0L, env.db.jobDao().get("stuck")!!.transferredBytes)
     }
 }

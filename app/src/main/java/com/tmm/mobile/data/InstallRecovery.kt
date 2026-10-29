@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.first
 // Installation sans progression depuis ce delai (horloge Clock) : consideree figee.
 const val STALL_MINUTES = 10L
 private const val STALL_MILLIS = STALL_MINUTES * 60_000L
+// Bouton « Débloquer » : un travail vivant n'est epargne que s'il a progresse dans ce delai (ou attend une place).
+private const val FORCE_FRESH_MILLIS = 30_000L
 
 /** Bilan d'une recuperation : jobs relances, et jobs laisses a leur travail en cours. */
 data class InstallRecoveryReport(val relaunched: Int, val alreadyActive: Int)
@@ -25,10 +27,13 @@ data class InstallRecoveryReport(val relaunched: Int, val alreadyActive: Int)
  * Regles, par job RESULT_READY ou DOWNLOADING :
  * - aucun travail vivant (ni RUNNING, ni ENQUEUED, ni BLOCKED) : relance si updatedAt est plus vieux que
  *   STALL_MINUTES, ou tout de suite si [force] (bouton « Débloquer les téléchargements ») ;
- * - travail vivant : jamais touche, sauf un DOWNLOADING RUNNING sans progression depuis STALL_MINUTES et
- *   qui n'attend pas une place (InstallSlots) - le worker est alors fige malgre son chien de garde.
- *   Un RESULT_READY vivant n'est jamais touche : en attente d'une place ou du reseau, son updatedAt est
- *   vieux par construction.
+ * - travail vivant, sans [force] : relance tout job sans progression depuis STALL_MINUTES qui n'attend pas
+ *   une place (InstallSlots) : worker fige, ou ENQUEUED dans un backoff exponentiel de plusieurs heures
+ *   (cas v1.16 : jobs bloques indefiniment). REPLACE remet le backoff a zero ; sans reseau, la contrainte
+ *   garde simplement le nouveau travail en attente.
+ * - travail vivant, avec [force] : relance tout ce qui n'a pas progresse depuis FORCE_FRESH_MILLIS, sauf un
+ *   worker qui attend une place. Le bouton servait a rien sur des jobs « actifs » figes (backoff de plusieurs
+ *   heures, worker bloque) : il les comptait comme actifs sans les relancer.
  * Une relance remet la progression a zero (pas de reprise Range) et date le job de maintenant : il compte
  * ensuite comme « actif + progression recente » et n'est pas relance une seconde fois au poll suivant.
  */
@@ -49,11 +54,16 @@ class InstallRecovery(
             val stale = now - job.updatedAt >= STALL_MILLIS
             val live = workManager.getWorkInfosForUniqueWorkFlow(installWorkName(job.jobId)).first()
                 .filter { !it.state.isFinished }
-            val relaunch = if (live.isEmpty()) {
-                force || stale
-            } else {
-                job.phoneState == "DOWNLOADING" && stale && !InstallSlots.isWaiting(job.jobId) &&
-                    live.any { it.state == WorkInfo.State.RUNNING }
+            val waitingSlot = InstallSlots.isWaiting(job.jobId)
+            val relaunch = when {
+                live.isEmpty() -> force || stale
+                waitingSlot -> false
+                force -> now - job.updatedAt >= FORCE_FRESH_MILLIS
+                else -> stale
+            }
+            if (force || relaunch) {
+                AppLog.d("InstallRecovery", "${job.jobId.take(8)} ${job.phoneState} travail=${live.map { it.state }} " +
+                    "attente=$waitingSlot inactif=${(now - job.updatedAt) / 1000}s -> ${if (relaunch) "relance" else "garde"}")
             }
             if (!relaunch) {
                 if (live.isNotEmpty()) active++
