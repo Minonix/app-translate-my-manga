@@ -31,18 +31,20 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val NOTIFICATION_ID_INSTALL = 2
 
-// Chaque chapitre a son propre travail unique : apres une nuit de traductions, des dizaines de
-// resultats arrivent ensemble et WorkManager les lancait tous en parallele (telechargement, client
-// OkHttp de couverture, couverture de 10 Mo en memoire, liste SAF par job) -> OutOfMemoryError.
-// Les installations passent donc par ce verrou de processus, quelques-unes a la fois ; les autres
-// attendent suspendues (sans thread bloque) et la file se vide par lots.
-private const val MAX_CONCURRENT_INSTALLS = 10
-private val installSlots = Semaphore(MAX_CONCURRENT_INSTALLS)
+// Abandon d'un telechargement sans aucun octet recu depuis ce delai (horloge Clock, mesure sur la
+// progression et non sur la duree totale) : remplace le delai par job retire par f6bcf22.
+const val INSTALL_IDLE_MINUTES = 10L
+private const val INSTALL_IDLE_MILLIS = INSTALL_IDLE_MINUTES * 60_000L
+// Le chien de garde tourne sur Dispatchers.Default : son delai suit l'horloge reelle, pas le temps
+// virtuel d'un runTest (qui le faisait expirer tout de suite).
+private const val IDLE_CHECK_MILLIS = 30_000L
 
 // PLAN_GEMINI.md 5.12/5.13/8.4 : RESULT_READY -> DOWNLOADING (telechargement + verif sha256/taille
 // contre ResultJson.file, pas contre JobEntity.sha256/sizeBytes qui decrivent l'envoi) -> installation
@@ -59,7 +61,7 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
         val container = (applicationContext as TmmApp).container
         val job = container.db.jobDao().get(jobId) ?: return Result.success()
         if (job.phoneState != "RESULT_READY" && job.phoneState != "DOWNLOADING") return Result.success()
-        return installSlots.withPermit { install(jobId, container) }
+        return InstallSlots.withSlot(jobId, container.prefs.maxConcurrentInstalls) { install(jobId, container) }
     }
 
     private suspend fun install(jobId: String, container: AppContainer): Result {
@@ -90,15 +92,19 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             val cached = dest.exists() && dest.length() == fileRef.size && sha256(dest) == fileRef.sha256
             if (!cached) {
                 var lastProgressWrite = 0L
-                try {
-                    container.router.forJob(job).downloadResult(job, fileId, dest) { received, total ->
-                        val now = android.os.SystemClock.elapsedRealtime()
-                        // total = -1 si la taille n'est pas annoncee : sans le test > 0, chaque bloc serait ecrit.
-                        if ((total > 0 && received >= total) || now - lastProgressWrite >= 1000) {
-                            lastProgressWrite = now
-                            db.jobDao().get(jobId)?.takeIf { it.phoneState == "DOWNLOADING" }?.let { current ->
-                                db.jobDao().upsert(current.copy(transferredBytes = received,
-                                    transferTotal = total.takeIf { it > 0 } ?: fileRef.size, updatedAt = clock.nowMillis()))
+                val idle = IdleWatch(clock, INSTALL_IDLE_MILLIS)
+                val completed = try {
+                    downloadUnlessIdle(idle) {
+                        container.router.forJob(job).downloadResult(job, fileId, dest) { received, total ->
+                            idle.onProgress(received)
+                            val now = android.os.SystemClock.elapsedRealtime()
+                            // total = -1 si la taille n'est pas annoncee : sans le test > 0, chaque bloc serait ecrit.
+                            if ((total > 0 && received >= total) || now - lastProgressWrite >= 1000) {
+                                lastProgressWrite = now
+                                db.jobDao().get(jobId)?.takeIf { it.phoneState == "DOWNLOADING" }?.let { current ->
+                                    db.jobDao().upsert(current.copy(transferredBytes = received,
+                                        transferTotal = total.takeIf { it > 0 } ?: fileRef.size, updatedAt = clock.nowMillis()))
+                                }
                             }
                         }
                     }
@@ -106,6 +112,12 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
                     // result.json present, result.cbz absent : on redemande au PC (redeliver), sans reessai.
                     dest.delete()
                     return fail(jobId, db, clock, step, LocalErrorCode.RESULT_MISSING, e.message)
+                }
+                if (!completed) {
+                    // Pas de reprise (Range) : le prochain essai repart de zero.
+                    dest.delete()
+                    return failOrRetry(jobId, db, clock, step, LocalErrorCode.NETWORK,
+                        "aucune donnee recue depuis $INSTALL_IDLE_MINUTES min")
                 }
 
                 if (dest.length() != fileRef.size || sha256(dest) != fileRef.sha256) {
@@ -214,13 +226,43 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // Reponse illisible, erreur SAF inattendue : sans FAILED, le job resterait DOWNLOADING a vie
-            // (plus jamais relance, puisque refresh ne relance que RESULT_READY).
+            // Reponse illisible, erreur SAF inattendue : sans FAILED, le job resterait DOWNLOADING jusqu'a
+            // ce qu'InstallRecovery le relance, pour retomber sur la meme erreur.
             fail(
                 jobId, db, clock, step,
                 if (step == "install") LocalErrorCode.INSTALL else LocalErrorCode.DOWNLOAD,
                 e.message ?: e.javaClass.simpleName,
             )
+        }
+    }
+
+    /**
+     * Lance le telechargement sous un chien de garde d'inactivite ; false s'il a ete abandonne faute
+     * d'octets recus depuis INSTALL_IDLE_MINUTES. Les autres echecs remontent tels quels.
+     * ponytail: l'annulation n'interrompt pas une lecture de socket bloquee ; elle prend effet au prochain
+     * point de suspension, au plus tard au readTimeout OkHttp (60 s), qui couvre deja un flux completement muet.
+     */
+    private suspend fun downloadUnlessIdle(idle: IdleWatch, download: suspend () -> Unit): Boolean = coroutineScope {
+        var timedOut = false
+        val transfer = async { download() }
+        val watchdog = launch(Dispatchers.Default) {
+            while (true) {
+                delay(IDLE_CHECK_MILLIS)
+                if (idle.isIdle()) {
+                    timedOut = true
+                    transfer.cancel()
+                    break
+                }
+            }
+        }
+        try {
+            transfer.await()
+            true
+        } catch (e: CancellationException) {
+            if (!timedOut) throw e
+            false
+        } finally {
+            watchdog.cancel()
         }
     }
 

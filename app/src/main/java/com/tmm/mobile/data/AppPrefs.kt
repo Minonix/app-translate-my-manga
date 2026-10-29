@@ -25,6 +25,11 @@ internal const val LEGACY_DEFAULT_DIRECT_URL = "https://v2202610443888545433.tai
 
 enum class Retention { NEVER, DAYS30, AFTER_RECEIVE }
 
+// Installations simultanees (InstallJobWorker) : 10 par defaut, bornees a l'ecriture et a la lecture
+// (une valeur hors bornes deja enregistree ne doit ni bloquer la file ni relancer l'OutOfMemoryError).
+const val DEFAULT_MAX_CONCURRENT_INSTALLS = 10
+val CONCURRENT_INSTALLS_RANGE = 1..20
+
 class AppPrefs(private val dataStore: DataStore<Preferences>) {
 
     private object Keys {
@@ -49,6 +54,7 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val LAST_SCAN_AT = longPreferencesKey("last_scan_at")
         val RETENTION = stringPreferencesKey("retention")
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
+        val MAX_CONCURRENT_INSTALLS = intPreferencesKey("max_concurrent_installs")
         val PROTOCOL_TOO_NEW = booleanPreferencesKey("protocol_too_new")
         // R5 : 403 storageQuotaExceeded vu cote telephone, leve au prochain envoi reussi.
         val DRIVE_FULL = booleanPreferencesKey("drive_full")
@@ -152,6 +158,12 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
 
     val wifiOnly: Flow<Boolean> = dataStore.data.map { it[Keys.WIFI_ONLY] ?: false }
     suspend fun setWifiOnly(value: Boolean) = set(Keys.WIFI_ONLY, value)
+
+    val maxConcurrentInstalls: Flow<Int> = dataStore.data.map {
+        (it[Keys.MAX_CONCURRENT_INSTALLS] ?: DEFAULT_MAX_CONCURRENT_INSTALLS).coerceIn(CONCURRENT_INSTALLS_RANGE)
+    }
+    suspend fun setMaxConcurrentInstalls(value: Int) =
+        set(Keys.MAX_CONCURRENT_INSTALLS, value.coerceIn(CONCURRENT_INSTALLS_RANGE))
 
     val protocolTooNew: Flow<Boolean> = dataStore.data.map { it[Keys.PROTOCOL_TOO_NEW] ?: false }
     suspend fun setProtocolTooNew(value: Boolean) = set(Keys.PROTOCOL_TOO_NEW, value)

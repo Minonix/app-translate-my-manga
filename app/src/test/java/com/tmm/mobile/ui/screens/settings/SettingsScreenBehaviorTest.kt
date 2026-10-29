@@ -65,6 +65,9 @@ class SettingsScreenBehaviorTest {
                             SettingsEvent.ToggleFollowed -> state.copy(followedExpanded = !state.followedExpanded)
                             is SettingsEvent.Unfollow, SettingsEvent.Reimport -> state
                             SettingsEvent.CheckUpdate, SettingsEvent.InstallUpdate -> state
+                            SettingsEvent.DecreaseConcurrentInstalls -> state.copy(maxConcurrentInstalls = state.maxConcurrentInstalls - 1)
+                            SettingsEvent.IncreaseConcurrentInstalls -> state.copy(maxConcurrentInstalls = state.maxConcurrentInstalls + 1)
+                            SettingsEvent.UnblockDownloads -> state.copy(toast = SettingsToast.Unblocked(2, 1))
                         }
                     },
                     onNavigateOnboarding = { onboardingNavigated = true },
@@ -253,5 +256,24 @@ class SettingsScreenBehaviorTest {
         composeRule.onNodeWithText("Journaux").performScrollTo().assertExists()
         composeRule.onNodeWithText("Exporter").performScrollTo().performClick()
         assertTrue(events.contains(SettingsEvent.ExportLogs))
+    }
+
+    // Avancé : limite d'installations simultanees (− / +) et bouton de deblocage avec son bilan.
+    @Test
+    fun advanced_concurrentInstallsStepperAndUnblockReport() {
+        val getState = setState()
+        openAdvanced()
+        composeRule.onNodeWithText("Installations simultanées").performScrollTo().assertExists()
+        composeRule.onNodeWithText("10 chapitres installés à la fois").assertExists()
+        composeRule.onNodeWithText("+").performScrollTo().performClick()
+        assertEquals(11, getState().maxConcurrentInstalls)
+        composeRule.onNodeWithText("11 chapitres installés à la fois").assertExists()
+        composeRule.onNodeWithText("−").performClick()
+        assertEquals(10, getState().maxConcurrentInstalls)
+
+        composeRule.onNodeWithText("Débloquer les téléchargements").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Relancer").performScrollTo().performClick()
+        assertTrue(events.contains(SettingsEvent.UnblockDownloads))
+        composeRule.onNodeWithText("Relancés : 2 · déjà actifs : 1").assertExists()
     }
 }

@@ -104,6 +104,7 @@ class RefreshCoordinator(
     // ponytail: en memoire seulement, un redemarrage de l'app relance le delai de 10 min ; a persister
     // si des jobs bloques passent inapercus apres des redemarrages frequents.
     private val absentSince = mutableMapOf<String, Long>()
+    private val installRecovery = InstallRecovery(db, prefs, workManager, clock)
 
     suspend fun refresh() {
         if (!mutex.tryLock()) return
@@ -413,6 +414,15 @@ class RefreshCoordinator(
         db.jobDao().observeAll().first()
             .filter { it.phoneState == "RESULT_READY" }
             .forEach { workManager.enqueueInstallJob(it.jobId, wifiOnly) }
+        // Installations figees (DOWNLOADING sans travail vivant apres une OutOfMemoryError, worker bloque) :
+        // relancees ici, sans action de l'utilisateur. Jamais bloquant pour le reste du rafraichissement.
+        try {
+            installRecovery.recover()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLog.d("RefreshCoordinator", "relance des installations impossible : ${e.javaClass.simpleName} ${e.message}")
+        }
     }
 
     // R9 : age du heartbeat mesure cote serveur (en-tete Date - modifiedTime Drive, ou cursor ISO-8601 -

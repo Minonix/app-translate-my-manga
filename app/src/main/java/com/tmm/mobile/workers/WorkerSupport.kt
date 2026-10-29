@@ -61,7 +61,7 @@ fun buildConstraints(wifiOnly: Boolean): Constraints = Constraints.Builder()
     .build()
 
 // REPLACE sert a relancer tout de suite un envoi en attente de backoff (renvoi en direct, voir
-// JobRepository.resendStalledDriveJobs) ; KEEP partout ailleurs.
+// JobRepository.resendStalledDriveJobs) ou une installation figee (InstallRecovery) ; KEEP partout ailleurs.
 fun WorkManager.enqueueSendJob(jobId: String, wifiOnly: Boolean, policy: ExistingWorkPolicy = ExistingWorkPolicy.KEEP) {
     val request = OneTimeWorkRequestBuilder<SendJobWorker>()
         .setConstraints(buildConstraints(wifiOnly))
@@ -72,14 +72,14 @@ fun WorkManager.enqueueSendJob(jobId: String, wifiOnly: Boolean, policy: Existin
     enqueueUniqueWork(sendWorkName(jobId), policy, request)
 }
 
-fun WorkManager.enqueueInstallJob(jobId: String, wifiOnly: Boolean) {
+fun WorkManager.enqueueInstallJob(jobId: String, wifiOnly: Boolean, policy: ExistingWorkPolicy = ExistingWorkPolicy.KEEP) {
     val request = OneTimeWorkRequestBuilder<InstallJobWorker>()
         .setConstraints(buildConstraints(wifiOnly))
         .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_DELAY_SECONDS, TimeUnit.SECONDS)
         .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         .setInputData(Data.Builder().putString(KEY_JOB_ID, jobId).build())
         .build()
-    enqueueUniqueWork(installWorkName(jobId), ExistingWorkPolicy.KEEP, request)
+    enqueueUniqueWork(installWorkName(jobId), policy, request)
 }
 
 fun WorkManager.enqueueOutbox(wifiOnly: Boolean) {

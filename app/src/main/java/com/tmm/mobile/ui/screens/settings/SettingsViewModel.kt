@@ -7,7 +7,9 @@ import com.tmm.mobile.BuildConfig
 import com.tmm.mobile.core.AppContainer
 import java.io.File
 import com.tmm.mobile.core.Formatters
+import com.tmm.mobile.data.CONCURRENT_INSTALLS_RANGE
 import com.tmm.mobile.data.DEFAULT_DIRECT_URL
+import com.tmm.mobile.data.InstallRecovery
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
 import com.tmm.mobile.data.Retention
 import com.tmm.mobile.data.db.BackupImportEntity
@@ -62,6 +64,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { observeMihonFolder() }
         viewModelScope.launch { observeRetention() }
         viewModelScope.launch { observeWifiOnly() }
+        viewModelScope.launch {
+            container.prefs.maxConcurrentInstalls.collect { max -> _state.update { it.copy(maxConcurrentInstalls = max) } }
+        }
         viewModelScope.launch { observeBackupInfo() }
         viewModelScope.launch { observeLogsInfo() }
         viewModelScope.launch { loadTranslationSummary() }
@@ -327,6 +332,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             SettingsEvent.ToggleWifiOnly -> onEvent(SettingsEvent.SetWifiOnly(!_state.value.wifiOnly))
             // Le vrai export (CreateDocument) est lance par SettingsRoute ; onLogsExported() affiche le toast.
             SettingsEvent.ExportLogs -> Unit
+            SettingsEvent.DecreaseConcurrentInstalls -> changeConcurrentInstalls(-1)
+            SettingsEvent.IncreaseConcurrentInstalls -> changeConcurrentInstalls(+1)
+            SettingsEvent.UnblockDownloads -> unblockDownloads()
             SettingsEvent.DismissToast -> _state.update { it.copy(toast = null) }
             is SettingsEvent.DirectUrlChanged -> _state.update { it.copy(directUrl = event.url.trim()) }
             is SettingsEvent.PairingCodeChanged ->
@@ -428,6 +436,33 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun onLogsExported() = showToast(SettingsToast.LogsReady)
+
+    // Bornage fait par AppPrefs (ecriture et lecture) ; l'etat suit la preference relue.
+    private fun changeConcurrentInstalls(delta: Int) {
+        val next = (_state.value.maxConcurrentInstalls + delta).coerceIn(CONCURRENT_INSTALLS_RANGE)
+        _state.update { it.copy(maxConcurrentInstalls = next) }
+        viewModelScope.launch { container.prefs.setMaxConcurrentInstalls(next) }
+    }
+
+    // Relance immediate des installations sans travail vivant (seuil STALL_MINUTES ignore) ; un
+    // telechargement actif qui progresse n'est jamais touche. Ne supprime rien.
+    private fun unblockDownloads() {
+        if (_state.value.unblocking) return
+        _state.update { it.copy(unblocking = true) }
+        viewModelScope.launch {
+            val report = try {
+                InstallRecovery(container.db, container.prefs, container.workManager, container.clock).recover(force = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("SettingsViewModel", "deblocage impossible : ${e.javaClass.simpleName} ${e.message}")
+                null
+            } finally {
+                _state.update { it.copy(unblocking = false) }
+            }
+            showToast(report?.let { SettingsToast.Unblocked(it.relaunched, it.alreadyActive) } ?: SettingsToast.UnblockFailed)
+        }
+    }
 
     private fun showToast(toast: SettingsToast) {
         toastJob?.cancel()

@@ -1,6 +1,10 @@
 package com.tmm.mobile.data
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -14,11 +18,12 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 class AppPrefsTest {
     private lateinit var prefs: AppPrefs
+    private lateinit var dataStore: DataStore<Preferences>
 
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val dataStore = PreferenceDataStoreFactory.create(
+        dataStore = PreferenceDataStoreFactory.create(
             produceFile = { File(context.filesDir, "test_prefs.preferences_pb") },
         )
         prefs = AppPrefs(dataStore)
@@ -70,5 +75,22 @@ class AppPrefsTest {
         assertEquals("a@b.com", prefs.googleEmail.first())
         prefs.setGoogleEmail(null)
         assertEquals(null, prefs.googleEmail.first())
+    }
+
+    // Installations simultanees : 10 par defaut, bornees 1..20 a l'ecriture comme a la lecture.
+    @Test fun maxConcurrentInstalls_defaultsTo10_andIsClampedOnWriteAndRead() = runTest {
+        assertEquals(10, prefs.maxConcurrentInstalls.first())
+        prefs.setMaxConcurrentInstalls(0)
+        assertEquals(1, prefs.maxConcurrentInstalls.first())
+        prefs.setMaxConcurrentInstalls(50)
+        assertEquals(20, prefs.maxConcurrentInstalls.first())
+        prefs.setMaxConcurrentInstalls(7)
+        assertEquals(7, prefs.maxConcurrentInstalls.first())
+
+        // Valeur hors bornes deja enregistree (ecrite sans passer par le setter) : relue bornee.
+        dataStore.edit { it[intPreferencesKey("max_concurrent_installs")] = 99 }
+        assertEquals(20, prefs.maxConcurrentInstalls.first())
+        dataStore.edit { it[intPreferencesKey("max_concurrent_installs")] = -3 }
+        assertEquals(1, prefs.maxConcurrentInstalls.first())
     }
 }

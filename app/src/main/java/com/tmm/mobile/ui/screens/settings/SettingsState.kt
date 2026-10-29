@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.screens.settings
 
 import com.tmm.mobile.core.AppRelease
+import com.tmm.mobile.data.DEFAULT_MAX_CONCURRENT_INSTALLS
 import java.io.File
 
 enum class DriveRetention(val index: Int) {
@@ -22,6 +23,9 @@ sealed interface SettingsToast {
     data object Paired : SettingsToast
     data object PairFailed : SettingsToast
     data object UpdateFailed : SettingsToast
+    // Bilan du bouton « Débloquer les téléchargements ».
+    data class Unblocked(val relaunched: Int, val alreadyActive: Int) : SettingsToast
+    data object UnblockFailed : SettingsToast
 }
 
 // Connexion directe (Tailscale) : etat affiche dans les Reglages.
@@ -64,6 +68,9 @@ data class SettingsState(
     val lastBackupInfo: String = "Aujourd'hui 03:00 · 142 séries",
     val pcTranslationSummary: String = "Gemini · japonais vers français · 4 en parallèle",
     val wifiOnly: Boolean = false,
+    // AppPrefs.maxConcurrentInstalls, deja borne (CONCURRENT_INSTALLS_RANGE).
+    val maxConcurrentInstalls: Int = DEFAULT_MAX_CONCURRENT_INSTALLS,
+    val unblocking: Boolean = false,
     val logsInfo: String = "7 derniers jours · 240 Ko",
     val toast: SettingsToast? = null,
     val directStatus: DirectStatus = DirectStatus.NotPaired,
@@ -93,6 +100,9 @@ sealed interface SettingsEvent {
     data class SetWifiOnly(val enabled: Boolean) : SettingsEvent
     data object ToggleWifiOnly : SettingsEvent
     data object ExportLogs : SettingsEvent
+    data object DecreaseConcurrentInstalls : SettingsEvent
+    data object IncreaseConcurrentInstalls : SettingsEvent
+    data object UnblockDownloads : SettingsEvent
     data object DismissToast : SettingsEvent
     data class DirectUrlChanged(val url: String) : SettingsEvent
     data class PairingCodeChanged(val code: String) : SettingsEvent

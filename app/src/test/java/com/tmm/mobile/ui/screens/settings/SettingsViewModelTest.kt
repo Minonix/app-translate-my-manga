@@ -10,6 +10,8 @@ import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.QueueCounts
 import com.tmm.mobile.protocol.SettingsValues
 import com.tmm.mobile.workers.WorkerTestEnvironment
+import com.tmm.mobile.workers.enqueueInstallJob
+import com.tmm.mobile.workers.installWorkName
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -169,5 +171,57 @@ class SettingsViewModelTest {
 
         assertTrue(vm.state.value.wifiOnly)
         assertTrue(env.prefs.wifiOnly.first { it })
+    }
+
+    private fun downloadingJob(jobId: String) = com.tmm.mobile.data.db.JobEntity(
+        jobId = jobId, mode = "translate", pages = null, translate = true,
+        mihonPath = "MangaSource/Titre/$jobId", sourceDir = "MangaSource", seriesDir = "Titre", chapterDir = jobId,
+        seriesKey = null, chapterKey = null, phoneState = "DOWNLOADING",
+        failedStep = null, errorMessage = null, driveFolderId = null, uploadSessionUrl = null,
+        cachePath = null, sha256 = null, sizeBytes = null, transferredBytes = 300, transferTotal = 1000,
+        pcState = null, pcStage = null, pcPage = null, pcPages = null, pcEngine = null,
+        pcQueuePosition = null, pcErrorCode = null, pcErrorMessage = null, pcErrorPage = null,
+        statusUpdatedAt = null, resultJson = null, resultFileId = "result-file",
+        createdAt = env.clock.millis, updatedAt = env.clock.millis, finishedAt = null, installedAt = null, installedPath = null,
+        receivedWrittenAt = null, cancelWrittenAt = null, driveDeletedAt = null,
+    )
+
+    // « Débloquer les téléchargements » : relance l'orphelin tout de suite (seuil ignore), laisse le
+    // telechargement actif, et affiche le bilan. Rien n'est supprime.
+    @Test fun onEvent_unblockDownloads_relaunchesOrphansAndShowsReport() = runTest {
+        env.db.jobDao().upsert(downloadingJob("orphan"))
+        env.db.jobDao().upsert(downloadingJob("active"))
+        env.container.workManager.enqueueInstallJob("active", wifiOnly = false)
+        val vm = SettingsViewModel(env.container)
+        vm.state.first()
+
+        vm.onEvent(SettingsEvent.UnblockDownloads)
+
+        val state = vm.state.first { it.toast is SettingsToast.Unblocked }
+        assertEquals(SettingsToast.Unblocked(relaunched = 1, alreadyActive = 1), state.toast)
+        assertFalse(state.unblocking)
+        val orphanWork = env.container.workManager.getWorkInfosForUniqueWorkFlow(installWorkName("orphan")).first()
+        assertTrue(orphanWork.any { !it.state.isFinished })
+        assertEquals(2, env.db.jobDao().observeAll().first().size)
+    }
+
+    @Test fun onEvent_concurrentInstalls_stepsWithinBounds() = runTest {
+        val vm = SettingsViewModel(env.container)
+        vm.state.first { it.maxConcurrentInstalls == 10 }
+
+        vm.onEvent(SettingsEvent.IncreaseConcurrentInstalls)
+        assertEquals(11, env.prefs.maxConcurrentInstalls.first { it == 11 })
+
+        env.prefs.setMaxConcurrentInstalls(1)
+        vm.state.first { it.maxConcurrentInstalls == 1 }
+        vm.onEvent(SettingsEvent.DecreaseConcurrentInstalls)
+        assertEquals(1, vm.state.value.maxConcurrentInstalls)
+        assertEquals(1, env.prefs.maxConcurrentInstalls.first())
+
+        env.prefs.setMaxConcurrentInstalls(20)
+        vm.state.first { it.maxConcurrentInstalls == 20 }
+        vm.onEvent(SettingsEvent.IncreaseConcurrentInstalls)
+        assertEquals(20, vm.state.value.maxConcurrentInstalls)
+        assertEquals(20, env.prefs.maxConcurrentInstalls.first())
     }
 }

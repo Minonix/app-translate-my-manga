@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.BuildConfig
 import com.tmm.mobile.R
+import com.tmm.mobile.data.CONCURRENT_INSTALLS_RANGE
 import com.tmm.mobile.ui.components.TmmSwitch
 import com.tmm.mobile.ui.components.TmmText
 import com.tmm.mobile.ui.components.TmmToast
@@ -286,6 +287,30 @@ fun SettingsScreen(
                             isLink = true,
                             onRowClick = onNavigateOnboarding,
                         )
+                        // Limite d'installations simultanees : 1 a 20, bornee par AppPrefs.
+                        SettingsRow(
+                            label = stringResource(R.string.settings_row_concurrent_installs),
+                            value = pluralStringResource(
+                                R.plurals.settings_concurrent_installs_value,
+                                state.maxConcurrentInstalls,
+                                state.maxConcurrentInstalls,
+                            ),
+                            secondaryActionText = stringResource(R.string.settings_stepper_minus),
+                            secondaryActionLabel = stringResource(R.string.settings_concurrent_installs_decrease),
+                            secondaryActionEnabled = state.maxConcurrentInstalls > CONCURRENT_INSTALLS_RANGE.first,
+                            onSecondaryActionClick = { onEvent(SettingsEvent.DecreaseConcurrentInstalls) },
+                            actionButtonText = stringResource(R.string.settings_stepper_plus),
+                            actionButtonLabel = stringResource(R.string.settings_concurrent_installs_increase),
+                            actionEnabled = state.maxConcurrentInstalls < CONCURRENT_INSTALLS_RANGE.last,
+                            onActionClick = { onEvent(SettingsEvent.IncreaseConcurrentInstalls) },
+                        )
+                        SettingsRow(
+                            label = stringResource(R.string.settings_row_unblock),
+                            value = stringResource(R.string.settings_row_unblock_desc),
+                            actionButtonText = stringResource(R.string.settings_action_unblock),
+                            actionEnabled = !state.unblocking,
+                            onActionClick = { onEvent(SettingsEvent.UnblockDownloads) },
+                        )
                         SettingsRow(
                             label = stringResource(R.string.settings_row_logs),
                             value = state.logsInfo,
@@ -315,13 +340,15 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsToastHost(state: SettingsState, onEvent: (SettingsEvent) -> Unit, modifier: Modifier) {
-    val toastMessage = when (state.toast) {
+    val toastMessage = when (val toast = state.toast) {
         SettingsToast.ChooseAccount -> stringResource(R.string.settings_toast_choose_account)
         SettingsToast.FolderPicker -> stringResource(R.string.settings_toast_folder_picker)
         SettingsToast.LogsReady -> stringResource(R.string.settings_toast_logs_ready)
         SettingsToast.Paired -> stringResource(R.string.settings_toast_paired)
         SettingsToast.PairFailed -> stringResource(R.string.settings_toast_pair_failed)
         SettingsToast.UpdateFailed -> stringResource(R.string.settings_toast_update_failed)
+        is SettingsToast.Unblocked -> stringResource(R.string.settings_toast_unblocked, toast.relaunched, toast.alreadyActive)
+        SettingsToast.UnblockFailed -> stringResource(R.string.settings_toast_unblock_failed)
         null -> ""
     }
     TmmToast(
@@ -644,8 +671,15 @@ private fun SettingsRow(
     isMono: Boolean = false,
     showBottomDivider: Boolean = true,
     actionButtonText: String? = null,
+    // Libelle d'accessibilite du bouton, si son texte seul ne suffit pas (« + », « − »).
+    actionButtonLabel: String? = null,
     actionEnabled: Boolean = true,
     onActionClick: (() -> Unit)? = null,
+    // Second bouton, place avant le premier (stepper « − » / « + »).
+    secondaryActionText: String? = null,
+    secondaryActionLabel: String? = null,
+    secondaryActionEnabled: Boolean = true,
+    onSecondaryActionClick: (() -> Unit)? = null,
     isToggle: Boolean = false,
     toggleChecked: Boolean = false,
     onToggleChange: ((Boolean) -> Unit)? = null,
@@ -693,28 +727,21 @@ private fun SettingsRow(
                 )
             }
 
+            if (secondaryActionText != null) {
+                RowActionButton(
+                    text = secondaryActionText,
+                    label = secondaryActionLabel ?: secondaryActionText,
+                    enabled = secondaryActionEnabled,
+                    onClick = { onSecondaryActionClick?.invoke() },
+                )
+            }
             if (actionButtonText != null) {
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(9.dp))
-                        .border(1.dp, TmmColors.CD5CDBC, RoundedCornerShape(9.dp))
-                        .background(TmmColors.paperRaised)
-                        .clickable(
-                            role = Role.Button,
-                            onClickLabel = actionButtonText,
-                            enabled = actionEnabled,
-                            onClick = { onActionClick?.invoke() },
-                        )
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TmmText(
-                        text = actionButtonText,
-                        style = TmmType.sans(13, weight = 600),
-                        color = TmmColors.ink,
-                    )
-                }
+                RowActionButton(
+                    text = actionButtonText,
+                    label = actionButtonLabel ?: actionButtonText,
+                    enabled = actionEnabled,
+                    onClick = { onActionClick?.invoke() },
+                )
             } else if (isToggle && onToggleChange != null) {
                 TmmSwitch(
                     checked = toggleChecked,
@@ -742,6 +769,32 @@ private fun SettingsRow(
                     .background(TmmColors.line),
             )
         }
+    }
+}
+
+@Composable
+private fun RowActionButton(text: String, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .border(1.dp, TmmColors.CD5CDBC, RoundedCornerShape(9.dp))
+            .background(TmmColors.paperRaised)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = label,
+                enabled = enabled,
+                onClick = onClick,
+            )
+            .then(if (label != text) Modifier.semantics { contentDescription = label } else Modifier)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        TmmText(
+            text = text,
+            style = TmmType.sans(13, weight = 600),
+            color = TmmColors.ink,
+        )
     }
 }
 

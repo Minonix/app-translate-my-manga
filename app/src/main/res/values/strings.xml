@@ -374,6 +374,20 @@
     <string name="settings_wifi_only_off_desc">Envois aussi en données mobiles</string>
     <string name="settings_row_logs">Journaux</string>
     <string name="settings_action_export">Exporter</string>
+    <string name="settings_row_concurrent_installs">Installations simultanées</string>
+    <plurals name="settings_concurrent_installs_value">
+        <item quantity="one">%1$d chapitre installé à la fois</item>
+        <item quantity="other">%1$d chapitres installés à la fois</item>
+    </plurals>
+    <string name="settings_concurrent_installs_decrease">Une installation simultanée de moins</string>
+    <string name="settings_concurrent_installs_increase">Une installation simultanée de plus</string>
+    <string name="settings_stepper_minus">−</string>
+    <string name="settings_stepper_plus">+</string>
+    <string name="settings_row_unblock">Débloquer les téléchargements</string>
+    <string name="settings_row_unblock_desc">Relance les réceptions figées, sans rien supprimer</string>
+    <string name="settings_action_unblock">Relancer</string>
+    <string name="settings_toast_unblocked">Relancés : %1$d · déjà actifs : %2$d</string>
+    <string name="settings_toast_unblock_failed">Déblocage impossible, réessayez</string>
     <string name="settings_update_group">Application</string>
     <string name="settings_update_version_fmt">Version %1$s</string>
     <string name="settings_update_checking">Recherche d\'une mise à jour…</string>
