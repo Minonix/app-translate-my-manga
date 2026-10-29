@@ -31,8 +31,18 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 private const val NOTIFICATION_ID_INSTALL = 2
+
+// Chaque chapitre a son propre travail unique : apres une nuit de traductions, des dizaines de
+// resultats arrivent ensemble et WorkManager les lancait tous en parallele (telechargement, client
+// OkHttp de couverture, couverture de 10 Mo en memoire, liste SAF par job) -> OutOfMemoryError.
+// Les installations passent donc par ce verrou de processus, quelques-unes a la fois ; les autres
+// attendent suspendues (sans thread bloque) et la file se vide par lots.
+private const val MAX_CONCURRENT_INSTALLS = 2
+private val installSlots = Semaphore(MAX_CONCURRENT_INSTALLS)
 
 // PLAN_GEMINI.md 5.12/5.13/8.4 : RESULT_READY -> DOWNLOADING (telechargement + verif sha256/taille
 // contre ResultJson.file, pas contre JobEntity.sha256/sizeBytes qui decrivent l'envoi) -> installation
@@ -47,8 +57,15 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
     override suspend fun doWork(): Result {
         val jobId = inputData.getString(KEY_JOB_ID) ?: return Result.failure()
         val container = (applicationContext as TmmApp).container
+        val job = container.db.jobDao().get(jobId) ?: return Result.success()
+        if (job.phoneState != "RESULT_READY" && job.phoneState != "DOWNLOADING") return Result.success()
+        return installSlots.withPermit { install(jobId, container) }
+    }
+
+    private suspend fun install(jobId: String, container: AppContainer): Result {
         val db = container.db
         val clock = container.clock
+        // Relu apres l'attente du verrou : le job a pu etre oublie, remis a plat ou installe entre-temps.
         val job = db.jobDao().get(jobId) ?: return Result.success()
         if (job.phoneState != "RESULT_READY" && job.phoneState != "DOWNLOADING") return Result.success()
         // Etape en cours, pour le failedStep et le code d'un echec d'E/S : "download" ou "install".
