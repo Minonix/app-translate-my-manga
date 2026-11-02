@@ -15,6 +15,15 @@ data class LocalInstallResult(val success: Boolean, val installedDocId: String?,
 // R10 : ecriture en flux (pas de fichier entier en memoire) ; l'ancien chapitre est mis de cote sous un
 // nom cache et n'est supprime qu'une fois le nouveau en place (restaure si le renommage final echoue).
 class LocalInstaller(private val fs: MihonFs) {
+    companion object {
+        // Partage entre les workers, meme si chacun ouvre son propre MihonTree.
+        // ponytail: verrou global court, limite a la recherche/creation du dossier SAF.
+        private val folderLock = Any()
+        // Nombre borne de verrous : les series differentes restent paralleles.
+        private val seriesLocks = Array(64) { Any() }
+        private fun seriesLock(docId: String) = seriesLocks[(docId.hashCode() and Int.MAX_VALUE) % seriesLocks.size]
+    }
+
 
     fun install(
         localRootDocId: String,
@@ -38,60 +47,65 @@ class LocalInstaller(private val fs: MihonFs) {
         expectedSize: Long,
         expectedSha256: String,
     ): LocalInstallResult {
-        val folderDocId = fs.findChild(localRootDocId, localFolderName)?.docId
-            ?: fs.createDir(localRootDocId, localFolderName)
+        val folderDocId = synchronized(folderLock) {
+            val existing = fs.findChild(localRootDocId, localFolderName)
+            require(existing == null || existing.isDirectory) { "Le nom de serie est deja un fichier" }
+            existing?.docId ?: fs.createDir(localRootDocId, localFolderName)
+        }
 
-        val tmpName = ".$chapterFileName.tmm-$jobId.tmp"
-        val backupName = ".$chapterFileName.tmm-$jobId.old"
-        // Restes d'un essai interrompu : un createFile sur un nom pris donnerait « nom (1) ».
-        fs.findChild(folderDocId, tmpName)?.let { fs.delete(it.docId) }
-        val tmpDocId = fs.createFile(folderDocId, tmpName, "application/octet-stream")
-        val digest = MessageDigest.getInstance("SHA-256")
-        var actualSize = 0L
-        openContent().use { input ->
-            fs.openOutput(tmpDocId).use { out ->
-                val buffer = ByteArray(64 * 1024)
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read < 0) break
-                    out.write(buffer, 0, read)
-                    digest.update(buffer, 0, read)
-                    actualSize += read
+        return synchronized(seriesLock(folderDocId)) {
+            val tmpName = ".$chapterFileName.tmm-$jobId.tmp"
+            val backupName = ".$chapterFileName.tmm-$jobId.old"
+            // Restes d'un essai interrompu : un createFile sur un nom pris donnerait « nom (1) ».
+            fs.findChild(folderDocId, tmpName)?.let { fs.delete(it.docId) }
+            val tmpDocId = fs.createFile(folderDocId, tmpName, "application/octet-stream")
+            val digest = MessageDigest.getInstance("SHA-256")
+            var actualSize = 0L
+            openContent().use { input ->
+                fs.openOutput(tmpDocId).use { out ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        out.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
+                        actualSize += read
+                    }
                 }
             }
-        }
 
-        if (actualSize != expectedSize) {
-            fs.delete(tmpDocId)
-            return LocalInstallResult(false, null, "taille inattendue: $actualSize != $expectedSize")
-        }
-        val actualSha = digest.digest().joinToString("") { "%02x".format(it) }
-        if (actualSha != expectedSha256) {
-            fs.delete(tmpDocId)
-            return LocalInstallResult(false, null, "sha256 inattendu")
-        }
+            if (actualSize != expectedSize) {
+                fs.delete(tmpDocId)
+                return LocalInstallResult(false, null, "taille inattendue: $actualSize != $expectedSize")
+            }
+            val actualSha = digest.digest().joinToString("") { "%02x".format(it) }
+            if (actualSha != expectedSha256) {
+                fs.delete(tmpDocId)
+                return LocalInstallResult(false, null, "sha256 inattendu")
+            }
 
-        // L'ancien chapitre est renomme (pas supprime) : si la suite echoue, il est remis en place.
-        val backupDocId = fs.findChild(folderDocId, chapterFileName)?.let { old ->
-            fs.findChild(folderDocId, backupName)?.let { fs.delete(it.docId) }
-            fs.rename(old.docId, backupName)
-        }
+            // L'ancien chapitre est renomme (pas supprime) : si la suite echoue, il est remis en place.
+            val backupDocId = fs.findChild(folderDocId, chapterFileName)?.let { old ->
+                fs.findChild(folderDocId, backupName)?.let { fs.delete(it.docId) }
+                fs.rename(old.docId, backupName)
+            }
 
-        val renamedDocId = try {
-            fs.rename(tmpDocId, chapterFileName)
-        } catch (e: Exception) {
-            restore(backupDocId, chapterFileName)
-            throw e
-        }
-        val renamedEntry = fs.findChild(folderDocId, chapterFileName)
-        if (renamedEntry == null || renamedEntry.docId != renamedDocId) {
-            fs.delete(renamedDocId)
-            restore(backupDocId, chapterFileName)
-            return LocalInstallResult(false, null, "renommage final different du nom attendu")
-        }
+            val renamedDocId = try {
+                fs.rename(tmpDocId, chapterFileName)
+            } catch (e: Exception) {
+                restore(backupDocId, chapterFileName)
+                throw e
+            }
+            val renamedEntry = fs.findChild(folderDocId, chapterFileName)
+            if (renamedEntry == null || renamedEntry.docId != renamedDocId) {
+                fs.delete(renamedDocId)
+                restore(backupDocId, chapterFileName)
+                return LocalInstallResult(false, null, "renommage final different du nom attendu")
+            }
 
-        backupDocId?.let { fs.delete(it) }
-        return LocalInstallResult(true, renamedDocId, null)
+            backupDocId?.let { fs.delete(it) }
+            LocalInstallResult(true, renamedDocId, null)
+        }
     }
 
     /**
@@ -106,8 +120,10 @@ class LocalInstaller(private val fs: MihonFs) {
     }
 
     /** Meme chose quand le contenu du dossier est deja liste (scan de local/). */
-    fun ensureCoverIn(folderDocId: String, children: List<MihonDocEntry>, image: () -> Pair<String, ByteArray>?): Boolean {
-        if (children.any { !it.isDirectory && isCoverName(it.name) }) return false
+    @Suppress("UNUSED_PARAMETER")
+    fun ensureCoverIn(folderDocId: String, children: List<MihonDocEntry>, image: () -> Pair<String, ByteArray>?): Boolean = synchronized(seriesLock(folderDocId)) {
+        // La liste du scan peut dater d'avant une autre installation : relire sous le verrou.
+        if (fs.children(folderDocId).any { !it.isDirectory && isCoverName(it.name) }) return false
         val (ext, bytes) = image() ?: return false
         val name = "cover.${ext.lowercase().ifBlank { "jpg" }}"
         val tmpName = ".$name.tmm.tmp"

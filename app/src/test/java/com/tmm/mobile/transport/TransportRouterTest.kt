@@ -154,6 +154,26 @@ class TransportRouterTest {
         assertNull(env.prefs.hubSlot.tokenEnc.first())
     }
 
+    @Test fun retryRecovery_targetsPcEvenWhenHubIsPaired() = runTest {
+        val hub = server()
+        val pc = server()
+        pairHub(hub.url("/").toString())
+        pairPc(pc.url("/").toString())
+        val original = job(CHANNEL_PC_DIRECT).copy(pcState = "queued", pcStage = "waiting_recovery")
+        env.db.jobDao().upsert(original)
+        env.container.jobRepository.retryRecovery(original.jobId)
+        assertEquals(0, hub.requestCount)
+        val request = requireNotNull(pc.takeRequest(5, java.util.concurrent.TimeUnit.SECONDS))
+        assertEquals("/api/remote/v1/commands", request.url.encodedPath)
+        assertEquals("POST", request.method)
+        val command = com.tmm.mobile.protocol.ProtocolJson.decodeFromString(
+            com.tmm.mobile.protocol.SettingsCommand.serializer(), requireNotNull(request.body).utf8(),
+        )
+        assertEquals("retry", command.type)
+        assertEquals(original.jobId, command.jobId)
+        assertEquals(original, env.db.jobDao().get(original.jobId))
+    }
+
     private fun job(channel: String) = JobEntity(
         jobId = "job-$channel", mode = "translate", pages = null, translate = true,
         mihonPath = "S/T/C", sourceDir = "S", seriesDir = "T", chapterDir = "C",

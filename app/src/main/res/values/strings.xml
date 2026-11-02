@@ -539,4 +539,6 @@
     <string name="notification_channel_transfers">Envois et réceptions</string>
     <string name="notification_sending">Envoi en cours</string>
     <string name="notification_receiving">Réception en cours</string>
+    <string name="activity_recovery_waiting">Original indisponible · récupération en attente</string>
+    <string name="activity_recovery_retry">Relancer sur le PC</string>
 </resources>

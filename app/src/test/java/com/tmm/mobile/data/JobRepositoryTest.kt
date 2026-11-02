@@ -254,6 +254,37 @@ class JobRepositoryTest {
         assertTrue(env.db.jobDao().get("job-new") != null)
     }
 
+    @Test fun retryRecovery_writesDriveCommand_withoutRecreatingJob() = runTest {
+        val original = job("recover", "SENT").copy(pcState = "queued", pcStage = "waiting_recovery")
+        env.db.jobDao().upsert(original)
+        env.container.jobRepository.retryRecovery(original.jobId)
+        val commandsId = requireNotNull(env.prefs.driveCommandsId.first())
+        val file = env.drive.files.values.single { commandsId in it.parents && it.name.endsWith(".json") }
+        val command = com.tmm.mobile.protocol.ProtocolJson.decodeFromString(
+            com.tmm.mobile.protocol.SettingsCommand.serializer(), String(file.bytes),
+        )
+        assertEquals("retry", command.type)
+        assertEquals(original.jobId, command.jobId)
+        assertTrue(command.changes.isEmpty())
+        assertEquals(listOf(original), env.db.jobDao().observeAll().first())
+    }
+
+    @Test fun retryRecovery_ignoresHubOrdinaryQueuedAndTerminalJobs() = runTest {
+        val base = job("recover", "SENT").copy(pcState = "queued", pcStage = "waiting_recovery")
+        val variants = listOf(
+            base.copy(channel = com.tmm.mobile.data.db.CHANNEL_DIRECT),
+            base.copy(pcStage = null), base.copy(pcState = "failed"),
+            base.copy(phoneState = "CANCEL_REQUESTED"), base.copy(phoneState = "FAILED"),
+        )
+        for (variant in variants) {
+            env.db.jobDao().upsert(variant)
+            env.container.jobRepository.retryRecovery(variant.jobId)
+            assertEquals(variant, env.db.jobDao().get(variant.jobId))
+        }
+        val commandsId = requireNotNull(env.prefs.driveCommandsId.first())
+        assertTrue(env.drive.files.values.none { commandsId in it.parents && it.name.endsWith(".json") })
+    }
+
     private fun job(jobId: String, phoneState: String, driveFolderId: String? = null) = JobEntity(
         jobId = jobId, mode = "translate", pages = null, translate = true,
         mihonPath = "MangaSource/Titre/Chapitre 1", sourceDir = "MangaSource", seriesDir = "Titre", chapterDir = "Chapitre 1",

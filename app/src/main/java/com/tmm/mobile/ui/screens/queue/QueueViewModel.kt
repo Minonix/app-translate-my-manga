@@ -53,6 +53,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         val activeTab: QueueTab = QueueTab.Active,
         val focusedJobIndex: Int = 0,
         val expandedDoneMihonPaths: Set<String> = emptySet(),
+        val retryingRecovery: Set<String> = emptySet(),
     )
 
     private data class Raw(
@@ -130,6 +131,17 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                 jobRepository.verifyPage(mihonPath, event.page - 1)
             }
             is QueueEvent.RetryFailedJob -> launchSafely { jobRepository.retry(event.jobId) }
+            is QueueEvent.RetryRecovery -> {
+                if (event.jobId in _ui.value.retryingRecovery) return
+                _ui.update { it.copy(retryingRecovery = it.retryingRecovery + event.jobId) }
+                launchSafely {
+                    try {
+                        jobRepository.retryRecovery(event.jobId)
+                    } finally {
+                        _ui.update { it.copy(retryingRecovery = it.retryingRecovery - event.jobId) }
+                    }
+                }
+            }
             // Ids lus a l'instant du clic : JobRepository.cancel ignore un job deja parti plus loin.
             QueueEvent.CancelAllWaiting -> cancelEach(state.value.waitingJobs.map { it.id })
             QueueEvent.CancelAllUploads -> cancelEach(state.value.transfers.filter { it.isUpload }.map { it.jobId })
@@ -266,6 +278,10 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                     auto = job.mode == JobMode.TRANSLATE && job.seriesKey in r.autoSeries,
                     handoff = handoffOf(job),
                     pcQueuePosition = job.pcQueuePosition,
+                    waitingRecovery = job.pcState == "queued" && job.pcStage == "waiting_recovery",
+                    canRetryRecovery = job.phoneState == "SENT" && job.pcState == "queued" && job.pcStage == "waiting_recovery" &&
+                        job.channel in setOf(com.tmm.mobile.data.db.CHANNEL_DRIVE, com.tmm.mobile.data.db.CHANNEL_PC_DIRECT),
+                    retryingRecovery = job.jobId in ui.retryingRecovery,
                 )
             }
 

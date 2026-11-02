@@ -58,6 +58,16 @@ class QueueScreenBehaviorTest {
         return { state }
     }
 
+    @Test fun waitingRecovery_emitsRetryForExistingJob() {
+        val waiting = MockupData.queue.waitingJobs.first().copy(
+            waitingRecovery = true, canRetryRecovery = true,
+        )
+        setState(MockupData.queue.copy(activeJobs = emptyList(), transfers = emptyList(), waitingJobs = listOf(waiting)))
+        composeRule.onNodeWithText("Original indisponible · récupération en attente").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Relancer sur le PC").performScrollTo().performClick()
+        assertTrue(QueueEvent.RetryRecovery(waiting.id) in events)
+    }
+
     @Test
     fun initialState_showsHeaderTabsAndFocusedJob() {
         val getState = setState(MockupData.queue)
