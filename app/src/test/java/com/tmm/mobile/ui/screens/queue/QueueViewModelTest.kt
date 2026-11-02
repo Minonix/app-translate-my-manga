@@ -74,6 +74,30 @@ class QueueViewModelTest {
         Heartbeat(pcName = "PC-BUREAU", appVersion = "1.0", updatedAt = "2026-01-01T00:00:00Z", slots = 4, activeJobIds = activeJobIds, queue = QueueCounts(0, 0, 0)),
     )
 
+    @Test fun recoveryRetry_isOnlyOfferedForSupportedWaitingJobs() = runTest {
+        val waiting = baseJob("recover", "Mihon/frieren/138", "SENT").copy(
+            pcState = "queued", pcStage = "waiting_recovery", channel = CHANNEL_DRIVE,
+        )
+        env.db.jobDao().upsert(waiting)
+        val vm = newVm()
+        val state = vm.state.first { it.waitingJobs.size == 1 }
+        assertTrue(state.waitingJobs.single().waitingRecovery)
+        assertTrue(state.waitingJobs.single().canRetryRecovery)
+        vm.onEvent(QueueEvent.RetryRecovery(waiting.jobId))
+        val commandsId = requireNotNull(env.prefs.driveCommandsId.first())
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            kotlinx.coroutines.withTimeout(5_000) {
+                while (env.drive.files.values.none { commandsId in it.parents && String(it.bytes).contains("recover") }) {
+                    kotlinx.coroutines.delay(10)
+                }
+            }
+        }
+        assertEquals(listOf(waiting), env.db.jobDao().observeAll().first())
+        env.db.jobDao().upsert(waiting.copy(channel = CHANNEL_DIRECT))
+        val hub = vm.state.first { it.waitingJobs.singleOrNull()?.canRetryRecovery == false }
+        assertTrue(hub.waitingJobs.single().waitingRecovery)
+    }
+
     @Test
     fun activity_excludesStaleHeartbeatAndFailedJobs_andCountsTransfersOnce() = runTest {
         val jobs = listOf(

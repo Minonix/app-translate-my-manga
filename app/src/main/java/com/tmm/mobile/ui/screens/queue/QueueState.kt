@@ -51,6 +51,9 @@ data class WaitingJob(
     val handoff: Handoff = Handoff.Pending,
     /** Rang dans la file du PC, quand il l'a donné. */
     val pcQueuePosition: Int? = null,
+    val waitingRecovery: Boolean = false,
+    val canRetryRecovery: Boolean = false,
+    val retryingRecovery: Boolean = false,
 )
 
 enum class Handoff {
@@ -141,6 +144,7 @@ sealed interface QueueEvent {
     data class ToggleDoneJobDetails(val index: Int) : QueueEvent
     data class VerifyPage(val doneIndex: Int, val page: Int) : QueueEvent
     data class RetryFailedJob(val jobId: String) : QueueEvent
+    data class RetryRecovery(val jobId: String) : QueueEvent
 
     /** « Tout annuler » sur « Ensuite » : chaque chapitre en attente, comme la croix de sa ligne. */
     data object CancelAllWaiting : QueueEvent

@@ -11,6 +11,15 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.17.0] - 2026-11-02
+
+### Ajoute
+- File : affiche les chapitres en attente de leur original et permet de relancer leur recuperation sur le PC par Drive ou connexion PC directe, sans recreer le job.
+
+### Corrige
+- Imports simultanes : creation du dossier de serie atomique, sans doublon « (1) ».
+- Installations d'une meme serie et couvertures protegees contre les ecritures concurrentes.
+
 ## [1.16.1] - 2026-10-29
 
 ### Corrige

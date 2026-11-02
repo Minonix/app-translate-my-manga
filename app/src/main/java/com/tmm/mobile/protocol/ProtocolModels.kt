@@ -227,6 +227,10 @@ data class SettingsCommand(
     @OptIn(ExperimentalSerializationApi::class)
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val delete: DeletePayload? = null,
+    // Reprise de recuperation : le job existant est conserve, sans nouvel envoi du chapitre.
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val jobId: String? = null,
 )
 
 // Charge utile d'une commande "delete" : fichiers PC a supprimer pour ces chapitres (original et/ou

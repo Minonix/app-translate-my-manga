@@ -308,6 +308,22 @@ class JobRepository(
         }
     }
 
+    // Le Hub non deploye ne connait pas encore cette commande : rester sur le canal du job PC.
+    suspend fun retryRecovery(jobId: String) {
+        val job = db.jobDao().get(jobId) ?: return
+        if (job.phoneState != "SENT" || job.pcState != "queued" || job.pcStage != "waiting_recovery" ||
+            job.channel !in setOf(com.tmm.mobile.data.db.CHANNEL_DRIVE, com.tmm.mobile.data.db.CHANNEL_PC_DIRECT)
+        ) return
+        router.forJob(job).writeCommand(
+            com.tmm.mobile.protocol.SettingsCommand(
+                cmdId = UUID.randomUUID().toString(),
+                createdAt = java.time.Instant.ofEpochMilli(clock.nowMillis()).toString(),
+                type = "retry", baseVersion = 0,
+                changes = kotlinx.serialization.json.JsonObject(emptyMap()), jobId = job.jobId,
+            ),
+        )
+    }
+
     // Suppression best-effort du dossier du job ; false si elle a echoue (le PC peut encore le voir).
     private suspend fun deleteFolder(job: JobEntity): Boolean = try {
         router.forJob(job).deleteJobFolder(job)

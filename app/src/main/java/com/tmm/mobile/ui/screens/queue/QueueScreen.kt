@@ -450,13 +450,23 @@ private fun WaitingRow(job: WaitingJob, divider: Boolean, onEvent: (QueueEvent) 
                         ?: stringResource(R.string.activity_handoff_received)
                 }
                 TmmText(
-                    text = handoff,
+                    text = if (job.waitingRecovery) stringResource(R.string.activity_recovery_waiting) else handoff,
                     style = TmmType.sans(12),
                     color = if (job.handoff == Handoff.ReceivedByPc) C.green else C.muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
                 )
+                if (job.canRetryRecovery) {
+                    V2Button(
+                        label = stringResource(R.string.activity_recovery_retry),
+                        onClick = { onEvent(QueueEvent.RetryRecovery(job.id)) },
+                        enabled = !job.retryingRecovery,
+                        style = V2ButtonStyle.Ink,
+                        size = V2ButtonSize.Small,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
             }
             val cd = stringResource(R.string.activity_remove_cd_fmt, job.title)
             Box(
