@@ -11,7 +11,7 @@
 
 ## 🤖 Projet Conçu avec Assistance IA
 
-Ce projet a été développé en binôme (Pair Programming) avec des agents d'intelligence artificielle avancés (**Claude Opus/Sonnet**, **Google Gemini** et l'environnement **Antigravity**). L'architecture logicielle, l'implémentation Kotlin / Jetpack Compose, la suite de tests et la documentation ont été réalisés sous supervision humaine rigoureuse.
+Ce projet a été développé avec des agents d'intelligence artificielle avancés (**Claude Opus/Sonnet**, **Google Gemini** et l'environnement **Antigravity**). L'architecture logicielle, l'implémentation Kotlin / Jetpack Compose et la documentation ont été réalisés sous supervision humaine.
 
 ---
 
