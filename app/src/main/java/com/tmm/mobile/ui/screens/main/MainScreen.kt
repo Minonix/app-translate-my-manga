@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
+import com.tmm.mobile.ui.components.BlockingNotice
 import com.tmm.mobile.ui.components.ProgressBar
 import com.tmm.mobile.ui.components.RefreshButton
 import com.tmm.mobile.ui.components.TmmButton
@@ -75,6 +76,7 @@ fun MainScreen(
         ) {
             MainHeader(state = state, onEvent = onEvent)
             if (state.isOffline && state.offlineSinceLabel != null) OfflineNotice(state.offlineSinceLabel)
+            state.blocking?.let { BlockingNotice(it, onClick = onOpenQueue) }
             // Sections vides masquees : spacedBy n'espace que les enfants emis, donc pas de trou.
             // La carte "A faire" reste visible pendant une installation en cours (sinon elle
             // disparaitrait au milieu de la progression, toGetCount baissant a chaque installation) ;

@@ -389,6 +389,7 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
             waitingJobs = waitingJobs,
             doneJobs = doneJobs,
             failedJobs = failedJobs,
+            blocking = ErrorCatalog.blockingError(r.jobs),
         )
         return Built(state, ::jobLabel)
     }

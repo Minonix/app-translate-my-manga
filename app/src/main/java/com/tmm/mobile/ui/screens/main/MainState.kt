@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.screens.main
 
+import com.tmm.mobile.data.status.ErrorInfo
 import androidx.compose.ui.graphics.Color
 
 /** Trois états possibles du PC compagnon (Main.dc.html, prop pcState). */
@@ -61,6 +62,8 @@ data class MainState(
     val toast: MainToast? = null,
     val followedSeries: List<MainFollowedSeries> = emptyList(),
     val installTotal: Int = 0,
+    // Erreur PC bloquante (cle, quota, disque...) non suivie d'un succes : bandeau en tete.
+    val blocking: ErrorInfo? = null,
 ) {
     val isOffline: Boolean get() = pcTone == PcTone.Offline
 }

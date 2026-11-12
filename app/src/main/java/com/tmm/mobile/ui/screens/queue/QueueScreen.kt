@@ -49,6 +49,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tmm.mobile.R
 import com.tmm.mobile.data.status.ErrorAction
+import com.tmm.mobile.ui.components.BlockingNotice
 import com.tmm.mobile.ui.components.Cover
 import com.tmm.mobile.ui.components.PillTone
 import com.tmm.mobile.ui.components.StatusPill
@@ -93,6 +94,9 @@ fun QueueScreen(
         item(key = "top", contentType = "top") {
             Column {
                 Header(onOpenNewTranslation)
+                state.blocking?.let { info ->
+                    BlockingNotice(info, Modifier.padding(bottom = 12.dp), onClick = { onEvent(QueueEvent.SelectTab(QueueTab.Fail)) })
+                }
                 Segment(state, onEvent)
                 Row(
                     Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 14.dp),

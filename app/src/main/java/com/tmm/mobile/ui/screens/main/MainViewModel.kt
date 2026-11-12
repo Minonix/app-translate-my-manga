@@ -1,5 +1,6 @@
 package com.tmm.mobile.ui.screens.main
 
+import com.tmm.mobile.data.status.ErrorCatalog
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -246,6 +247,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             queueJobs = queueJobs,
             lastScanLabel = if (prefsSnap.lastScanAt == 0L) "Jamais scanné" else "Dernier scan " + Formatters.relativeFr(prefsSnap.lastScanAt, now),
             recentChapters = recentChapters(room.jobs, seriesByKey, downloadedByPath),
+            blocking = ErrorCatalog.blockingError(room.jobs),
         )
     }
 

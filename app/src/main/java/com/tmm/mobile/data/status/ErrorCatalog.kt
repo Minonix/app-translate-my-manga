@@ -7,7 +7,12 @@ import com.tmm.mobile.data.db.JobEntity
 // docs/ERREURS_PROTOCOLE.md §1 : action proposee a l'utilisateur pour un code d'erreur.
 enum class ErrorAction { RESEND, UPDATE_PC, RETRY, REDELIVER, RECONNECT_DRIVE, REPAIR, OPEN_PERMISSION, UPDATE_APP, NONE }
 
-data class ErrorInfo(val code: String, @StringRes val label: Int, val action: ErrorAction)
+/**
+ * [blocking] : erreur qui bloquera aussi les envois suivants tant que l'utilisateur ne la corrige pas
+ * sur le PC (cle refusee, credit epuise, disque plein...). Un bandeau la montre sur l'accueil et
+ * l'activite, au lieu de la laisser noyee dans la liste des echecs.
+ */
+data class ErrorInfo(val code: String, @StringRes val label: Int, val action: ErrorAction, val blocking: Boolean = false)
 
 /** Codes locaux au telephone (§1.2), stockes dans JobEntity.errorCode, jamais ecrits sur Drive. */
 object LocalErrorCode {
@@ -33,16 +38,16 @@ object LocalErrorCode {
 object ErrorCatalog {
     val pcJob: Map<String, ErrorInfo> = listOf(
         ErrorInfo("bad_request", R.string.error_pc_bad_request, ErrorAction.RESEND),
-        ErrorInfo("protocol", R.string.error_pc_protocol, ErrorAction.UPDATE_PC),
+        ErrorInfo("protocol", R.string.error_pc_protocol, ErrorAction.UPDATE_PC, blocking = true),
         ErrorInfo("source_missing", R.string.error_pc_source_missing, ErrorAction.RESEND),
         ErrorInfo("integrity", R.string.error_pc_integrity, ErrorAction.RESEND),
         ErrorInfo("duplicate", R.string.error_pc_duplicate, ErrorAction.NONE),
-        ErrorInfo("disk_full", R.string.error_pc_disk_full, ErrorAction.RETRY),
-        ErrorInfo("model_missing", R.string.error_pc_model_missing, ErrorAction.NONE),
-        ErrorInfo("api_key", R.string.error_pc_api_key, ErrorAction.RETRY),
-        ErrorInfo("provider_quota", R.string.error_pc_provider_quota, ErrorAction.RETRY),
+        ErrorInfo("disk_full", R.string.error_pc_disk_full, ErrorAction.RETRY, blocking = true),
+        ErrorInfo("model_missing", R.string.error_pc_model_missing, ErrorAction.NONE, blocking = true),
+        ErrorInfo("api_key", R.string.error_pc_api_key, ErrorAction.RETRY, blocking = true),
+        ErrorInfo("provider_quota", R.string.error_pc_provider_quota, ErrorAction.RETRY, blocking = true),
         ErrorInfo("engine_crash", R.string.error_pc_engine_crash, ErrorAction.RETRY),
-        ErrorInfo("drive_quota", R.string.error_pc_drive_quota, ErrorAction.REDELIVER),
+        ErrorInfo("drive_quota", R.string.error_pc_drive_quota, ErrorAction.REDELIVER, blocking = true),
         ErrorInfo("job_lost", R.string.error_pc_job_lost, ErrorAction.RETRY),
         ErrorInfo("translation_failed", R.string.error_pc_translation_failed, ErrorAction.RETRY),
     ).associateBy { it.code }
@@ -92,4 +97,19 @@ object ErrorCatalog {
         job.errorCode == LocalErrorCode.PC_STALLED -> forLocal(job.errorCode)
         else -> unknown(job.errorCode ?: job.pcErrorCode)
     }
+
+    /**
+     * Erreur bloquante la plus recente parmi les echecs encore affiches, ou null. Disparait des qu'un
+     * job a de nouveau abouti apres elle (le PC a ete corrige) ou une fois les echecs vides.
+     */
+    fun blockingError(jobs: List<JobEntity>): ErrorInfo? {
+        val last = jobs.filter { it.isFailed() }
+            .map { it to forJob(it) }
+            .filter { it.second.blocking }
+            .maxByOrNull { it.first.updatedAt } ?: return null
+        val recovered = jobs.any { it.phoneState in RECOVERED_STATES && it.updatedAt > last.first.updatedAt }
+        return if (recovered) null else last.second
+    }
+
+    private val RECOVERED_STATES = setOf("RESULT_READY", "DOWNLOADING", "INSTALLED")
 }

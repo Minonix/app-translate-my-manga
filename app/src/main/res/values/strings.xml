@@ -323,6 +323,9 @@
     <string name="activity_action_update_app">Mettez à jour TMM Mobile.</string>
 
     <!-- Libellés des codes d'erreur (docs/ERREURS_PROTOCOLE.md §1) -->
+    <string name="blocking_title_fmt">Traduction bloquée sur le PC : %1$s</string>
+    <string name="blocking_hint_key">La clé du fournisseur (ex. Gemini) est refusée ou sans crédit. Rechargez-la ou changez-la dans l’app PC, puis réessayez les échecs dans Activité.</string>
+    <string name="blocking_hint_other">Les chapitres suivants échoueront pareil tant que ce n’est pas corrigé sur le PC. Réessayez ensuite les échecs dans Activité.</string>
     <string name="error_pc_bad_request">demande illisible par le PC</string>
     <string name="error_pc_protocol">version du PC trop ancienne</string>
     <string name="error_pc_source_missing">chapitre original absent sur le PC</string>

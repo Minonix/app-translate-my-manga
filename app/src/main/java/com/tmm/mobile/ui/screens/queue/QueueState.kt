@@ -3,6 +3,7 @@ package com.tmm.mobile.ui.screens.queue
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import com.tmm.mobile.data.status.ErrorAction
+import com.tmm.mobile.data.status.ErrorInfo
 
 /** Onglets de l'écran Activité (maquette v2, écran 7). */
 enum class QueueTab { Active, Done, Fail }
@@ -129,6 +130,8 @@ data class QueueState(
     val waitingJobs: List<WaitingJob> = emptyList(),
     val doneJobs: List<DoneJob> = emptyList(),
     val failedJobs: List<FailedJob> = emptyList(),
+    // Erreur PC bloquante non suivie d'un succes : bandeau en tete de l'activite.
+    val blocking: ErrorInfo? = null,
 ) {
     val activeCount: Int get() = activeJobs.size + transfers.size + waitingJobs.size
     val doneCount: Int get() = doneJobs.size
