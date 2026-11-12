@@ -1,6 +1,16 @@
 package com.tmm.mobile.ui.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animate
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
+import kotlin.math.roundToInt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -391,6 +401,39 @@ private fun V2SheetFrame(
     body: @Composable ColumnScope.() -> Unit,
 ) {
     if (visible) BackHandler(onBack = onDismiss)
+    // Glisser vers le bas pour fermer : la poignee le promettait sans le permettre. Le surplus de
+    // defilement vers le bas (liste deja en haut) descend la feuille ; au relachement, elle se ferme
+    // au-dela du seuil ou sur un geste rapide, sinon elle remonte.
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(visible) { if (visible) dragOffset = 0f }
+    val dismissPx = with(LocalDensity.current) { SHEET_DISMISS_DISTANCE.toPx() }
+    val currentDismiss by rememberUpdatedState(onDismiss)
+    val dragConnection = remember(dismissPx) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y >= 0f || dragOffset <= 0f) return Offset.Zero
+                val consumed = maxOf(available.y, -dragOffset)
+                dragOffset += consumed
+                return Offset(0f, consumed)
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput || available.y <= 0f) return Offset.Zero
+                dragOffset += available.y
+                return Offset(0f, available.y)
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (dragOffset <= 0f) return Velocity.Zero
+                if (shouldDismissSheet(dragOffset, available.y, dismissPx)) {
+                    currentDismiss()
+                } else {
+                    animate(dragOffset, 0f, animationSpec = tween(180)) { value, _ -> dragOffset = value }
+                }
+                return available
+            }
+        }
+    }
     AnimatedVisibility(visible = visible, enter = fadeIn(tween(200)), exit = fadeOut(tween(200))) {
         Box(
             modifier = Modifier
@@ -406,6 +449,8 @@ private fun V2SheetFrame(
             ) {
                 Column(
                     modifier = modifier
+                        .offset { IntOffset(0, dragOffset.roundToInt()) }
+                        .nestedScroll(dragConnection)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .background(C.bg)
@@ -420,6 +465,13 @@ private fun V2SheetFrame(
         }
     }
 }
+
+private val SHEET_DISMISS_DISTANCE = 110.dp
+private const val SHEET_DISMISS_VELOCITY = 1400f
+
+/** Fermeture d'une feuille glissee : au-dela de la distance seuil, ou geste rapide vers le bas. */
+internal fun shouldDismissSheet(offsetPx: Float, velocityY: Float, thresholdPx: Float): Boolean =
+    offsetPx > thresholdPx || (offsetPx > 0f && velocityY > SHEET_DISMISS_VELOCITY)
 
 /**
  * `.toast` : bandeau noir en bas d'ecran. `durationMs` est allonge par l'appelant quand le toast porte
