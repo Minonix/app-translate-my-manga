@@ -1,6 +1,40 @@
 package com.tmm.mobile.ui.screens.library
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -76,11 +110,32 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
     onRefresh: suspend () -> Unit = {},
 ) {
+    // Retour en mode selection : on quitte la selection, pas l'ecran.
+    BackHandler(enabled = state.picking) { onEvent(LibraryEvent.TogglePicking) }
+    val gridState = rememberLazyGridState()
+    // En-tete replie des qu'on fait defiler la grille vers le bas, deplie en remontant tout en haut.
+    // Pilote par le sens du geste et non par la position : replier l'en-tete agrandit la grille,
+    // ce qui pouvait ramener la position a 0 et faire osciller l'en-tete sur une courte liste.
+    var collapsed by remember { mutableStateOf(false) }
+    val collapse = remember(gridState) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -2f && gridState.canScrollForward) collapsed = true
+                if (available.y > 2f && !gridState.canScrollBackward) collapsed = false
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (available.y > 0f) collapsed = false
+                return Offset.Zero
+            }
+        }
+    }
     Box(modifier = modifier.background(TmmColors.paper)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            LibraryHeader(state = state, onEvent = onEvent)
+        Column(modifier = Modifier.fillMaxSize().nestedScroll(collapse)) {
+            LibraryHeader(state = state, onEvent = onEvent, collapsed = collapsed)
             PullToRefresh(onRefresh, Modifier.weight(1f)) {
-                LibraryGrid(state = state, onEvent = onEvent, onOpenSeries = onOpenSeries)
+                LibraryGrid(state = state, gridState = gridState, onEvent = onEvent, onOpenSeries = onOpenSeries)
             }
             if (state.hasSelection) {
                 SelectionActionBar(state = state, onEvent = onEvent)
@@ -148,65 +203,98 @@ private fun LibraryToastHost(toast: LibraryToast?, onEvent: (LibraryEvent) -> Un
 }
 
 @Composable
-private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit) {
-    Column(
-        modifier = Modifier.padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            TmmText(text = stringResource(R.string.library_title), style = TmmType.display(40, weight = 800))
-            TmmText(
-                text = stringResource(R.string.library_v2_subtitle, state.allSeries.size,
-                    state.allSeries.count { it.onPhone == 0 }),
-                style = TmmType.sans(14), color = TmmColors.textMuted,
-            )
+private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, collapsed: Boolean) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp).padding(top = if (collapsed) 12.dp else 24.dp, bottom = 10.dp)) {
+        AnimatedVisibility(visible = !collapsed, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            Column(Modifier.padding(bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                TmmText(text = stringResource(R.string.library_title), style = TmmType.display(40, weight = 800))
+                TmmText(
+                    text = stringResource(R.string.library_v2_subtitle, state.allSeries.size,
+                        state.allSeries.count { it.onPhone == 0 }),
+                    style = TmmType.sans(14), color = TmmColors.textMuted,
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             TmmSearchField(value = state.query, onValueChange = { onEvent(LibraryEvent.QueryChanged(it)) },
                 placeholder = stringResource(R.string.library_search_placeholder), modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier.size(50.dp).clip(RoundedCornerShape(16.dp))
-                    .background(TmmColors.V2.white).border(1.5.dp, TmmColors.V2.line, RoundedCornerShape(16.dp))
-                    .clickable { onEvent(LibraryEvent.OpenFilters) }, contentAlignment = Alignment.Center,
-            ) {
-                TmmIcon(TmmIconId.Filter, size = 20.dp, contentDescription = stringResource(R.string.library_filters_title))
+            HeaderIconBox(TmmIconId.Filter, stringResource(R.string.library_filters_title), active = false) {
+                onEvent(LibraryEvent.OpenFilters)
             }
+            // Icone plutot qu'un lien rouge « Selectionner / Terminer » ; un appui long sur une serie
+            // ouvre aussi la selection. Fond encre = selection en cours, la croix la quitte.
+            HeaderIconBox(
+                icon = if (state.picking) TmmIconId.V2X else TmmIconId.CheckboxChecked,
+                contentDescription = stringResource(if (state.picking) R.string.library_finish_button else R.string.library_select_button),
+                active = state.picking,
+            ) { onEvent(LibraryEvent.TogglePicking) }
         }
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TmmChip(
-                label = stringResource(R.string.library_v2_category, if (state.category == "Tous") stringResource(R.string.library_v2_all_categories) else state.category),
-                selected = state.category != "Tous", onClick = { onEvent(LibraryEvent.OpenFilters) },
-            )
-            viewFilterOptions().filter { it.first !in listOf(LibraryViewFilter.Downloaded, LibraryViewFilter.OnPc) }.forEach { (view, label) ->
-                TmmChip(label = label, selected = state.view == view,
-                    count = state.copy(query = "", view = view).visibleSeries.size,
-                    onClick = { onEvent(LibraryEvent.SelectView(view)) })
+        AnimatedVisibility(visible = !collapsed, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TmmChip(
+                        label = stringResource(R.string.library_v2_category, if (state.category == "Tous") stringResource(R.string.library_v2_all_categories) else state.category),
+                        selected = state.category != "Tous", onClick = { onEvent(LibraryEvent.OpenFilters) },
+                    )
+                    viewFilterOptions().filter { it.first !in listOf(LibraryViewFilter.Downloaded, LibraryViewFilter.OnPc) }.forEach { (view, label) ->
+                        TmmChip(label = label, selected = state.view == view,
+                            count = state.copy(query = "", view = view).visibleSeries.size,
+                            onClick = { onEvent(LibraryEvent.SelectView(view)) })
+                    }
+                }
+                if (!state.picking) {
+                    TmmText(text = stringResource(when (state.sort) {
+                        LibrarySort.RecentlyAdded -> R.string.library_sort_recent
+                        LibrarySort.Title -> R.string.library_sort_title
+                        LibrarySort.ToTranslateFirst -> R.string.library_sort_todo_first
+                    }), style = TmmType.sans(13), color = TmmColors.textMuted)
+                }
             }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            TmmText(text = stringResource(when (state.sort) {
-                LibrarySort.RecentlyAdded -> R.string.library_sort_recent
-                LibrarySort.Title -> R.string.library_sort_title
-                LibrarySort.ToTranslateFirst -> R.string.library_sort_todo_first
-            }), style = TmmType.sans(13), color = TmmColors.textMuted)
-            TmmText(text = stringResource(if (state.picking) R.string.library_finish_button else R.string.library_select_button),
-                style = TmmType.sans(14, weight = 600), color = TmmColors.V2.red,
-                modifier = Modifier.clickable { onEvent(LibraryEvent.TogglePicking) }.padding(vertical = 8.dp))
         }
         if (state.picking) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TmmText(text = stringResource(R.string.library_picking_hint), style = TmmType.sans(13))
-                TmmText(text = if (state.allVisibleSelected) stringResource(R.string.library_deselect_all)
-                    else stringResource(R.string.library_select_all_fmt, state.visibleSeries.size),
-                    style = TmmType.sans(13, weight = 600), color = TmmColors.V2.red,
-                    modifier = Modifier.clickable { onEvent(LibraryEvent.ToggleSelectAll) })
+            Row(
+                Modifier.fillMaxWidth().padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TmmText(text = stringResource(R.string.library_picking_hint), style = TmmType.sans(13), color = TmmColors.textMuted, modifier = Modifier.weight(1f))
+                // Tout cocher / tout decocher : la meme case, pleine quand tout le visible est coche.
+                HeaderIconBox(
+                    icon = TmmIconId.CheckboxChecked,
+                    contentDescription = if (state.allVisibleSelected) stringResource(R.string.library_deselect_all)
+                        else stringResource(R.string.library_select_all_fmt, state.visibleSeries.size),
+                    active = state.allVisibleSelected,
+                    small = true,
+                ) { onEvent(LibraryEvent.ToggleSelectAll) }
             }
         }
     }
 }
 
+/** Bouton carre a icone de l'en-tete (filtres, selection). `active` : fond encre, icone blanche. */
 @Composable
-private fun LibraryGrid(state: LibraryState, onEvent: (LibraryEvent) -> Unit, onOpenSeries: (String) -> Unit) {
+private fun HeaderIconBox(
+    icon: TmmIconId,
+    contentDescription: String,
+    active: Boolean,
+    small: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(if (small) 12.dp else 16.dp)
+    Box(
+        modifier = Modifier.size(if (small) 40.dp else 50.dp).clip(shape)
+            .background(if (active) TmmColors.V2.ink else TmmColors.V2.white)
+            .border(1.5.dp, if (active) TmmColors.V2.ink else TmmColors.V2.line, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        TmmIcon(icon, size = if (small) 18.dp else 20.dp, tint = if (active) TmmColors.V2.white else TmmColors.V2.ink)
+    }
+}
+
+@Composable
+private fun LibraryGrid(state: LibraryState, gridState: LazyGridState, onEvent: (LibraryEvent) -> Unit, onOpenSeries: (String) -> Unit) {
     val visible = state.visibleSeries
     if (visible.isEmpty()) {
         EmptyState()
@@ -214,6 +302,8 @@ private fun LibraryGrid(state: LibraryState, onEvent: (LibraryEvent) -> Unit, on
     }
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
+        state = gridState,
+        modifier = Modifier.fillMaxSize().gridDragToSelect(gridState, visible.map { it.seriesKey }, onEvent),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -562,5 +652,76 @@ private fun backupNote(modifiedAt: Long?): String {
         stringResource(R.string.library_v2_filters_note_today_fmt, time)
     } else {
         stringResource(R.string.library_v2_filters_note_date_fmt, at.format(DateTimeFormatter.ofPattern("dd/MM")), time)
+    }
+}
+
+/**
+ * Appui long sur une serie puis glissement, comme dans une galerie : coche toute la plage entre la
+ * premiere serie touchee et celle sous le doigt (ordre d'affichage). Partir d'une serie deja cochee
+ * decoche la plage. Pres des bords, la grille defile seule.
+ */
+private fun Modifier.gridDragToSelect(
+    gridState: LazyGridState,
+    keys: List<String>,
+    onEvent: (LibraryEvent) -> Unit,
+): Modifier = composed {
+    val haptics = LocalHapticFeedback.current
+    val currentKeys by rememberUpdatedState(keys)
+    val send by rememberUpdatedState(onEvent)
+    var pointer by remember { mutableStateOf(Offset.Unspecified) }
+    var speed by remember { mutableFloatStateOf(0f) }
+
+    fun keyAt(p: Offset): String? {
+        if (p == Offset.Unspecified) return null
+        val info = gridState.layoutInfo
+        val y = p.y.toInt() + info.viewportStartOffset
+        val x = p.x.toInt()
+        val item = info.visibleItemsInfo.firstOrNull {
+            y in it.offset.y until it.offset.y + it.size.height && x in it.offset.x until it.offset.x + it.size.width
+        } ?: return null
+        return currentKeys.getOrNull(item.index)
+    }
+
+    LaunchedEffect(gridState) {
+        snapshotFlow { speed != 0f }.collectLatest { scrolling ->
+            while (scrolling) {
+                withFrameNanos { }
+                gridState.scrollBy(speed)
+                keyAt(pointer)?.let { send(LibraryEvent.DragSelectTo(it)) }
+            }
+        }
+    }
+
+    pointerInput(gridState) {
+        val edge = 64.dp.toPx()
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            // Defilement ou relachement avant le delai : la grille et le tap restent normaux.
+            val longPress = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+            val key = keyAt(longPress.position) ?: return@awaitEachGesture
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            pointer = longPress.position
+            send(LibraryEvent.DragSelectStart(key))
+            try {
+                while (true) {
+                    // Passe Initial : la grille ne defile pas et la tuile ne recoit pas de tap pendant le geste.
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                    change.consume()
+                    if (!change.pressed) break
+                    pointer = change.position
+                    val height = size.height.toFloat()
+                    speed = when {
+                        pointer.y < edge -> -(edge - pointer.y) / 4f
+                        pointer.y > height - edge -> (pointer.y - (height - edge)) / 4f
+                        else -> 0f
+                    }
+                    keyAt(pointer)?.let { send(LibraryEvent.DragSelectTo(it)) }
+                }
+            } finally {
+                speed = 0f
+                pointer = Offset.Unspecified
+                send(LibraryEvent.DragSelectEnd)
+            }
+        }
     }
 }

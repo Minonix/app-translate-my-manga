@@ -106,6 +106,10 @@ sealed interface LibraryEvent {
     data object CloseFilters : LibraryEvent
     data class ToggleSelected(val seriesKey: String) : LibraryEvent
     data object ToggleSelectAll : LibraryEvent
+    // Appui long puis glissement sur la grille : plage cochee de l'ancre a la serie sous le doigt.
+    data class DragSelectStart(val seriesKey: String) : LibraryEvent
+    data class DragSelectTo(val seriesKey: String) : LibraryEvent
+    data object DragSelectEnd : LibraryEvent
     data object ExpandCategories : LibraryEvent
     data object OpenMore : LibraryEvent
     data object CloseMore : LibraryEvent

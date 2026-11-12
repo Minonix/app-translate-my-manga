@@ -59,6 +59,9 @@ class LibraryScreenBehaviorTest {
                 if (!add(event.seriesKey)) remove(event.seriesKey)
             },
         )
+        is LibraryEvent.DragSelectStart -> state.copy(picking = true, selected = state.selected + event.seriesKey)
+        is LibraryEvent.DragSelectTo -> state.copy(selected = state.selected + event.seriesKey)
+        LibraryEvent.DragSelectEnd -> state
         LibraryEvent.ToggleSelectAll -> {
             val visibleKeys = state.visibleSeries.map { it.seriesKey }
             state.copy(selected = if (state.allVisibleSelected) emptySet() else visibleKeys.toSet())
@@ -144,20 +147,20 @@ class LibraryScreenBehaviorTest {
     @Test
     fun picking_toggleShowsFinishButtonAndSelectAllHint() {
         setState(MockupData.library)
-        composeRule.onNodeWithText("Sélectionner").performClick()
+        composeRule.onNodeWithContentDescription("Sélectionner").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Terminer").assertExists()
+        composeRule.onNodeWithContentDescription("Terminer").assertExists()
         composeRule.onNodeWithText("Touchez les séries à inclure").assertExists()
-        composeRule.onNodeWithText("Tout cocher (9)").assertExists()
+        composeRule.onNodeWithContentDescription("Tout cocher (9)").assertExists()
     }
 
     @Test
     fun selectAll_thenLabelBecomesDeselectAll() {
         val currentState = setState(MockupData.library.copy(picking = true))
-        composeRule.onNodeWithText("Tout cocher (9)").performClick()
+        composeRule.onNodeWithContentDescription("Tout cocher (9)").performClick()
         composeRule.waitForIdle()
         assertEquals(9, currentState().selectionCount)
-        composeRule.onNodeWithText("Tout décocher").assertExists()
+        composeRule.onNodeWithContentDescription("Tout décocher").assertExists()
     }
 
     @Test

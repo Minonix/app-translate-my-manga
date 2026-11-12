@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.screens.library
 
 import androidx.lifecycle.ViewModel
+import com.tmm.mobile.ui.screens.series.dragSelection
 import androidx.lifecycle.viewModelScope
 import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.data.ChapterDeleter
@@ -104,6 +105,17 @@ class LibraryViewModel(
         }
     }
 
+    private data class DragAnchor(val base: Set<String>, val anchor: String, val adding: Boolean)
+
+    private var drag: DragAnchor? = null
+
+    private fun dragTo(key: String) {
+        val d = drag ?: return
+        val order = state.value.visibleSeries.map { it.seriesKey }
+        val next = dragSelection(order, order.toHashSet(), { emptySet() }, d.base, d.anchor, key, d.adding)
+        ui.update { it.copy(selected = next) }
+    }
+
     fun onEvent(event: LibraryEvent) {
         when (event) {
             is LibraryEvent.QueryChanged -> ui.update { it.copy(query = event.value) }
@@ -117,6 +129,14 @@ class LibraryViewModel(
             is LibraryEvent.ToggleSelected -> ui.update {
                 it.copy(selected = it.selected.toMutableSet().apply { if (!add(event.seriesKey)) remove(event.seriesKey) })
             }
+            is LibraryEvent.DragSelectStart -> {
+                val base = if (ui.value.picking) ui.value.selected else emptySet()
+                drag = DragAnchor(base = base, anchor = event.seriesKey, adding = event.seriesKey !in base)
+                ui.update { it.copy(picking = true, selected = base) }
+                dragTo(event.seriesKey)
+            }
+            is LibraryEvent.DragSelectTo -> dragTo(event.seriesKey)
+            LibraryEvent.DragSelectEnd -> drag = null
             LibraryEvent.ToggleSelectAll -> ui.update {
                 val visible = state.value.visibleSeries.map { s -> s.seriesKey }
                 it.copy(selected = if (state.value.allVisibleSelected) emptySet() else visible.toSet())
