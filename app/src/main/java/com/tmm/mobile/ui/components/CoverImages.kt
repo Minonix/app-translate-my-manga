@@ -11,6 +11,7 @@ import coil3.fetch.Fetcher
 import coil3.fetch.SourceFetchResult
 import coil3.key.Keyer
 import coil3.request.Options
+import com.tmm.mobile.mihon.BlankPage
 import com.tmm.mobile.mihon.CbzPacker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -122,9 +123,10 @@ internal class ChapterPageCoverFetcher(
         val resolver = context.contentResolver
         val bytes = if (data.isCbz) {
             val uri = DocumentsContract.buildDocumentUriUsingTree(data.tree, data.docId)
-            resolver.openInputStream(uri)?.use { CbzPacker.firstPage(it)?.second }
+            resolver.openInputStream(uri)?.use { CbzPacker.coverPage(it)?.second }
         } else {
-            firstDirPage(data)?.let { page -> resolver.openInputStream(page)?.use { it.readBytes() } }
+            val pages = dirPages(data).asSequence().mapNotNull { page -> resolver.openInputStream(page)?.use { it.readBytes() } }
+            BlankPage.pickCover(pages, { it })
         } ?: throw FileNotFoundException("aucune page")
         SourceFetchResult(
             source = ImageSource(Buffer().write(bytes), options.fileSystem),
@@ -133,7 +135,8 @@ internal class ChapterPageCoverFetcher(
         )
     }
 
-    private fun firstDirPage(data: ChapterPageCover): Uri? {
+    /** Premieres pages d'un chapitre en dossier, dans l'ordre naturel (vide si le dossier a disparu). */
+    private fun dirPages(data: ChapterPageCover): List<Uri> {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(data.tree, data.docId)
         val pages = mutableListOf<Pair<String, String>>()
         val projection = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME)
@@ -143,8 +146,9 @@ internal class ChapterPageCoverFetcher(
                 if (CbzPacker.isEligible(name) && CbzPacker.isImage(name)) pages += name to c.getString(0)
             }
         }
-        val first = pages.minWithOrNull(compareBy(CbzPacker.NATURAL_ORDER) { it.first }) ?: return null
-        return DocumentsContract.buildDocumentUriUsingTree(data.tree, first.second)
+        return pages.sortedWith(compareBy(CbzPacker.NATURAL_ORDER) { it.first })
+            .take(BlankPage.MAX_TRIED)
+            .map { DocumentsContract.buildDocumentUriUsingTree(data.tree, it.second) }
     }
 
     class Factory(private val context: Context) : Fetcher.Factory<ChapterPageCover> {
@@ -155,7 +159,8 @@ internal class ChapterPageCoverFetcher(
 
 /** Cle du cache memoire de Coil : sans elle, chaque retour sur l'ecran relirait le chapitre. */
 internal object ChapterPageCoverKeyer : Keyer<ChapterPageCover> {
-    override fun key(data: ChapterPageCover, options: Options): String = "tmm-page:${data.docId}"
+    // « page2 » : les vignettes en cache de l'ancienne regle (premiere page, souvent blanche) sont ignorees.
+    override fun key(data: ChapterPageCover, options: Options): String = "tmm-page2:${data.docId}"
 }
 
 /** Ligne de journal d'un echec de couverture : hote, code HTTP et classe d'erreur, jamais l'URL. */

@@ -157,7 +157,7 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
                 val thumbnailUrl = job.seriesKey?.let { db.seriesDao().get(it)?.thumbnailUrl }
                 val written = withContext(Dispatchers.IO) {
                     LocalInstaller(root.fs).ensureCover(localRootDocId, result.localFolderName) {
-                        downloadCover(thumbnailUrl) ?: dest.inputStream().use { CbzPacker.firstPage(it) }
+                        downloadCover(thumbnailUrl) ?: dest.inputStream().use { CbzPacker.coverPage(it) }
                         ?.let { (name, bytes) -> name.substringAfterLast('.', "jpg") to bytes }
                     }
                 }

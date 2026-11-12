@@ -14,7 +14,11 @@ data class LocalInstallResult(val success: Boolean, val installedDocId: String?,
 // taille+SHA-256, remplacement de l'existant, renommage final. Jamais de .cbz partiel visible.
 // R10 : ecriture en flux (pas de fichier entier en memoire) ; l'ancien chapitre est mis de cote sous un
 // nom cache et n'est supprime qu'une fois le nouveau en place (restaure si le renommage final echoue).
-class LocalInstaller(private val fs: MihonFs) {
+class LocalInstaller(
+    private val fs: MihonFs,
+    // Detecteur de page blanche, injectable pour les tests (les octets factices ne se decodent pas).
+    private val isBlank: (ByteArray) -> Boolean = BlankPage::isBlank,
+) {
     companion object {
         // Partage entre les workers, meme si chacun ouvre son propre MihonTree.
         // ponytail: verrou global court, limite a la recherche/creation du dossier SAF.
@@ -123,14 +127,19 @@ class LocalInstaller(private val fs: MihonFs) {
     @Suppress("UNUSED_PARAMETER")
     fun ensureCoverIn(folderDocId: String, children: List<MihonDocEntry>, image: () -> Pair<String, ByteArray>?): Boolean = synchronized(seriesLock(folderDocId)) {
         // La liste du scan peut dater d'avant une autre installation : relire sous le verrou.
-        if (fs.children(folderDocId).any { !it.isDirectory && isCoverName(it.name) }) return false
+        val existing = fs.children(folderDocId).filter { !it.isDirectory && isCoverName(it.name) }
+        // Une couverture blanche (premiere page de credits posee par une version precedente) est remplacee ;
+        // toute autre couverture existante est gardee.
+        if (existing.isNotEmpty() && existing.none { isBlankCover(it.docId) }) return false
         val (ext, bytes) = image() ?: return false
+        if (existing.isNotEmpty() && isBlank(bytes)) return false
         val name = "cover.${ext.lowercase().ifBlank { "jpg" }}"
         val tmpName = ".$name.tmm.tmp"
         fs.findChild(folderDocId, tmpName)?.let { fs.delete(it.docId) }
         val tmpDocId = fs.createFile(folderDocId, tmpName, "application/octet-stream")
         try {
             fs.openOutput(tmpDocId).use { it.write(bytes) }
+            existing.forEach { fs.delete(it.docId) }
             fs.rename(tmpDocId, name)
         } catch (e: Exception) {
             runCatching { fs.delete(tmpDocId) }
@@ -138,6 +147,9 @@ class LocalInstaller(private val fs: MihonFs) {
         }
         return true
     }
+
+    private fun isBlankCover(docId: String): Boolean =
+        runCatching { fs.openInput(docId).use { isBlank(it.readBytes()) } }.getOrDefault(false)
 
     private fun restore(backupDocId: String?, chapterFileName: String) {
         if (backupDocId != null) runCatching { fs.rename(backupDocId, chapterFileName) }

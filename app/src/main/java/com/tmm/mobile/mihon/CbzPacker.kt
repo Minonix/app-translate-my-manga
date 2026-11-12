@@ -87,6 +87,18 @@ object CbzPacker {
             ?.let { it.name to zis.readBytes() }
     }
 
+    /**
+     * Page de couverture d'un CBZ lu en flux : premiere page non blanche parmi les premieres
+     * ([BlankPage.MAX_TRIED]), sinon la premiere. Les credits blancs en tete donnaient une vignette vide.
+     */
+    fun coverPage(input: InputStream, isBlank: (ByteArray) -> Boolean = BlankPage::isBlank): Pair<String, ByteArray>? =
+        ZipInputStream(input).use { zis ->
+            val pages = generateSequence { zis.nextEntry }
+                .filter { !it.isDirectory && isEligible(it.name) && isImage(it.name) }
+                .map { it.name to zis.readBytes() }
+            BlankPage.pickCover(pages, { it.second }, isBlank)
+        }
+
     fun copyExisting(input: InputStream, output: OutputStream) {
         input.copyTo(output)
     }

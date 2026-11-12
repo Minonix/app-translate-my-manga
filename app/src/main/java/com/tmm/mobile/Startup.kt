@@ -233,4 +233,5 @@ class Startup(
 // 6 : nom de dossier "team_nom" (et non "team_ nom") : rattache les chapitres des teams de traduction.
 // 7 : CBZ relus par ZipFile quand la lecture en flux ne trouve aucune page, images .heif/.heic.
 // 8 : noms compares en NFC (titres japonais decomposes par le stockage), couvertures manquantes de local/.
-private const val MATCHER_VERSION = 8
+// 9 : couvertures blanches (credits en premiere page) remplacees dans local/ par une page pleine.
+private const val MATCHER_VERSION = 9

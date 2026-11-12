@@ -280,8 +280,8 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
 
     /**
      * Serie traduite sans couverture dans local/ : la source Locale de Mihon n'en affichait parfois aucune.
-     * On pose la premiere page du premier chapitre ; l'installation suivante y met la vraie couverture
-     * seulement s'il n'y en a toujours pas (jamais d'ecrasement).
+     * On pose la premiere page non blanche du premier chapitre ; une couverture blanche (credits poses par
+     * une version precedente) est remplacee, toute autre couverture existante est gardee.
      */
     private fun addMissingCover(folder: MihonDocEntry, files: List<MihonDocEntry>) {
         try {
@@ -289,10 +289,10 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 files.filter { it.name.endsWith(".cbz", ignoreCase = true) }
                     .sortedWith(compareBy(CbzPacker.NATURAL_ORDER) { it.name })
                     .take(3)
-                    .firstNotNullOfOrNull { cbz -> fs.openInput(cbz.docId).use { CbzPacker.firstPage(it) } }
+                    .firstNotNullOfOrNull { cbz -> fs.openInput(cbz.docId).use { CbzPacker.coverPage(it) } }
                     ?.let { (name, bytes) -> name.substringAfterLast('.', "jpg") to bytes }
             }
-            if (written) AppLog.d("Scan", "couverture posee dans local/${folder.name}")
+            if (written) AppLog.d("Scan", "couverture posee (manquante ou blanche) dans local/${folder.name}")
         } catch (e: Exception) {
             AppLog.d("Scan", "couverture non posee (local/${folder.name}) : ${e.javaClass.simpleName} ${e.message}")
         }

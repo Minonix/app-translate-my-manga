@@ -137,6 +137,19 @@ class LocalInstallerTest {
         assertEquals(listOf(7, 8), File(folder, "cover.webp").readBytes().map { it.toInt() })
     }
 
+    @Test fun ensureCover_replacesBlankCoverOnly() {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        val folder = File(root, "Serie").apply { mkdirs() }
+        File(folder, "cover.png").writeBytes(byteArrayOf(0))
+        // Octet 0 = page blanche pour ce detecteur factice.
+        val installer = LocalInstaller(FakeMihonFs(root)) { it.firstOrNull() == 0.toByte() }
+
+        assertFalse(installer.ensureCover(root.absolutePath, "Serie") { "jpg" to byteArrayOf(0) })
+        assertTrue(installer.ensureCover(root.absolutePath, "Serie") { "jpg" to byteArrayOf(5) })
+        assertEquals(listOf("cover.jpg"), folder.list()!!.toList())
+        assertFalse(installer.ensureCover(root.absolutePath, "Serie") { error("couverture pleine gardee") })
+    }
+
     @Test fun ensureCover_staleScanDoesNotOverwriteAnotherInstallerCover() {
         val root = kotlin.io.path.createTempDirectory().toFile()
         val folder = File(root, "Serie").apply { mkdirs() }
