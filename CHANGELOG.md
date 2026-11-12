@@ -11,6 +11,20 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.18.0] - 2026-11-12
+
+### Ajoute
+- Reglages : masquer des categories Mihon et des series. Elles disparaissent de l'affichage, des compteurs et de l'Activite ; les donnees sont conservees.
+- Accueil et Activite : bandeau rouge quand le PC est bloque par une erreur fatale (cle API, quota du fournisseur...), avec acces direct aux echecs.
+- Bibliotheque : en-tete qui se replie au defilement, appui long puis glissement pour selectionner plusieurs series, boutons a icone pour selectionner et tout cocher.
+- Fiche serie : la selection se fait sur place (en-tete conserve), Retour quitte d'abord la selection, puces « Tout », « Non traduits » et « Traduits ».
+
+### Corrige
+- Activite > Echecs : le bouton « Vider » n'avait aucun effet.
+- Couvertures de repli : les pages blanches (credits) sont sautees, y compris pour les couvertures deja posees dans local/.
+- Feuilles du bas (filtres, actions) : fermeture en glissant vers le bas.
+- Activite : « Vider », « Tout annuler » et « Annuler les envois » sont de vrais boutons au lieu de liens rouges.
+
 ## [1.17.0] - 2026-11-02
 
 ### Ajoute
