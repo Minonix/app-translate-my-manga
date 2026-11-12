@@ -109,6 +109,9 @@
     <string name="series_select">Sélectionner</string>
     <string name="series_choose_chapters">Choisir des chapitres</string>
     <string name="series_select_done">Terminer</string>
+    <string name="series_quick_all">Tout</string>
+    <string name="series_quick_untranslated">Non traduits</string>
+    <string name="series_quick_translated">Traduits</string>
     <string name="series_chapter_number_fmt">Ch. %1$s</string>
     <string name="series_link_file_cd_fmt">Relier un fichier au ch. %1$s</string>
     <string name="series_link_confirm_title_fmt">Relier au ch. %1$s ?</string>

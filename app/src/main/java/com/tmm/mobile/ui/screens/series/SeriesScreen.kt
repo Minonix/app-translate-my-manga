@@ -59,6 +59,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collectLatest
 import com.tmm.mobile.R
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import com.tmm.mobile.ui.components.TmmChip
+import com.tmm.mobile.ui.components.V2IconBox
 import com.tmm.mobile.ui.components.AutoTag
 import com.tmm.mobile.ui.components.Cover
 import com.tmm.mobile.ui.components.PillTone
@@ -103,6 +108,8 @@ fun SeriesScreen(
     // Bouton dossier d'une ligne non telechargee ou manquante : ouvre le selecteur de fichier (SeriesRoute).
     onLinkFile: (String) -> Unit = {},
 ) {
+    // Retour : quitte d'abord la selection au lieu de revenir a la Bibliotheque.
+    BackHandler(enabled = state.selecting) { onEvent(SeriesEvent.EndSelection) }
     PullToRefresh(onRefresh, modifier.fillMaxSize().background(C.bg)) {
         Box(Modifier.fillMaxSize()) {
             // Liste paresseuse : une serie longue a plus de 1000 chapitres, tous composes d'un coup
@@ -116,14 +123,8 @@ fun SeriesScreen(
                 item(key = "top", contentType = "top") {
                     Column {
                         TopRow(showMore = !state.selecting, onBack = onBack, onMore = { onEvent(SeriesEvent.OpenSeriesMore) })
-                        if (state.selecting) {
-                            TmmText(
-                                text = state.title,
-                                style = TmmType.display(28, weight = 800, letterSpacingEm = -0.3f / 28f),
-                                color = C.ink,
-                                modifier = Modifier.padding(top = 18.dp),
-                            )
-                        } else {
+                        // Selection en place : l'en-tete reste affiche (plus d'effet « nouvelle page »).
+                        run {
                             Header(state)
                             ProgressCard(state.progress)
                             FollowCard(state, onEvent)
@@ -148,10 +149,10 @@ fun SeriesScreen(
                             )
                             if (state.showGap && state.missing.isNotEmpty()) GapBanner(state.missing) { onEvent(SeriesEvent.DismissGap) }
                         }
-                        SectionHeader(
-                            link = stringResource(if (state.selecting) R.string.series_select_done else R.string.series_select),
-                            onLink = { onEvent(if (state.selecting) SeriesEvent.EndSelection else SeriesEvent.StartSelection) },
-                        )
+                        SectionHeader(state.selecting) {
+                            onEvent(if (state.selecting) SeriesEvent.EndSelection else SeriesEvent.StartSelection)
+                        }
+                        if (state.selecting) QuickSelectChips(onEvent)
                     }
                 }
                 chapterItems(state, onEvent, onLinkFile)
@@ -417,23 +418,41 @@ private fun GapBanner(missing: List<Int>, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(link: String, onLink: () -> Unit) {
+private fun SectionHeader(selecting: Boolean, onToggle: () -> Unit) {
     Row(
         Modifier.padding(top = 26.dp, bottom = 12.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         TmmText(
             text = stringResource(R.string.series_chapters_title),
             style = TmmType.display(22, weight = 800, letterSpacingEm = -0.3f / 22f),
             color = C.ink,
         )
-        TmmText(
-            text = link,
-            style = TmmType.sans(14, weight = 600),
-            color = C.red,
-            modifier = Modifier.clickable(role = Role.Button, onClick = onLink),
+        V2IconBox(
+            icon = if (selecting) TmmIconId.V2X else TmmIconId.CheckboxChecked,
+            contentDescription = stringResource(if (selecting) R.string.series_select_done else R.string.series_select),
+            active = selecting,
+            small = true,
+            onClick = onToggle,
         )
+    }
+}
+
+/** Puces de selection rapide, visibles en mode selection. */
+@Composable
+private fun QuickSelectChips(onEvent: (SeriesEvent) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        listOf(
+            QuickSelect.All to R.string.series_quick_all,
+            QuickSelect.Untranslated to R.string.series_quick_untranslated,
+            QuickSelect.Translated to R.string.series_quick_translated,
+        ).forEach { (kind, label) ->
+            TmmChip(label = stringResource(label), selected = false, onClick = { onEvent(SeriesEvent.QuickSelectChapters(kind)) })
+        }
     }
 }
 

@@ -566,3 +566,28 @@ fun Modifier.v2Card(background: Color = C.card, borderColor: Color = C.line, rad
     val shape = RoundedCornerShape(radius)
     return clip(shape).background(background).border(1.dp, borderColor, shape)
 }
+
+/**
+ * Bouton carre a icone (filtre, selection, tout cocher) : remplace les liens texte rouges « Sélectionner »,
+ * « Terminé », « Tout cocher », peu lisibles. Fond encre quand [active] (mode en cours).
+ */
+@Composable
+fun V2IconBox(
+    icon: TmmIconId,
+    contentDescription: String,
+    active: Boolean,
+    small: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(if (small) 12.dp else 16.dp)
+    Box(
+        modifier = Modifier.size(if (small) 40.dp else 50.dp).clip(shape)
+            .background(if (active) TmmColors.V2.ink else TmmColors.V2.white)
+            .border(1.5.dp, if (active) TmmColors.V2.ink else TmmColors.V2.line, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        TmmIcon(icon, size = if (small) 18.dp else 20.dp, tint = if (active) TmmColors.V2.white else TmmColors.V2.ink)
+    }
+}

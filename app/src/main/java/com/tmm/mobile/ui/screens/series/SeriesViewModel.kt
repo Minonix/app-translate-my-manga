@@ -188,6 +188,10 @@ class SeriesViewModel(
                     it.copy(selected = it.selected - sameNumberKeys(event.key) + event.key)
                 }
             }
+            is SeriesEvent.QuickSelectChapters -> {
+                val next = quickSelection(state.value.rows, event.kind, ::sameNumberKeys)
+                ui.update { it.copy(selecting = true, selected = if (it.selected == next) emptySet() else next) }
+            }
             is SeriesEvent.DragSelectStart -> {
                 val selected = ui.value.selected
                 drag = DragAnchor(base = selected, anchor = event.key, adding = event.key !in selected)
@@ -576,4 +580,26 @@ private fun ChapterJoinRow.toSeriesRow(quality: ChapterQualityEntity?, duplicate
         edition = scanlator,
         duplicate = duplicate,
     )
+}
+
+/**
+ * Chapitres cochables du type demande, une seule edition par numero (R2 : la premiere de la liste).
+ * Traduits = VF installee ou prete ; non traduits = a traduire, sur le PC sans traduction, ou en echec.
+ */
+internal fun quickSelection(rows: List<SeriesRow>, kind: QuickSelect, sameNumberKeys: (String) -> Set<String>): Set<String> {
+    val picked = LinkedHashSet<String>()
+    val taken = HashSet<String>()
+    for (row in rows) {
+        if (row.locked || row.kind == ChapterKind.NotDownloaded) continue
+        val match = when (kind) {
+            QuickSelect.All -> true
+            QuickSelect.Untranslated -> row.kind == ChapterKind.ToTranslate || row.kind == ChapterKind.OnPc || row.kind is ChapterKind.Failed
+            QuickSelect.Translated -> row.kind == ChapterKind.InMihon || row.kind == ChapterKind.Ready
+        }
+        if (!match || row.key in taken) continue
+        picked += row.key
+        taken += sameNumberKeys(row.key)
+        taken += row.key
+    }
+    return picked
 }

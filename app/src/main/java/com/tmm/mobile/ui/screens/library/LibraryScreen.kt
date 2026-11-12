@@ -79,6 +79,7 @@ import com.tmm.mobile.ui.components.V2ActionRow
 import com.tmm.mobile.ui.components.V2Button
 import com.tmm.mobile.ui.components.V2ButtonSize
 import com.tmm.mobile.ui.components.V2Check
+import com.tmm.mobile.ui.components.V2IconBox
 import com.tmm.mobile.ui.components.V2IconButton
 import com.tmm.mobile.ui.components.V2SelectionBar
 import com.tmm.mobile.ui.components.V2Sheet
@@ -218,12 +219,12 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             TmmSearchField(value = state.query, onValueChange = { onEvent(LibraryEvent.QueryChanged(it)) },
                 placeholder = stringResource(R.string.library_search_placeholder), modifier = Modifier.weight(1f))
-            HeaderIconBox(TmmIconId.Filter, stringResource(R.string.library_filters_title), active = false) {
+            V2IconBox(TmmIconId.Filter, stringResource(R.string.library_filters_title), active = false) {
                 onEvent(LibraryEvent.OpenFilters)
             }
             // Icone plutot qu'un lien rouge « Selectionner / Terminer » ; un appui long sur une serie
             // ouvre aussi la selection. Fond encre = selection en cours, la croix la quitte.
-            HeaderIconBox(
+            V2IconBox(
                 icon = if (state.picking) TmmIconId.V2X else TmmIconId.CheckboxChecked,
                 contentDescription = stringResource(if (state.picking) R.string.library_finish_button else R.string.library_select_button),
                 active = state.picking,
@@ -259,7 +260,7 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
             ) {
                 TmmText(text = stringResource(R.string.library_picking_hint), style = TmmType.sans(13), color = TmmColors.textMuted, modifier = Modifier.weight(1f))
                 // Tout cocher / tout decocher : la meme case, pleine quand tout le visible est coche.
-                HeaderIconBox(
+                V2IconBox(
                     icon = TmmIconId.CheckboxChecked,
                     contentDescription = if (state.allVisibleSelected) stringResource(R.string.library_deselect_all)
                         else stringResource(R.string.library_select_all_fmt, state.visibleSeries.size),
@@ -272,27 +273,6 @@ private fun LibraryHeader(state: LibraryState, onEvent: (LibraryEvent) -> Unit, 
 }
 
 /** Bouton carre a icone de l'en-tete (filtres, selection). `active` : fond encre, icone blanche. */
-@Composable
-private fun HeaderIconBox(
-    icon: TmmIconId,
-    contentDescription: String,
-    active: Boolean,
-    small: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(if (small) 12.dp else 16.dp)
-    Box(
-        modifier = Modifier.size(if (small) 40.dp else 50.dp).clip(shape)
-            .background(if (active) TmmColors.V2.ink else TmmColors.V2.white)
-            .border(1.5.dp, if (active) TmmColors.V2.ink else TmmColors.V2.line, shape)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { this.contentDescription = contentDescription },
-        contentAlignment = Alignment.Center,
-    ) {
-        TmmIcon(icon, size = if (small) 18.dp else 20.dp, tint = if (active) TmmColors.V2.white else TmmColors.V2.ink)
-    }
-}
-
 @Composable
 private fun LibraryGrid(state: LibraryState, gridState: LazyGridState, onEvent: (LibraryEvent) -> Unit, onOpenSeries: (String) -> Unit) {
     val visible = state.visibleSeries

@@ -290,17 +290,14 @@ private fun RunningCards(state: QueueState, onEvent: (QueueEvent) -> Unit) {
         }
     }
     if (state.uploadCount > 0) {
-        TmmText(
-            text = stringResource(R.string.activity_cancel_uploads_fmt, state.uploadCount),
-            style = TmmType.sans(14, weight = 600),
-            color = C.red,
-            textAlign = TextAlign.End,
-            modifier = Modifier
-                .padding(top = 6.dp)
-                .fillMaxWidth()
-                .clickable(role = Role.Button) { onEvent(QueueEvent.CancelAllUploads) }
-                .padding(vertical = 8.dp),
-        )
+        Row(Modifier.padding(top = 10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            V2Button(
+                label = stringResource(R.string.activity_cancel_uploads_fmt, state.uploadCount),
+                onClick = { onEvent(QueueEvent.CancelAllUploads) },
+                style = V2ButtonStyle.Ghost,
+                size = V2ButtonSize.Small,
+            )
+        }
     }
     if (focused == null && state.transfers.isEmpty() && state.waitingJobs.isEmpty()) {
         EmptyCard(stringResource(R.string.activity_nothing_running))
@@ -732,12 +729,7 @@ private fun SectionTitle(text: String, action: String? = null, onAction: () -> U
             modifier = Modifier.semantics { heading() },
         )
         if (action != null) {
-            TmmText(
-                text = action,
-                style = TmmType.sans(14, weight = 600),
-                color = C.red,
-                modifier = Modifier.clickable(role = Role.Button, onClick = onAction),
-            )
+            V2Button(label = action, onClick = onAction, style = V2ButtonStyle.Ghost, size = V2ButtonSize.Small)
         }
     }
 }
@@ -746,12 +738,8 @@ private fun SectionTitle(text: String, action: String? = null, onAction: () -> U
 @Composable
 private fun ClearAction(onEvent: (QueueEvent) -> Unit, event: QueueEvent) {
     Row(Modifier.padding(top = 12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        TmmText(
-            text = stringResource(R.string.activity_clear),
-            style = TmmType.sans(14, weight = 600),
-            color = C.red,
-            modifier = Modifier.clickable(role = Role.Button, onClick = { onEvent(event) }),
-        )
+        // Vrai bouton : en lien texte rouge, « Vider » passait pour une etiquette.
+        V2Button(label = stringResource(R.string.activity_clear), onClick = { onEvent(event) }, style = V2ButtonStyle.Ghost, size = V2ButtonSize.Small)
     }
 }
 

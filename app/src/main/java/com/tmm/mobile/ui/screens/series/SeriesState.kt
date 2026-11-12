@@ -68,6 +68,9 @@ data class ActionCounts(
     val any: Boolean get() = translate + install + verify + retranslate + copy > 0
 }
 
+/** Puces de selection rapide de la fiche serie. */
+enum class QuickSelect { All, Untranslated, Translated }
+
 /** Feuille du bas ouverte. `More.allSeries` : bouton ··· (toute la serie) ou selection. */
 sealed interface SeriesSheet {
     data object None : SeriesSheet
@@ -162,6 +165,8 @@ sealed interface SeriesEvent {
     data object StartSelection : SeriesEvent
     data object EndSelection : SeriesEvent
     data class ToggleChapter(val key: String) : SeriesEvent
+    /** Puce « Tout », « Non traduits » ou « Traduits » : remplace la selection (re-toucher la vide). */
+    data class QuickSelectChapters(val kind: QuickSelect) : SeriesEvent
 
     // Appui long puis glissement sur la liste : coche (ou decoche) chaque chapitre survole.
     data class DragSelectStart(val key: String) : SeriesEvent

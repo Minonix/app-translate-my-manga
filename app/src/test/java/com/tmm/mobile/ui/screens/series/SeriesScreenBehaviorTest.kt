@@ -63,6 +63,7 @@ class SeriesScreenBehaviorTest {
                 state.copy(selected = toggle(state.selected, event.key))
             }
         }
+        is SeriesEvent.QuickSelectChapters -> state.copy(selecting = true, selected = quickSelection(state.rows, event.kind) { setOf(it) })
         // Le geste est couvert par DragSelectionTest ; ici seul l'entree en selection compte.
         is SeriesEvent.DragSelectStart -> state.copy(selecting = true)
         is SeriesEvent.DragSelectTo, SeriesEvent.DragSelectEnd -> state
@@ -159,12 +160,14 @@ class SeriesScreenBehaviorTest {
     @Test
     fun selection_skipsLockedRows_thenOpensSheet() {
         val getState = setState(MockupData.seriesDetail.copy(selected = emptySet()))
-        composeRule.onNodeWithText("Sélectionner").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("Sélectionner").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertTrue(getState().selecting)
 
-        composeRule.onNodeWithText("Ch. 214").performScrollTo().performClick()
-        composeRule.onNodeWithText("Ch. 213").performScrollTo().performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ch. 214"))
+        composeRule.onNodeWithText("Ch. 214").performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ch. 213"))
+        composeRule.onNodeWithText("Ch. 213").performClick()
         composeRule.waitForIdle()
         assertEquals(setOf("214"), getState().selected)
 
