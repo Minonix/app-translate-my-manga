@@ -321,6 +321,26 @@ fun SettingsScreen(
                     }
                 }
 
+                // Affichage : catégories et séries masquées (visuel seulement, rien n'est supprimé).
+                SettingsGroup(title = stringResource(R.string.settings_hidden_group)) {
+                    val h = state.hidden
+                    val parts = buildList {
+                        if (h.categories.isNotEmpty()) add(pluralStringResource(R.plurals.settings_hidden_categories, h.categories.size, h.categories.size))
+                        if (h.series.isNotEmpty()) add(pluralStringResource(R.plurals.settings_hidden_series, h.series.size, h.series.size))
+                    }
+                    SettingsRow(
+                        label = stringResource(R.string.settings_hidden_row),
+                        value = when (parts.size) {
+                            0 -> stringResource(R.string.settings_hidden_none)
+                            1 -> parts[0]
+                            else -> stringResource(R.string.settings_hidden_summary_fmt, parts[0], parts[1])
+                        },
+                        isLink = true,
+                        onRowClick = { onEvent(SettingsEvent.OpenHidden) },
+                        showBottomDivider = false,
+                    )
+                }
+
                 // Footer version
                 TmmText(
                     text = stringResource(R.string.settings_footer_app_version, BuildConfig.VERSION_NAME),
@@ -334,6 +354,7 @@ fun SettingsScreen(
             }
         }
 
+        HiddenSheet(state.hidden, onEvent)
         SettingsToastHost(state, onEvent, Modifier.align(Alignment.BottomCenter))
     }
 }

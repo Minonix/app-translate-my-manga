@@ -65,4 +65,25 @@
     <string name="settings_v2_rendering_hint_fmt">Effacement %1$s</string>
     <string name="settings_v2_reading_hint_auto">Détecteur et OCR automatiques</string>
     <string name="settings_v2_footer_note">Les clés API restent sur le PC. Un changement s’applique aux pages suivantes, sans interrompre les chapitres en cours.</string>
+    <!-- Masquage visuel : categories Mihon et series retirees de tous les ecrans, sans rien supprimer. -->
+    <string name="settings_hidden_group">Affichage</string>
+    <string name="settings_hidden_row">Catégories et séries masquées</string>
+    <string name="settings_hidden_none">Rien de masqué</string>
+    <string name="settings_hidden_summary_fmt">%1$s · %2$s</string>
+    <plurals name="settings_hidden_categories">
+        <item quantity="one">%d catégorie</item>
+        <item quantity="other">%d catégories</item>
+    </plurals>
+    <plurals name="settings_hidden_series">
+        <item quantity="one">%d série</item>
+        <item quantity="other">%d séries</item>
+    </plurals>
+    <string name="settings_hidden_kick">Masquer</string>
+    <string name="settings_hidden_title">Ce qui n’apparaît nulle part</string>
+    <string name="settings_hidden_hint">Les éléments cochés disparaissent de l’accueil, de la bibliothèque, de l’activité et des comptes. Rien n’est supprimé : les traductions continuent et tout revient en décochant.</string>
+    <string name="settings_hidden_categories_title">Catégories Mihon</string>
+    <string name="settings_hidden_series_title">Séries</string>
+    <string name="settings_hidden_search">Chercher une série</string>
+    <string name="settings_hidden_close_cd">Fermer</string>
+    <string name="settings_hidden_no_category">Aucune catégorie dans la sauvegarde Mihon</string>
 </resources>

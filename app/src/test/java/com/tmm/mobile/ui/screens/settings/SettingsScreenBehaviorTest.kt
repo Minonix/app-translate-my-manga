@@ -68,6 +68,10 @@ class SettingsScreenBehaviorTest {
                             SettingsEvent.DecreaseConcurrentInstalls -> state.copy(maxConcurrentInstalls = state.maxConcurrentInstalls - 1)
                             SettingsEvent.IncreaseConcurrentInstalls -> state.copy(maxConcurrentInstalls = state.maxConcurrentInstalls + 1)
                             SettingsEvent.UnblockDownloads -> state.copy(toast = SettingsToast.Unblocked(2, 1))
+                            SettingsEvent.OpenHidden -> state.copy(hidden = state.hidden.copy(open = true))
+                            SettingsEvent.CloseHidden -> state.copy(hidden = state.hidden.copy(open = false))
+                            is SettingsEvent.HiddenQueryChanged -> state.copy(hidden = state.hidden.copy(query = event.query))
+                            is SettingsEvent.ToggleHiddenCategory, is SettingsEvent.ToggleHiddenSeries -> state
                         }
                     },
                     onNavigateOnboarding = { onboardingNavigated = true },

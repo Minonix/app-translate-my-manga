@@ -7,6 +7,7 @@ import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.editionRanking
+import com.tmm.mobile.data.hiddenSetFlow
 import com.tmm.mobile.data.oneEditionPerNumber
 import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
@@ -89,7 +90,15 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
             ) { series, downloaded, localFr, jobs, pcIndex -> DbData(series, downloaded, localFr, jobs, pcIndex, emptyList()) },
             // Catalogue lu pour la scantrad des chapitres rattachés à une série de la sauvegarde.
             db.chapterDao().observeAll(),
-        ) { data, chapters -> data.copy(chapters = chapters) },
+            hiddenSetFlow(db, container.prefs),
+        ) { data, chapters, h ->
+            // Series masquees (Reglages) : absentes de la feuille Traduire comme du reste de l'app.
+            data.copy(
+                series = data.series.filterNot { h.hidesSeries(it.seriesKey) },
+                downloaded = data.downloaded.filterNot(h::hidesDownloaded),
+                chapters = chapters,
+            )
+        },
         ui,
     ) { data, u -> buildState(data, u) }
         .flowOn(Dispatchers.Default)

@@ -44,6 +44,19 @@ sealed interface AppUpdateState {
 
 data class FollowedSeries(val key: String, val title: String)
 
+/** Masquage visuel (Reglages, tout en bas) : choix faits, et listes completes a proposer. */
+data class HiddenChoice(
+    val categories: Set<String> = emptySet(),
+    val series: Set<String> = emptySet(),
+    val allCategories: List<String> = emptyList(),
+    val allSeries: List<FollowedSeries> = emptyList(),
+    val open: Boolean = false,
+    val query: String = "",
+) {
+    val filteredSeries: List<FollowedSeries>
+        get() = if (query.isBlank()) allSeries else allSeries.filter { it.title.contains(query.trim(), ignoreCase = true) }
+}
+
 data class SettingsState(
     val advancedExpanded: Boolean = false,
     // Sous-ecran « Connexion directe (Tailscale) » ouvert depuis Avance (maquette v2, ecran 8).
@@ -85,6 +98,7 @@ data class SettingsState(
     val pcPairingCode: String = "",
     val pcPairing: Boolean = false,
     val update: AppUpdateState = AppUpdateState.Checking,
+    val hidden: HiddenChoice = HiddenChoice(),
 )
 
 sealed interface SettingsEvent {
@@ -115,4 +129,9 @@ sealed interface SettingsEvent {
     data object CheckUpdate : SettingsEvent
     // Telechargement par le ViewModel, installation lancee par SettingsRoute (I/O Activity).
     data object InstallUpdate : SettingsEvent
+    data object OpenHidden : SettingsEvent
+    data object CloseHidden : SettingsEvent
+    data class HiddenQueryChanged(val query: String) : SettingsEvent
+    data class ToggleHiddenCategory(val name: String) : SettingsEvent
+    data class ToggleHiddenSeries(val seriesKey: String) : SettingsEvent
 }

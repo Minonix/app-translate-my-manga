@@ -6,6 +6,7 @@ import com.tmm.mobile.core.AppContainer
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
+import com.tmm.mobile.data.hiddenSetFlow
 import com.tmm.mobile.data.db.isDirectChannel
 import com.tmm.mobile.data.db.ChapterQualityEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
@@ -76,6 +77,20 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
         db.seriesSettingsDao().observeAutoTranslateSeriesKeys(),
     ) { (jobs, quality, seriesList), downloaded, pcIndex, (heartbeatJson, doneClearedAt), autoSeries ->
         Raw(jobs, quality, seriesList, downloaded, pcIndex, heartbeatJson, autoSeries.toSet(), doneClearedAt ?: 0L)
+    }.let { flow ->
+        // Series masquees (Reglages) : aucune ligne, aucun compte, aucun echec dans l'Activite.
+        combine(flow, hiddenSetFlow(db, prefs)) { r, h ->
+            if (h.isEmpty) {
+                r
+            } else {
+                r.copy(
+                    jobs = r.jobs.filterNot(h::hidesJob),
+                    seriesList = r.seriesList.filterNot { h.hidesSeries(it.seriesKey) },
+                    downloaded = r.downloaded.filterNot(h::hidesDownloaded),
+                    pcIndex = r.pcIndex.filterNot { h.hidesPath(it.mihonPath) },
+                )
+            }
+        }
     }
 
     private val _ui = MutableStateFlow(QueueUi())
@@ -85,8 +100,9 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
 
     // Jobs en cours de transfert, a chaque tick de progression. La partie lourde ignore ces ticks
     // (ignoringProgress) et n'est recalculee que sur un vrai changement.
-    private val liveTransfers = db.jobDao().observeAll()
-        .map { jobs -> jobs.filter { it.isInActivity() && (it.phoneState == "UPLOADING" || it.phoneState == "DOWNLOADING") } }
+    private val liveTransfers = combine(db.jobDao().observeAll(), hiddenSetFlow(db, prefs)) { jobs, h ->
+        jobs.filter { it.isInActivity() && (it.phoneState == "UPLOADING" || it.phoneState == "DOWNLOADING") && !h.hidesJob(it) }
+    }
         .distinctUntilChanged()
 
     // Hors thread principal : avec ~2000 jobs, buildState figeait l'ecran a chaque ecriture en base.
@@ -161,7 +177,10 @@ class QueueViewModel(private val container: AppContainer) : ViewModel() {
                         job.isStalled() -> jobRepository.cancel(id)
                         // R3 : clos comme annule, pas supprime. Sans job, le chapitre redevenait « a envoyer »
                         // et le suivi automatique le renvoyait au PC.
-                        job.phoneState == "FAILED" -> {
+                        // Un echec signale par le PC garde phoneState SENT (pcState "failed", R5.4) : il
+                        // etait ignore ici, d'ou un « Vider » sans effet sur les echecs de traduction.
+                        // cancelWrittenAt pose : rien a annuler cote PC, le job y est deja termine.
+                        job.isFailed() -> {
                             val now = clock.nowMillis()
                             db.jobDao().upsert(
                                 job.copy(phoneState = "CANCEL_REQUESTED", pcState = "cancelled", cancelWrittenAt = now, updatedAt = now),

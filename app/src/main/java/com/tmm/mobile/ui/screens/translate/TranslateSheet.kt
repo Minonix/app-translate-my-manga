@@ -308,8 +308,12 @@ private fun describe(series: TranslateSeries, state: TranslateState): String {
 }
 
 @Composable
-private fun SearchField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val placeholder = stringResource(R.string.translate_search)
+internal fun SearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = stringResource(R.string.translate_search),
+) {
     val shape = RoundedCornerShape(16.dp)
     Row(
         modifier = modifier

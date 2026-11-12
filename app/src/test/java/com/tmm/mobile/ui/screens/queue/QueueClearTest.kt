@@ -71,21 +71,26 @@ class QueueClearTest {
         // Chapitres telecharges : les echecs sont affiches dans l'onglet, donc concernes par « Vider ».
         env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/10"))
         env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/11"))
+        env.db.downloadedChapterDao().upsert(downloaded("Mihon/frieren/12"))
         env.db.jobDao().upsert(baseJob("failed", "Mihon/frieren/10", "FAILED").copy(pcErrorMessage = "moteur indisponible"))
         env.db.jobDao().upsert(
             baseJob("stalled", "Mihon/frieren/11", "SENT").copy(errorCode = LocalErrorCode.PC_STALLED),
         )
+        // Echec signale par le PC : phoneState reste SENT, seul pcState vaut "failed".
+        env.db.jobDao().upsert(
+            baseJob("pcfailed", "Mihon/frieren/12", "SENT").copy(pcState = "failed", pcErrorCode = "image_too_large"),
+        )
         val vm = QueueViewModel(env.container)
-        vm.state.first { it.failedJobs.size == 2 }
+        vm.state.first { it.failedJobs.size == 3 }
 
         vm.onEvent(QueueEvent.ClearFailed)
 
         // Les deux restent en base, clos comme annules : le chapitre garde un job et le suivi
         // automatique ne le renvoie pas (R3). L'onglet Echecs est vide.
         val jobs = env.db.jobDao().observeAll().first { list ->
-            list.size == 2 && list.all { it.phoneState == "CANCEL_REQUESTED" }
+            list.size == 3 && list.all { it.phoneState == "CANCEL_REQUESTED" }
         }
-        assertEquals(setOf("failed", "stalled"), jobs.map { it.jobId }.toSet())
+        assertEquals(setOf("failed", "stalled", "pcfailed"), jobs.map { it.jobId }.toSet())
         vm.state.first { it.failedJobs.isEmpty() }
         assertEquals(emptyList<Any>(), com.tmm.mobile.data.autoTranslateTargets(env.db, setOf("frieren")))
     }

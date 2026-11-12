@@ -159,6 +159,22 @@ internal fun buildLibrarySnapshot(
     return LibrarySnapshot(categories = chips, series = mockSeries, details = details)
 }
 
+/** Retire les series masquees (Reglages) et les puces de categories masquees ; « Tous » et les comptes suivent. */
+internal fun hideFromSnapshot(d: LibrarySnapshot, hidden: com.tmm.mobile.data.HiddenSet, hiddenCategories: Set<String>): LibrarySnapshot {
+    if (hidden.isEmpty && hiddenCategories.isEmpty()) return d
+    val series = d.series.filterNot { hidden.hidesSeries(it.seriesKey) }
+    val details = d.details.filterKeys { !hidden.hidesSeries(it) }
+    val counts = details.values.flatMap { it.categories }.groupingBy { it }.eachCount()
+    val chips = d.categories.mapIndexedNotNull { i, (name, _) ->
+        when {
+            i == 0 -> name to series.size
+            name in hiddenCategories -> null
+            else -> name to (counts[name] ?: 0)
+        }
+    }
+    return LibrarySnapshot(categories = chips, series = series, details = details)
+}
+
 /** Premiere page du premier chapitre telecharge : couverture quand l'URL de la sauvegarde manque ou echoue. */
 internal fun coverFallbackOf(rows: List<ChapterJoinRow>): String? =
     rows.mapNotNull { it.downloaded }.minByOrNull { it.number ?: Float.MAX_VALUE }?.let { pageCoverRef(it.documentUri, it.isCbz) }

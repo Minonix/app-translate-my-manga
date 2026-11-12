@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.tmm.mobile.protocol.ProtocolJson
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +73,9 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
         val MATCHER_VERSION = intPreferencesKey("matcher_version")
         val DRIVE_LAYOUT_VERSION = intPreferencesKey("drive_layout_version")
         val JOB_RESET_VERSION = intPreferencesKey("job_reset_version")
+        // Masquage purement visuel (Reglages, tout en bas) : noms de categories Mihon et seriesKey.
+        val HIDDEN_CATEGORIES = stringSetPreferencesKey("hidden_categories")
+        val HIDDEN_SERIES = stringSetPreferencesKey("hidden_series")
     }
 
     val onboardingDone: Flow<Boolean> = dataStore.data.map { it[Keys.ONBOARDING_DONE] ?: false }
@@ -245,6 +249,13 @@ class AppPrefs(private val dataStore: DataStore<Preferences>) {
     // Version de la remise a plat des jobs deja appliquee (JobRepository.resetPendingJobsOnce).
     val jobResetVersion: Flow<Int> = dataStore.data.map { it[Keys.JOB_RESET_VERSION] ?: 0 }
     suspend fun setJobResetVersion(value: Int) = set(Keys.JOB_RESET_VERSION, value)
+
+    // Categories (par nom, stable d'une reimportation a l'autre) et series masquees a l'affichage.
+    // Aucune donnee n'est supprimee : les jobs continuent, seuls les ecrans les ignorent.
+    val hiddenCategories: Flow<Set<String>> = dataStore.data.map { it[Keys.HIDDEN_CATEGORIES] ?: emptySet() }
+    suspend fun setHiddenCategories(value: Set<String>) = set(Keys.HIDDEN_CATEGORIES, value)
+    val hiddenSeries: Flow<Set<String>> = dataStore.data.map { it[Keys.HIDDEN_SERIES] ?: emptySet() }
+    suspend fun setHiddenSeries(value: Set<String>) = set(Keys.HIDDEN_SERIES, value)
 
     /** Oublie les ids de dossiers/fichiers Drive et le curseur de poll (nouvelle arborescence). */
     suspend fun resetDriveLayout() {

@@ -8,6 +8,7 @@ import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
+import com.tmm.mobile.data.hiddenSetFlow
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.PcIndexChapterEntity
@@ -69,14 +70,25 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val indexByPath by lazy { pcIndex.associateBy { it.mihonPath } }
     }
 
+    private val hidden = hiddenSetFlow(db, container.prefs)
+
+    // Series masquees (Reglages) retirees a la source : comptes, file et chapitres recents les ignorent.
     private val roomSnapshot = combine(
         db.jobDao().observeAll(),
         db.downloadedChapterDao().observeAll(),
         db.localFrChapterDao().observeAll(),
         db.pcIndexChapterDao().observeAll(),
-    ) { jobs, downloaded, localFr, pcIndex ->
-        RoomSnapshot(jobs, downloaded, localFr.mapNotNull { it.mihonPath }.toSet(), pcIndex)
+        hidden,
+    ) { jobs, downloaded, localFr, pcIndex, h ->
+        RoomSnapshot(
+            jobs.filterNot(h::hidesJob),
+            downloaded.filterNot(h::hidesDownloaded),
+            localFr.mapNotNull { it.mihonPath }.filterNot(h::hidesPath).toSet(),
+            pcIndex.filterNot { h.hidesPath(it.mihonPath) },
+        )
     }
+
+    private val visibleSeries = combine(db.seriesDao().observeAll(), hidden) { series, h -> series.filterNot { h.hidesSeries(it.seriesKey) } }
 
     private data class PrefsSnapshot(val heartbeatJson: String?, val lastRefreshAt: Long, val lastScanAt: Long, val heartbeatSeenAt: Long?)
 
@@ -87,11 +99,11 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         container.prefs.heartbeatSeenAt,
     ) { heartbeatJson, lastRefreshAt, lastScanAt, seenAt -> PrefsSnapshot(heartbeatJson, lastRefreshAt, lastScanAt, seenAt) }
 
-    private val derived = combine(roomSnapshot, prefsSnapshot, db.seriesDao().observeAll()) { room, prefsSnap, series ->
+    private val derived = combine(roomSnapshot, prefsSnapshot, visibleSeries) { room, prefsSnap, series ->
         buildState(room, prefsSnap, series)
     }.flowOn(Dispatchers.Default)
 
-    private val followed = combine(db.seriesDao().observeAll(), db.seriesSettingsDao().observeAutoTranslateSeriesKeys()) { series, keys ->
+    private val followed = combine(visibleSeries, db.seriesSettingsDao().observeAutoTranslateSeriesKeys()) { series, keys ->
         val followedKeys = keys.toSet()
         series.filter { it.seriesKey in followedKeys }.sortedBy { it.title }
             .map { MainFollowedSeries(it.seriesKey, it.title) }

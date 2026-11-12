@@ -8,6 +8,7 @@ import com.tmm.mobile.data.DeleteOptions
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
 import com.tmm.mobile.data.autoTranslateTargets
+import com.tmm.mobile.data.hiddenSetFlow
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.db.SeriesSettingsEntity
 import com.tmm.mobile.data.status.ChapterJoinIndex
@@ -68,7 +69,12 @@ class LibraryViewModel(
 
     private val backupModifiedAt = container.db.backupImportDao().observe().map { it?.lastModified }
 
-    val state: StateFlow<LibraryState> = combine(ui, dataState, backupModifiedAt) { u, d, backupAt ->
+    // Masquage visuel (Reglages) : series et puces de categories masquees retirees, comptes recalcules.
+    private val visibleData = combine(dataState, hiddenSetFlow(container.db, container.prefs), container.prefs.hiddenCategories) { d, hidden, hiddenCats ->
+        hideFromSnapshot(d, hidden, hiddenCats)
+    }
+
+    val state: StateFlow<LibraryState> = combine(ui, visibleData, backupModifiedAt) { u, d, backupAt ->
         LibraryState(
             query = u.query,
             picking = u.picking,

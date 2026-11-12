@@ -78,6 +78,38 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                 series.filter { it.seriesKey in keys }.map { FollowedSeries(it.seriesKey, it.title) }.sortedBy { it.title }
             }.collect { followed -> _state.update { it.copy(followedSeries = followed) } }
         }
+        viewModelScope.launch { observeHidden() }
+    }
+
+    private suspend fun observeHidden() {
+        val prefs = container.prefs
+        combine(
+            prefs.hiddenCategories,
+            prefs.hiddenSeries,
+            container.db.categoryDao().observeAll(),
+            container.db.seriesDao().observeAll(),
+        ) { cats, series, categories, allSeries ->
+            HiddenChoice(
+                categories = cats,
+                series = series,
+                allCategories = categories.map { it.name }.distinct(),
+                allSeries = allSeries.map { FollowedSeries(it.seriesKey, it.title) }.sortedBy { it.title.lowercase() },
+            )
+        }.collect { h -> _state.update { it.copy(hidden = h.copy(open = it.hidden.open, query = it.hidden.query)) } }
+    }
+
+    private fun toggleHidden(category: String? = null, seriesKey: String? = null) {
+        viewModelScope.launch {
+            val h = _state.value.hidden
+            if (category != null) {
+                val next = if (category in h.categories) h.categories - category else h.categories + category
+                container.prefs.setHiddenCategories(next)
+            }
+            if (seriesKey != null) {
+                val next = if (seriesKey in h.series) h.series - seriesKey else h.series + seriesKey
+                container.prefs.setHiddenSeries(next)
+            }
+        }
     }
 
     // URL connue (publiee par le PC, deja associee, ou Hub VPS Tailscale par defaut) pre-remplie ;
@@ -342,6 +374,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             SettingsEvent.Pair -> pair()
             SettingsEvent.CheckUpdate -> checkUpdate()
             SettingsEvent.InstallUpdate -> Unit
+            SettingsEvent.OpenHidden -> _state.update { it.copy(hidden = it.hidden.copy(open = true)) }
+            SettingsEvent.CloseHidden -> _state.update { it.copy(hidden = it.hidden.copy(open = false, query = "")) }
+            is SettingsEvent.HiddenQueryChanged -> _state.update { it.copy(hidden = it.hidden.copy(query = event.query)) }
+            is SettingsEvent.ToggleHiddenCategory -> toggleHidden(category = event.name)
+            is SettingsEvent.ToggleHiddenSeries -> toggleHidden(seriesKey = event.seriesKey)
             SettingsEvent.ForgetPc -> viewModelScope.launch {
                 container.router.hub.forget()
                 _state.update { it.copy(directStatus = DirectStatus.NotPaired, directUrl = DEFAULT_DIRECT_URL) }
