@@ -103,9 +103,9 @@ class CleanupTest {
     @Test fun preview_isDryRun_deletesNothing() = runTest {
         val series = seriesDir()
         val tmp = tmpDir(series, "Chapter 5_tmp", old())
-        val base = file(series, "Chapter 6.cbz", 100)
-        val dup = file(series, "Chapter 6 (1).cbz", 100)
-        val lone = file(series, "Chapter 7 (1).cbz", 50)
+        val base = file(series, "Chapter 6_a1b2c3.cbz", 100)
+        val dup = file(series, "Chapter 6_a1b2c3 (1).cbz", 100)
+        val lone = file(series, "Chapter 7_a1b2c4 (1).cbz", 50)
         env.db.jobDao().upsert(job("done", "INSTALLED", receivedAt = 1))
         jobFolder("done", "received.json")
 
@@ -115,7 +115,7 @@ class CleanupTest {
         assertEquals(DriveCleanup(folders = 1), report.drive)
         assertEquals(PcCleanupState.NEVER_SEEN, report.pc.state)
         assertTrue(tmp.exists() && base.exists() && dup.exists() && lone.exists())
-        assertFalse(File(series, "Chapter 7.cbz").exists())
+        assertFalse(File(series, "Chapter 7_a1b2c4.cbz").exists())
         assertNotNull(env.drive.childOf(requireNotNull(env.prefs.driveJobsId.first()), "done"))
         assertNull(env.db.jobDao().get("done")!!.driveDeletedAt)
     }
@@ -139,31 +139,51 @@ class CleanupTest {
 
     @Test fun duplicate_renamedIfFree_deletedIfSameSize_keptIfSizeDiffers() = runTest {
         val series = seriesDir()
-        val free = file(series, "Chapter 1 (1).cbz", 40)
-        file(series, "Chapter 2.cbz", 70)
-        val same = file(series, "Chapter 2 (1).cbz", 70)
-        file(series, "Chapter 3.cbz", 70)
-        val differs = file(series, "Chapter 3 (1).cbz", 71)
+        val free = file(series, "Chapter 1_0a0b01 (1).cbz", 40)
+        file(series, "Chapter 2_0a0b02.cbz", 70)
+        val same = file(series, "Chapter 2_0a0b02 (1).cbz", 70)
+        file(series, "Chapter 3_0a0b03.cbz", 70)
+        val differs = file(series, "Chapter 3_0a0b03 (1).cbz", 71)
         val localSeries = File(root, "local/Blue Lock").apply { mkdirs() }
-        val localDup = file(localSeries, "Chapter 9 (1).cbz", 5)
+        val localDup = file(localSeries, "c0009 - Chapter 9 (1).cbz", 5)
 
         val report = cleanup().execute()
 
         assertEquals(PhoneCleanup(duplicatesRenamed = 2, duplicatesRemoved = 1, duplicatesToCheck = 1), report.phone)
         assertFalse(free.exists())
-        assertEquals(40L, File(series, "Chapter 1.cbz").length())
+        assertEquals(40L, File(series, "Chapter 1_0a0b01.cbz").length())
         assertFalse(same.exists())
-        assertTrue(File(series, "Chapter 2.cbz").exists())
+        assertTrue(File(series, "Chapter 2_0a0b02.cbz").exists())
         assertTrue(differs.exists())
-        assertEquals(70L, File(series, "Chapter 3.cbz").length())
+        assertEquals(70L, File(series, "Chapter 3_0a0b03.cbz").length())
         assertFalse(localDup.exists())
-        assertTrue(File(localSeries, "Chapter 9.cbz").exists())
+        assertTrue(File(localSeries, "c0009 - Chapter 9.cbz").exists())
+    }
+
+    // Un titre qui finit vraiment par « (2) » n'est pas une copie ; cover (1) n'est rangee que sans autre couverture.
+    @Test fun duplicate_onlyMihonAndTmmNames_andCovers() = runTest {
+        val series = seriesDir()
+        val titled = file(series, "Scan_Chapter 4 (2).cbz", 10)
+        val localSeries = File(root, "local/Blue Lock").apply { mkdirs() }
+        val localTitled = file(localSeries, "Blue Lock (2).cbz", 10)
+        file(localSeries, "cover.jpg", 30)
+        val sameCover = file(localSeries, "cover (1).jpg", 30)
+        val otherLocal = File(root, "local/Kagurabachi").apply { mkdirs() }
+        file(otherLocal, "cover.webp", 30)
+        val strayCover = file(otherLocal, "cover (1).jpg", 31)
+
+        val report = cleanup().execute()
+
+        assertEquals(PhoneCleanup(duplicatesRemoved = 1, duplicatesToCheck = 1), report.phone)
+        assertTrue(titled.exists() && localTitled.exists() && strayCover.exists())
+        assertFalse(sameCover.exists())
+        assertFalse(File(otherLocal, "cover.jpg").exists())
     }
 
     // Installation en cours dans local/ : la serie n'est pas touchee.
     @Test fun localSeries_withInstallInFlight_isSkipped() = runTest {
         val localSeries = File(root, "local/Blue Lock").apply { mkdirs() }
-        val dup = file(localSeries, "Chapter 9 (1).cbz", 5)
+        val dup = file(localSeries, "c0009 - Chapter 9 (1).cbz", 5)
         file(localSeries, ".Chapter 10.cbz.tmm-job1.tmp", 5)
 
         cleanup().execute()

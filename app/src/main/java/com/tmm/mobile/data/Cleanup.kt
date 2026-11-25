@@ -21,7 +21,12 @@ import kotlinx.coroutines.withContext
 // Un fichier temporaire de Mihon plus recent est peut-etre un telechargement en cours.
 const val CLEANUP_TMP_MIN_AGE_MS = 24L * 3600 * 1000
 
-private val DUPLICATE_CBZ = Regex("""^(.*) \((\d+)\)\.cbz$""")
+private val DUPLICATE_FILE = Regex("""^(.*) \((\d+)\)\.(cbz|jpe?g|png|webp)$""")
+// Copie SAF d'un telechargement : le suffixe suit le hachage d'URL de Mihon (MihonNaming.isSafCopy).
+private val DOWNLOAD_BASE = Regex("""_[0-9a-f]{6}$""")
+// Chapitre installe par TMM (cNNNN - ...) ou couverture de la serie.
+private val LOCAL_CHAPTER_BASE = Regex("""^c\d+""")
+private const val COVER_BASE = "cover"
 private const val TERMINAL_UNKNOWN_MIN_AGE_MS = CLEANUP_TMP_MIN_AGE_MS
 
 /** Telephone : null = arbre Mihon absent ou inaccessible. */
@@ -113,7 +118,9 @@ class Cleanup(
                             tally.tmp++
                         }
                     }
-                    dedupe(fs, series.docId, entries.filter { it.name !in removed }, dryRun, tally)
+                    dedupe(fs, series.docId, entries.filter { it.name !in removed }, dryRun, tally) { base, ext ->
+                        ext == "cbz" && DOWNLOAD_BASE.containsMatchIn(base)
+                    }
                 }
             }
         }
@@ -122,30 +129,46 @@ class Cleanup(
                 val entries = fs.children(series.docId)
                 // LocalInstaller ecrit .<nom>.tmm-<jobId>.tmp puis garde un .old : installation en cours.
                 if (entries.any { isInstallInFlight(it.name) }) continue
-                dedupe(fs, series.docId, entries, dryRun, tally)
+                dedupe(fs, series.docId, entries, dryRun, tally) { base, ext ->
+                    if (ext == "cbz") LOCAL_CHAPTER_BASE.containsMatchIn(base) else base == COVER_BASE
+                }
             }
         }
         return PhoneCleanup(tally.tmp, tally.renamed, tally.removed, tally.toCheck, tally.errors)
     }
 
-    // « Chapitre (1).cbz » : renomme si le nom sans suffixe est libre, supprime si ce nom existe avec la meme
-    // taille, garde sinon (« a verifier »). Traite dans l'ordre, (1) puis (2), sur l'etat deja modifie.
-    // ponytail: un chapitre dont le vrai titre finit par « (2) » serait renomme s'il est seul ; aucun cas vu
-    // dans Mihon, a revoir si un utilisateur le signale (croiser alors avec le catalogue du backup).
-    private fun dedupe(fs: MihonFs, dirDocId: String, entries: List<MihonDocEntry>, dryRun: Boolean, tally: PhoneTally) {
+    // « Chapitre (1).cbz » ou « cover (1).jpg » : renomme si le nom sans suffixe est libre, supprime si ce nom
+    // existe avec la meme taille, garde sinon (« a verifier »). Traite dans l'ordre, (1) puis (2), sur l'etat
+    // deja modifie. Seuls les noms que Mihon ou TMM produisent sont touches (isCopy) : un titre qui finit
+    // vraiment par « (2) » n'a ni le hachage de Mihon ni le prefixe cNNNN, il n'est donc pas pris pour une copie.
+    // Une couverture copiee n'est jamais renommee si une autre cover.* existe : deux couvertures resteraient.
+    private fun dedupe(
+        fs: MihonFs,
+        dirDocId: String,
+        entries: List<MihonDocEntry>,
+        dryRun: Boolean,
+        tally: PhoneTally,
+        isCopy: (baseName: String, ext: String) -> Boolean,
+    ) {
         val byName = entries.associateByTo(HashMap()) { it.name }
         val duplicates = entries
             .filter { !it.isDirectory }
-            .mapNotNull { e -> DUPLICATE_CBZ.matchEntire(e.name)?.let { m -> Triple(e, m.groupValues[1], m.groupValues[2].toInt()) } }
-            .sortedWith(compareBy({ it.second }, { it.third }))
-        for ((dup, baseName, _) in duplicates) {
-            val target = "$baseName.cbz"
+            .mapNotNull { e ->
+                DUPLICATE_FILE.matchEntire(e.name)
+                    ?.takeIf { m -> isCopy(m.groupValues[1], m.groupValues[3].lowercase()) }
+                    ?.let { m -> Dup(e, m.groupValues[1], m.groupValues[2].toInt(), m.groupValues[3]) }
+            }
+            .sortedWith(compareBy({ it.baseName }, { it.index }))
+        for ((dup, baseName, _, ext) in duplicates) {
+            val target = "$baseName.$ext"
+            val otherCover = baseName == COVER_BASE &&
+                byName.keys.any { it != target && it != dup.name && it.substringBeforeLast('.') == COVER_BASE }
             tally.attempt {
                 val existing = if (dryRun) byName[target] else fs.findChild(dirDocId, target)
                 val sameChapterDir = byName[baseName]?.isDirectory == true
                 when {
                     sameChapterDir || existing?.isDirectory == true -> tally.toCheck++
-                    existing == null -> {
+                    existing == null && !otherCover -> {
                         if (!dryRun) {
                             fs.rename(dup.docId, target)
                             check(fs.findChild(dirDocId, target) != null) { "renommage de ${dup.name} non applique" }
@@ -154,7 +177,7 @@ class Cleanup(
                         byName[target] = dup.copy(name = target)
                         tally.renamed++
                     }
-                    dup.size > 0 && existing.size == dup.size -> {
+                    existing != null && dup.size > 0 && existing.size == dup.size -> {
                         if (!dryRun) fs.delete(dup.docId)
                         byName.remove(dup.name)
                         tally.removed++
@@ -164,6 +187,8 @@ class Cleanup(
             }
         }
     }
+
+    private data class Dup(val entry: MihonDocEntry, val baseName: String, val index: Int, val ext: String)
 
     private fun isStale(fs: MihonFs, entry: MihonDocEntry, cutoff: Long): Boolean {
         val stamps = buildList {
