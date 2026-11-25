@@ -24,8 +24,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         BackupImportEntity::class,
         PcIndexChapterEntity::class,
         ManualChapterLinkEntity::class,
+        SeriesLinkEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -44,6 +45,7 @@ abstract class TmmDatabase : RoomDatabase() {
     abstract fun backupImportDao(): BackupImportDao
     abstract fun pcIndexChapterDao(): PcIndexChapterDao
     abstract fun manualChapterLinkDao(): ManualChapterLinkDao
+    abstract fun seriesLinkDao(): SeriesLinkDao
 
     companion object {
         // v1 -> v2 : canal du job (connexion directe). Les jobs existants restent sur Drive.
@@ -71,7 +73,17 @@ abstract class TmmDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        // v4 -> v5 : liaison manuelle serie -> dossier de local/ (meme oeuvre sous deux titres).
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `series_link` (`ownerKey` TEXT NOT NULL, `localFolder` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`ownerKey`))",
+                )
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
         // R14 : la base ne doit jamais empecher l'app de demarrer. Un retour a une version anterieure de
         // l'app (downgrade) repart d'une base vide ; une migration montante absente reste un bug (teste).

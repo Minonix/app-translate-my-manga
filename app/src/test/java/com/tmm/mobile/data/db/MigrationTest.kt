@@ -118,6 +118,23 @@ class MigrationTest {
         }
     }
 
+    // Liaison serie -> dossier de local/ : la table series_link apparait, vide, sans toucher au reste.
+    @Test fun migrate4To5_addsSeriesLinkTable() = runTest {
+        createFromSchema(4) { db, _ ->
+            db.execSQL("INSERT INTO manual_chapter_link (mihonPath, seriesKey, chapterKey, number) VALUES ('Src/Serie/Ch 1.cbz', 'sk', NULL, 1)")
+        }
+
+        val room = TmmDatabase.build(context)
+        try {
+            assertTrue(room.seriesLinkDao().getAll().isEmpty())
+            assertEquals(1, room.manualChapterLinkDao().getAll().size)
+            room.seriesLinkDao().upsert(SeriesLinkEntity("downloads|Comix (EN)|Serie", "Autre titre"))
+            assertEquals("Autre titre", room.seriesLinkDao().getAll().single().localFolder)
+        } finally {
+            room.close()
+        }
+    }
+
     // Base d'une version plus recente (retour a un APK plus ancien) : recreee vide, sans crash.
     @Test fun downgrade_isDestructive_neverCrashes() = runTest {
         dbFile.parentFile?.mkdirs()

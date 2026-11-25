@@ -8,7 +8,13 @@ import com.tmm.mobile.data.ChapterDeleter
 import com.tmm.mobile.data.DeleteOptions
 import com.tmm.mobile.data.JobMode
 import com.tmm.mobile.data.JobTarget
+import com.tmm.mobile.data.SeriesLinks
 import com.tmm.mobile.data.SyncBanner
+import com.tmm.mobile.data.seriesLinkCandidates
+import com.tmm.mobile.data.seriesLinkOwnerKey
+import com.tmm.mobile.data.seriesLinkOwnerKeys
+import com.tmm.mobile.data.seriesLinkSuggestions
+import com.tmm.mobile.data.db.SeriesLinkEntity
 import com.tmm.mobile.data.autoTranslateTargets
 import com.tmm.mobile.data.editionRanking
 import com.tmm.mobile.data.oneEditionPerNumber
@@ -32,6 +38,7 @@ import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.mihon.LinkCheck
 import com.tmm.mobile.mihon.LinkTarget
 import com.tmm.mobile.mihon.ManualChapterLinker
+import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.mihon.PickedFile
 import com.tmm.mobile.protocol.PcSettings
 import com.tmm.mobile.protocol.ProtocolJson
@@ -42,6 +49,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -78,6 +86,9 @@ class SeriesViewModel(
         val rows: List<SeriesRow>,
         val progress: SeriesProgress,
         val missing: List<Int>,
+        // Dossiers downloads/ (source, serie) de la serie : cle stable de sa liaison.
+        val dirs: List<Pair<String, String>> = emptyList(),
+        val linkedFolder: String? = null,
     )
 
     private val emptyData = SeriesData(null, "", "", false, emptyList(), emptyList(), SeriesProgress(0, 0, 0, 0, 0, 0), emptyList())
@@ -146,6 +157,7 @@ class SeriesViewModel(
             selectionToTranslateNumbers = selectedRows.filter(::canTranslate).map { it.number }.distinct().sortedDescending(),
             selectionToDelete = selectedRows.size - deleteSkipped,
             selectionDeleteSkipped = deleteSkipped,
+            linkedFolder = d.linkedFolder,
         )
     }.stateIn(
         viewModelScope,
@@ -231,6 +243,37 @@ class SeriesViewModel(
             SeriesEvent.DismissToast -> ui.update { it.copy(toast = null) }
             is SeriesEvent.FilePicked -> onFilePicked(event.key, event.docId)
             SeriesEvent.ConfirmLink -> (ui.value.sheet as? SeriesSheet.LinkConfirm)?.let { link(it.file, it.targetLabel) }
+            SeriesEvent.OpenLinkSeries -> openLinkSeries()
+            is SeriesEvent.PickLinkFolder -> setSeriesLink(event.folder)
+            SeriesEvent.Unlink -> setSeriesLink(null)
+        }
+    }
+
+    /** Feuille « Lier a une autre serie » : dossiers de local/ et titres connus, suggestions en tete. */
+    private fun openLinkSeries() {
+        val d = dataState.value
+        val series = d.series ?: return
+        viewModelScope.launch {
+            val db = container.db
+            val sheet = withContext(Dispatchers.IO) {
+                val localFolders = db.localFrChapterDao().observeAll().first().mapTo(HashSet()) { it.folderName }
+                val titles = db.seriesDao().observeAll().first().filter { it.seriesKey != seriesKey }.map { it.title }
+                val folders = seriesLinkCandidates(localFolders, titles, listOf(series.title) + d.dirs.map { it.second }, MihonNaming::getMangaDirName)
+                SeriesSheet.LinkSeries(d.linkedFolder, seriesLinkSuggestions(series.title, folders), folders)
+            }
+            ui.update { it.copy(sheet = sheet) }
+        }
+    }
+
+    /** Pose (ou retire, [folder] null) la liaison ; les statuts suivent par les flux Room. */
+    private fun setSeriesLink(folder: String?) {
+        val dirs = dataState.value.dirs
+        ui.update { it.copy(sheet = SeriesSheet.None) }
+        viewModelScope.launch(Dispatchers.IO) {
+            val dao = container.db.seriesLinkDao()
+            // Retire d'abord toute liaison posee sous une autre cle (avant l'arrivee d'un telechargement).
+            dao.delete(seriesLinkOwnerKeys(seriesKey, dirs))
+            if (folder != null) dao.upsert(SeriesLinkEntity(seriesLinkOwnerKey(seriesKey, dirs), folder))
         }
     }
 
@@ -445,6 +488,7 @@ class SeriesViewModel(
         val series = c.series ?: return emptyData
         val joinRows = buildChapterJoinRows(seriesKey, series.sourceName, series.title, c.joinInputs)
         val missing = deriveSeriesSummary(seriesKey, joinRows.toAggregateInputs(), c.ignoredGaps).missing
+        val dirs = c.joinInputs.downloaded.filter { it.seriesKey == seriesKey }.map { it.sourceDir to it.seriesDir }.distinct()
         val qualityByPath = c.qualities.associateBy { it.mihonPath }
         val copiesByNumber = joinRows.mapNotNull { it.exactNumber?.takeIf { n -> n >= 0f } }.groupingBy { it }.eachCount()
         val chapterRows = joinRows.map { row ->
@@ -462,6 +506,8 @@ class SeriesViewModel(
             rows = (chapterRows + gapRows).sortedByDescending { it.label.toFloatOrNull() ?: it.number.toFloat() },
             progress = progressOf(chapterRows),
             missing = missing,
+            dirs = dirs,
+            linkedFolder = SeriesLinks(c.joinInputs.seriesLinks).folderForSeries(seriesKey, dirs),
         )
     }
 

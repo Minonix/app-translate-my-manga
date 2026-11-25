@@ -42,6 +42,7 @@ suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List
     val localFrPaths = localFr.mapNotNull { it.mihonPath }.toSet()
     // FR de local/ sans mihonPath (traduite depuis un original du PC) : ne pas la renvoyer.
     val localFrNumbers = LocalFrNumbers.of(localFr)
+    val seriesLinks = SeriesLinks(db.seriesLinkDao().getAll())
     val targets = mutableListOf<JobTarget>()
     for (downloaded in db.downloadedChapterDao().observeAll().first()) {
         val seriesKey = downloaded.seriesKey ?: continue
@@ -57,7 +58,8 @@ suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List
             inCatalog = index != null,
             index = index,
             latestJob = latestJob,
-            localFr = downloaded.mihonPath in localFrPaths || localFrNumbers.covers(downloaded.number, downloaded.seriesDir),
+            localFr = downloaded.mihonPath in localFrPaths || localFrNumbers.covers(downloaded.number, downloaded.seriesDir,
+                seriesLinks.folderFor(seriesKey, downloaded.sourceDir, downloaded.seriesDir)),
         )
         if (deriveStatus(facts) != ChapterStatus.TO_SEND) continue
 

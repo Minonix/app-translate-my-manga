@@ -375,4 +375,37 @@ class SeriesViewModelTest {
         assertEquals(2, targets.size)
         assertTrue(targets.any { it.mihonPath.flatten() == a })
     }
+
+    // Liaison manuelle (meme oeuvre sous un autre titre) : la feuille propose, rien n'est lie sans clic ;
+    // le choix fait compter les FR du dossier lie, y compris pour le suivi automatique.
+    @Test fun linkSeries_suggestsWithoutApplying_thenPickCountsLinkedFr() = runTest {
+        seedSeries()
+        seedToTranslateChapter(number = 39)
+        val other = "Blue Lock Episode Nagi"
+        env.db.localFrChapterDao().upsertAll(
+            listOf(
+                LocalFrChapterEntity("$other/c0039 - Ch. 39.cbz", other, "c0039 - Ch. 39.cbz", "doc:39", 0L, null, null),
+                LocalFrChapterEntity("One Piece/c0001 - Ch. 1.cbz", "One Piece", "c0001 - Ch. 1.cbz", "doc:op", 0L, null, null),
+            ),
+        )
+        val vm = newVm()
+        vm.state.first { it.rows.isNotEmpty() }
+
+        vm.onEvent(SeriesEvent.OpenLinkSeries)
+        val sheet = vm.state.first { it.sheet is SeriesSheet.LinkSeries }.sheet as SeriesSheet.LinkSeries
+        assertEquals(listOf(other), sheet.suggestions)
+        assertTrue("One Piece" in sheet.folders)
+        assertTrue(env.db.seriesLinkDao().getAll().isEmpty())
+        assertEquals(ChapterKind.ToTranslate, vm.state.value.rows.single { it.number == 39 }.kind)
+        assertEquals(1, autoTranslateTargets(env.db, setOf(seriesKey)).size)
+
+        vm.onEvent(SeriesEvent.PickLinkFolder(other))
+        val linked = vm.state.first { it.linkedFolder == other && it.rows.single { r -> r.number == 39 }.kind == ChapterKind.InMihon }
+        assertEquals(SeriesSheet.None, linked.sheet)
+        assertTrue(autoTranslateTargets(env.db, setOf(seriesKey)).isEmpty())
+
+        vm.onEvent(SeriesEvent.Unlink)
+        vm.state.first { it.linkedFolder == null && it.rows.single { r -> r.number == 39 }.kind == ChapterKind.ToTranslate }
+        assertTrue(env.db.seriesLinkDao().getAll().isEmpty())
+    }
 }

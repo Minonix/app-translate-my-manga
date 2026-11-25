@@ -127,6 +127,21 @@ interface ManualChapterLinkDao {
 }
 
 @Dao
+interface SeriesLinkDao {
+    @Query("SELECT * FROM series_link")
+    fun observeAll(): Flow<List<SeriesLinkEntity>>
+
+    @Query("SELECT * FROM series_link")
+    suspend fun getAll(): List<SeriesLinkEntity>
+
+    @Upsert
+    suspend fun upsert(link: SeriesLinkEntity)
+
+    @Query("DELETE FROM series_link WHERE ownerKey IN (:ownerKeys)")
+    suspend fun delete(ownerKeys: List<String>)
+}
+
+@Dao
 interface ScannedSeriesDirDao {
     @Query("SELECT * FROM scanned_series_dir")
     fun observeAll(): Flow<List<ScannedSeriesDirEntity>>

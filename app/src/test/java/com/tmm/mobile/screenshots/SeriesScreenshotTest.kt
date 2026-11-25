@@ -74,4 +74,20 @@ class SeriesScreenshotTest {
             onEvent = {},
         )
     }
+
+    // Feuille « Lier a une autre serie » : aucune maquette, composants de la feuille « Masquer ».
+    @Test
+    fun seriesScreen_linkSeriesSheet() = capture("SeriesScreen_linkSeriesSheet") {
+        SeriesScreen(
+            state = MockupData.seriesDetail.copy(
+                linkedFolder = "See You at the Pepper Field!",
+                sheet = SeriesSheet.LinkSeries(
+                    linked = "See You at the Pepper Field!",
+                    suggestions = listOf("See You at the Pepper Field!", "Pepper and Salt"),
+                    folders = listOf("Blue Lock", "Frieren", "One Piece", "Pepper and Salt", "See You at the Pepper Field!", "Vinland Saga"),
+                ),
+            ),
+            onEvent = {},
+        )
+    }
 }

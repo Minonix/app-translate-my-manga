@@ -208,6 +208,7 @@ class LibraryViewModel(
                 jobs = db.jobDao().observeAll().first(),
                 localFr = db.localFrChapterDao().observeAll().first(),
                 pcIndex = db.pcIndexChapterDao().observeAll().first(),
+                seriesLinks = db.seriesLinkDao().getAll(),
             ),
         )
         series.map { it to buildChapterJoinRows(it.seriesKey, it.sourceName, it.title, index) }

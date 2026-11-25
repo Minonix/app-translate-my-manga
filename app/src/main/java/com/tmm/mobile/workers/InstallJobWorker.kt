@@ -17,6 +17,7 @@ import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.status.LocalErrorCode
 import com.tmm.mobile.mihon.CbzPacker
 import com.tmm.mobile.mihon.LocalInstaller
+import com.tmm.mobile.data.SeriesLinks
 import com.tmm.mobile.protocol.ProtocolJson
 import com.tmm.mobile.protocol.ResultJson
 import com.tmm.mobile.transport.AuthExpiredException
@@ -139,9 +140,14 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             val localRootDocId = root.fs.findChild(root.rootDocId, "local")?.docId
                 ?: return failOrRetry(jobId, db, clock, step, LocalErrorCode.INSTALL, "dossier local/ introuvable")
 
+            // Serie liee a la main a un dossier de local/ (meme oeuvre sous un autre titre) : la FR rejoint
+            // ce dossier plutot que celui que le PC deduit de son titre. Le nom du fichier (cNNNN - ...)
+            // reste celui du PC. Couple de dossiers d'abord : job.seriesKey peut etre l'ancienne cle downloads|.
+            val folder = SeriesLinks(db.seriesLinkDao().getAll()).folderFor(job.seriesKey, job.sourceDir, job.seriesDir)
+                ?: result.localFolderName
             val installResult = LocalInstaller(root.fs).install(
                 localRootDocId = localRootDocId,
-                localFolderName = result.localFolderName,
+                localFolderName = folder,
                 chapterFileName = result.chapterFileName,
                 jobId = job.jobId,
                 openContent = { dest.inputStream() },
@@ -156,12 +162,12 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             try {
                 val thumbnailUrl = job.seriesKey?.let { db.seriesDao().get(it)?.thumbnailUrl }
                 val written = withContext(Dispatchers.IO) {
-                    LocalInstaller(root.fs).ensureCover(localRootDocId, result.localFolderName) {
+                    LocalInstaller(root.fs).ensureCover(localRootDocId, folder) {
                         downloadCover(thumbnailUrl) ?: dest.inputStream().use { CbzPacker.coverPage(it) }
                         ?.let { (name, bytes) -> name.substringAfterLast('.', "jpg") to bytes }
                     }
                 }
-                if (written) AppLog.d("Install", "couverture posee dans local/${result.localFolderName}")
+                if (written) AppLog.d("Install", "couverture posee dans local/$folder")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -169,17 +175,17 @@ class InstallJobWorker(appContext: Context, params: WorkerParameters) : Coroutin
             }
             dest.parentFile?.deleteRecursively()
 
-            val localPath = "${result.localFolderName}/${result.chapterFileName}"
+            val localPath = "$folder/${result.chapterFileName}"
             // R2 : le nom du fichier porte desormais l'edition. Le meme chapitre deja installe sous un
             // autre nom (ancien nom sans edition) est remplace, sinon Mihon l'afficherait deux fois.
-            for (old in db.localFrChapterDao().getForFolder(result.localFolderName)) {
+            for (old in db.localFrChapterDao().getForFolder(folder)) {
                 if (old.mihonPath != job.mihonPath || old.localPath == localPath) continue
                 if (runCatching { root.fs.delete(old.documentUri) }.isSuccess) db.localFrChapterDao().delete(old)
             }
             db.localFrChapterDao().upsert(
                 LocalFrChapterEntity(
                     localPath = localPath,
-                    folderName = result.localFolderName,
+                    folderName = folder,
                     fileName = result.chapterFileName,
                     documentUri = requireNotNull(installResult.installedDocId),
                     lastModified = clock.nowMillis(),

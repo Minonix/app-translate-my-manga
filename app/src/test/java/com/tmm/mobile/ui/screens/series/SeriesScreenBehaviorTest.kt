@@ -69,6 +69,8 @@ class SeriesScreenBehaviorTest {
         is SeriesEvent.DragSelectTo, SeriesEvent.DragSelectEnd -> state
         // Lien manuel : passe par le selecteur systeme et la base, couvert par ManualChapterLinkerTest.
         is SeriesEvent.FilePicked, SeriesEvent.ConfirmLink -> state
+        // Liaison a une autre serie : lit la base, couverte par SeriesViewModelTest.
+        SeriesEvent.OpenLinkSeries, is SeriesEvent.PickLinkFolder, SeriesEvent.Unlink -> state
         is SeriesEvent.ToggleStats -> state.copy(expandedStats = toggle(state.expandedStats, event.key))
         SeriesEvent.DismissGap -> state.copy(showGap = false)
         SeriesEvent.TranslateAll -> state.copy(toast = SeriesToast.Translated(state.toTranslateNumbers.size))

@@ -3,6 +3,8 @@ package com.tmm.mobile.data.status
 import com.tmm.mobile.data.db.ChapterEntity
 import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.TmmDatabase
+import com.tmm.mobile.data.SeriesLinks
+import com.tmm.mobile.data.db.SeriesLinkEntity
 import com.tmm.mobile.data.flatten
 import com.tmm.mobile.data.unflattenMihonPath
 import com.tmm.mobile.mihon.LocalFrNumbers
@@ -44,6 +46,8 @@ data class ChapterJoinInputs(
     val jobs: List<com.tmm.mobile.data.db.JobEntity>,
     val localFr: List<com.tmm.mobile.data.db.LocalFrChapterEntity>,
     val pcIndex: List<com.tmm.mobile.data.db.PcIndexChapterEntity>,
+    // Liaisons manuelles serie -> dossier de local/ (meme oeuvre sous un autre titre).
+    val seriesLinks: List<SeriesLinkEntity> = emptyList(),
 )
 
 fun joinInputsFlow(db: TmmDatabase): Flow<ChapterJoinInputs> = combine(
@@ -53,6 +57,7 @@ fun joinInputsFlow(db: TmmDatabase): Flow<ChapterJoinInputs> = combine(
     db.localFrChapterDao().observeAll(),
     db.pcIndexChapterDao().observeAll(),
 ) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }
+    .withSeriesLinks(db)
 
 /** Meme jointure limitee a une serie (Fiche serie) : ne charge pas les chapitres des ~2000 autres. */
 fun joinInputsFlow(db: TmmDatabase, seriesKey: String): Flow<ChapterJoinInputs> = combine(
@@ -62,6 +67,11 @@ fun joinInputsFlow(db: TmmDatabase, seriesKey: String): Flow<ChapterJoinInputs> 
     db.localFrChapterDao().observeAll(),
     db.pcIndexChapterDao().observeAll(),
 ) { chapters, downloaded, jobs, localFr, pcIndex -> ChapterJoinInputs(chapters, downloaded, jobs, localFr, pcIndex) }
+    .withSeriesLinks(db)
+
+// combine type s'arrete a cinq flux : les liaisons sont ajoutees par un second combine.
+private fun Flow<ChapterJoinInputs>.withSeriesLinks(db: TmmDatabase): Flow<ChapterJoinInputs> =
+    combine(db.seriesLinkDao().observeAll()) { inputs, links -> inputs.copy(seriesLinks = links) }
 
 /**
  * Index des entrees de jointure, construit une seule fois : la Bibliotheque rapproche ~1000
@@ -71,6 +81,7 @@ class ChapterJoinIndex(inputs: ChapterJoinInputs) {
     internal val latestJobByPath = inputs.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { j -> j.createdAt } }
     internal val localFrPaths = inputs.localFr.mapNotNull { it.mihonPath }.toSet()
     internal val localFrNumbers = LocalFrNumbers.of(inputs.localFr)
+    internal val seriesLinks = SeriesLinks(inputs.seriesLinks)
     internal val indexByPath = inputs.pcIndex.associateBy { it.mihonPath }
     internal val chaptersBySeries = inputs.chapters.groupBy { it.seriesKey }
     internal val downloadedBySeries = inputs.downloaded.groupBy { it.seriesKey }
@@ -110,6 +121,8 @@ fun buildChapterJoinRows(
     val seriesDownloaded = index.downloadedBySeries[seriesKey].orEmpty()
     val downloadedByChapterKey = seriesDownloaded.associateBy { it.chapterKey }
     val downloadedOrphans = seriesDownloaded.filter { it.chapterKey == null }
+    // Dossier de local/ lie a la main (meme oeuvre sous un autre titre) : ses FR comptent aussi.
+    val linkedFolder = index.seriesLinks.folderForSeries(seriesKey, seriesDownloaded.map { it.sourceDir to it.seriesDir }.distinct())
 
     fun rowFor(chapter: ChapterEntity?, downloaded: DownloadedChapterEntity?): ChapterJoinRow {
         val mihonPath = if (downloaded != null) {
@@ -126,7 +139,7 @@ fun buildChapterJoinRows(
         val linkedFr = flat in index.localFrPaths || (loose != null && loose in index.localFrLoosePaths)
         // FR de local/ sans mihonPath (traduite depuis un original du PC) : reconnue par dossier + numero.
         val frByNumber = !linkedFr &&
-            index.localFrNumbers.covers(chapter?.number ?: downloaded?.number, seriesTitle, downloaded?.seriesDir)
+            index.localFrNumbers.covers(chapter?.number ?: downloaded?.number, seriesTitle, downloaded?.seriesDir, linkedFolder)
         val facts = ChapterFacts(
             downloaded = downloaded != null,
             inCatalog = chapter != null,

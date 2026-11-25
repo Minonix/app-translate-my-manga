@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.mihon.LocalFrNumbers
+import com.tmm.mobile.data.SeriesLinks
 
 // pendingTransfersCount = toSend + toFetch, toutes series confondues (recapitulatif de
 // l'Onboarding ; ex-badge de l'ecran Transferts retire en v2, PLAN_GEMINI.md 5.19).
@@ -27,10 +28,12 @@ object GlobalCounts {
         db.jobDao().observeAll().ignoringProgress(),
         db.localFrChapterDao().observeAll(),
         db.pcIndexChapterDao().observeAll(),
-    ) { downloaded, jobs, localFr, pcIndex ->
+        db.seriesLinkDao().observeAll(),
+    ) { downloaded, jobs, localFr, pcIndex, links ->
         val latestJobByPath = jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { job -> job.createdAt } }
         val localFrPaths = localFr.mapNotNull { it.mihonPath }.toSet()
         val localFrNumbers = LocalFrNumbers.of(localFr)
+        val seriesLinks = SeriesLinks(links)
         val indexByPath = pcIndex.associateBy { it.mihonPath }
         val toSend = downloaded.count { dl ->
             val facts = ChapterFacts(
@@ -38,7 +41,7 @@ object GlobalCounts {
                 inCatalog = dl.chapterKey != null,
                 index = indexByPath[dl.mihonPath],
                 latestJob = latestJobByPath[dl.mihonPath],
-                localFr = dl.mihonPath in localFrPaths || localFrNumbers.covers(dl.number, dl.seriesDir),
+                localFr = dl.mihonPath in localFrPaths || localFrNumbers.covers(dl.number, dl.seriesDir, seriesLinks.folderFor(dl.seriesKey, dl.sourceDir, dl.seriesDir)),
             )
             deriveStatus(facts) == ChapterStatus.TO_SEND
         }

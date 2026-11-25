@@ -93,6 +93,12 @@ sealed interface SeriesSheet {
         val anyChecked: Boolean get() = localFr || mihon || pc
     }
 
+    /**
+     * « Lier a une autre serie » : dossiers de local/ (et titres des series connues) dont les FR compteront
+     * pour cette serie. [suggestions] = titres proches, proposes en tete mais jamais lies sans un clic.
+     */
+    data class LinkSeries(val linked: String?, val suggestions: List<String>, val folders: List<String>) : SeriesSheet
+
     /** Lien manuel : le fichier choisi etait deja relie a un autre chapitre, a confirmer. */
     data class LinkConfirm(val file: PickedFile, val targetLabel: String, val replacing: LinkedElsewhere) : SeriesSheet
 }
@@ -153,6 +159,8 @@ data class SeriesState(
     // Supprimer : chapitres selectionnes sans job actif, et ceux ignores (ChapterDeleter).
     val selectionToDelete: Int = 0,
     val selectionDeleteSkipped: Int = 0,
+    // Dossier de local/ lie a la main (meme oeuvre sous un autre titre), null sans liaison.
+    val linkedFolder: String? = null,
 ) {
     val selectionCount: Int get() = selected.size
     val selectedLabels: List<String> get() = rows.filter { it.key in selected }.map { it.label }
@@ -199,4 +207,9 @@ sealed interface SeriesEvent {
     /** Fichier choisi dans le selecteur pour la ligne `key` (`docId` null : hors de l'arbre Mihon). */
     data class FilePicked(val key: String, val docId: String?) : SeriesEvent
     data object ConfirmLink : SeriesEvent
+
+    // Liaison a un dossier de local/ d'une autre serie (meme oeuvre, autre titre).
+    data object OpenLinkSeries : SeriesEvent
+    data class PickLinkFolder(val folder: String) : SeriesEvent
+    data object Unlink : SeriesEvent
 }

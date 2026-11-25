@@ -6,6 +6,8 @@ import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.tmm.mobile.data.db.JobEntity
 import com.tmm.mobile.data.db.LocalFrChapterEntity
+import com.tmm.mobile.data.db.SeriesLinkEntity
+import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.mihon.FakeMihonFs
 import com.tmm.mobile.fake.FakeFile
 import com.tmm.mobile.protocol.FileRef
@@ -153,6 +155,32 @@ class InstallJobWorkerTest {
             setOf("Titre/$newName", "Titre/${other.name}"),
             env.db.localFrChapterDao().observeAll().first().map { it.localPath }.toSet(),
         )
+        root.deleteRecursively()
+    }
+
+    // Serie liee a un dossier de local/ (meme oeuvre sous un autre titre) : la FR y est installee, sous le
+    // nom cNNNN du PC, au lieu du dossier que le PC deduit de son titre.
+    @Test fun doWork_linkedSeries_installsIntoLinkedFolder() = runTest {
+        val root = kotlin.io.path.createTempDirectory("mihon").toFile()
+        val linkedDir = java.io.File(root, "local/See You at the Pepper Field!").apply { mkdirs() }
+        java.io.File(linkedDir, "c0038 - Ch. 38.cbz").writeBytes(byteArrayOf(38))
+        env.container.mihonFs = FakeMihonFs(root)
+        env.container.mihonRootDocId = root.absolutePath
+        env.db.seriesLinkDao().upsert(SeriesLinkEntity(DownloadOnlySeries.key("MangaSource", "Titre"), "See You at the Pepper Field!"))
+        val bytes = "contenu-valide".toByteArray()
+        val sha = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        val resultFile = FakeFile(name = "result.cbz", parents = mutableListOf("jobs-root"), mimeType = "application/vnd.comicbook+zip", modifiedTime = "2026-01-01T00:00:00Z", bytes = bytes)
+        env.drive.files[resultFile.id] = resultFile
+        val name = "c0039 - Ch. 39.cbz"
+        env.db.jobDao().upsert(job("job-5", phoneState = "RESULT_READY", resultFileId = resultFile.id, resultJson = resultJson("job-5", bytes.size.toLong(), sha, name)))
+
+        assertEquals(Result.success(), buildWorker("job-5").doWork())
+
+        assertTrue(java.io.File(linkedDir, name).exists())
+        assertFalse(java.io.File(root, "local/Titre").exists())
+        val installed = env.db.localFrChapterDao().observeAll().first().single()
+        assertEquals("See You at the Pepper Field!", installed.folderName)
+        assertEquals("See You at the Pepper Field!/$name", env.db.jobDao().get("job-5")!!.installedPath)
         root.deleteRecursively()
     }
 }

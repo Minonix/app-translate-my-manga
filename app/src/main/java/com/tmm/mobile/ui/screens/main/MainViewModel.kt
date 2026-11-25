@@ -21,6 +21,7 @@ import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.translatingPercent
 import com.tmm.mobile.mihon.LocalFrNumbers
+import com.tmm.mobile.data.SeriesLinks
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
@@ -66,6 +67,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val localFrPaths: Set<String>,
         // FR de local/ sans mihonPath, reconnues par dossier + numero (les telechargements masques sont deja retires).
         val localFrNumbers: LocalFrNumbers,
+        // Liaisons manuelles serie -> dossier de local/ (meme oeuvre sous un autre titre).
+        val seriesLinks: SeriesLinks,
         val pcIndex: List<PcIndexChapterEntity>,
     ) {
         // Calcules une fois par instantane : statusFor les reconstruisait pour chaque chapitre (O(n^2),
@@ -89,9 +92,10 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             downloaded.filterNot(h::hidesDownloaded),
             localFr.mapNotNull { it.mihonPath }.filterNot(h::hidesPath).toSet(),
             LocalFrNumbers.of(localFr),
+            SeriesLinks.EMPTY,
             pcIndex.filterNot { h.hidesPath(it.mihonPath) },
         )
-    }
+    }.combine(db.seriesLinkDao().observeAll()) { room, links -> room.copy(seriesLinks = SeriesLinks(links)) }
 
     private val visibleSeries = combine(db.seriesDao().observeAll(), hidden) { series, h -> series.filterNot { h.hidesSeries(it.seriesKey) } }
 
@@ -192,7 +196,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 inCatalog = dl.chapterKey != null,
                 index = room.indexByPath[dl.mihonPath],
                 latestJob = room.latestJobByPath[dl.mihonPath],
-                localFr = dl.mihonPath in room.localFrPaths || room.localFrNumbers.covers(dl.number, dl.seriesDir),
+                localFr = dl.mihonPath in room.localFrPaths || room.localFrNumbers.covers(dl.number, dl.seriesDir, room.seriesLinks.folderFor(dl.seriesKey, dl.sourceDir, dl.seriesDir)),
             ),
         )
     }

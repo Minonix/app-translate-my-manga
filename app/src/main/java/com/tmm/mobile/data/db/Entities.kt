@@ -77,6 +77,19 @@ data class ManualChapterLinkEntity(
     val number: Float,
 )
 
+/**
+ * Liaison manuelle d'une serie a un dossier de local/ (fiche serie, « Lier a une autre serie ») : une meme
+ * oeuvre suivie sur deux sources porte deux titres, et ses FR sont dans le dossier de l'autre.
+ * `ownerKey` : DownloadOnlySeries.key(sourceDir, seriesDir) quand la serie a un dossier downloads/ (stable
+ * quand une serie hors bibliotheque y entre et change de seriesKey), sinon la seriesKey. `localFolder` est
+ * le nom exact du dossier de local/ (installation), jamais sa cle de comparaison.
+ */
+@Entity(tableName = "series_link")
+data class SeriesLinkEntity(
+    @PrimaryKey val ownerKey: String,
+    val localFolder: String,
+)
+
 @Entity(tableName = "scanned_series_dir", primaryKeys = ["sourceDir", "seriesDir"])
 data class ScannedSeriesDirEntity(
     val sourceDir: String,

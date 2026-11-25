@@ -188,6 +188,7 @@ fun SeriesScreen(
             V2Sheet(visible = sheet is SeriesSheet.LinkConfirm, onDismiss = { onEvent(SeriesEvent.CloseSheet) }) {
                 if (sheet is SeriesSheet.LinkConfirm) LinkConfirmSheetContent(sheet, onEvent)
             }
+            LinkSeriesSheet(sheet as? SeriesSheet.LinkSeries, onEvent)
 
             SeriesToastHost(
                 toast = state.toast,
@@ -801,6 +802,16 @@ private fun MoreSheetContent(state: SeriesState, allSeries: Boolean, onEvent: (S
             onClick = { onEvent(SeriesEvent.RequestDelete) },
             count = deletable,
             danger = true,
+        )
+    }
+    // Meme oeuvre suivie sur une autre source (autre titre) : liaison manuelle a son dossier de local/.
+    if (allSeries) {
+        V2ActionRow(
+            icon = TmmIconId.V2Book,
+            title = stringResource(R.string.series_link_series_label),
+            description = state.linkedFolder?.let { stringResource(R.string.series_link_series_linked_fmt, it) }
+                ?: stringResource(R.string.series_link_series_hint),
+            onClick = { onEvent(SeriesEvent.OpenLinkSeries) },
         )
     }
     val locked = state.lockedNumbers

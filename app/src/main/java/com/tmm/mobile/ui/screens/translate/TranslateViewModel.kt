@@ -21,6 +21,8 @@ import com.tmm.mobile.data.status.deriveStatus
 import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.mihon.DownloadOnlySeries
 import com.tmm.mobile.mihon.LocalFrNumbers
+import com.tmm.mobile.data.SeriesLinks
+import com.tmm.mobile.data.db.SeriesLinkEntity
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.ui.theme.TmmColors
 import kotlinx.coroutines.CancellationException
@@ -64,6 +66,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
         val jobs: List<JobEntity>,
         val pcIndex: List<PcIndexChapterEntity>,
         val chapters: List<ChapterEntity>,
+        val seriesLinks: List<SeriesLinkEntity> = emptyList(),
     )
 
     private val ui = MutableStateFlow(UiState())
@@ -92,12 +95,14 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
             // Catalogue lu pour la scantrad des chapitres rattachés à une série de la sauvegarde.
             db.chapterDao().observeAll(),
             hiddenSetFlow(db, container.prefs),
-        ) { data, chapters, h ->
+            db.seriesLinkDao().observeAll(),
+        ) { data, chapters, h, links ->
             // Series masquees (Reglages) : absentes de la feuille Traduire comme du reste de l'app.
             data.copy(
                 series = data.series.filterNot { h.hidesSeries(it.seriesKey) },
                 downloaded = data.downloaded.filterNot(h::hidesDownloaded),
                 chapters = chapters,
+                seriesLinks = links,
             )
         },
         ui,
@@ -179,6 +184,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
         downloadedByPath = d.downloaded.associateBy { it.mihonPath }
         val localFrPaths = d.localFr.mapNotNull { it.mihonPath }.toSet()
         val localFrNumbers = LocalFrNumbers.of(d.localFr)
+        val seriesLinks = SeriesLinks(d.seriesLinks)
         val indexByPath = d.pcIndex.associateBy { it.mihonPath }
         val latestJobByPath = d.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { it.createdAt } }
         val downloadedBySeries = d.downloaded.groupBy { it.seriesKey }
@@ -196,7 +202,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
                         inCatalog = dl.chapterKey != null,
                         index = indexByPath[dl.mihonPath],
                         latestJob = latestJobByPath[dl.mihonPath],
-                        localFr = dl.mihonPath in localFrPaths || localFrNumbers.covers(dl.number, dl.seriesDir),
+                        localFr = dl.mihonPath in localFrPaths || localFrNumbers.covers(dl.number, dl.seriesDir, seriesLinks.folderFor(dl.seriesKey, dl.sourceDir, dl.seriesDir)),
                     )
                     deriveStatus(facts) == ChapterStatus.TO_SEND
                 }
