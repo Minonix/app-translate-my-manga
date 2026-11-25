@@ -2,6 +2,7 @@ package com.tmm.mobile.ui.screens.library
 
 import com.tmm.mobile.core.AppLog
 import com.tmm.mobile.data.db.CategoryEntity
+import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.SeriesCategoryEntity
 import com.tmm.mobile.data.db.SeriesEntity
 import com.tmm.mobile.data.db.TmmDatabase
@@ -177,7 +178,18 @@ internal fun hideFromSnapshot(d: LibrarySnapshot, hidden: com.tmm.mobile.data.Hi
 
 /** Premiere page du premier chapitre telecharge : couverture quand l'URL de la sauvegarde manque ou echoue. */
 internal fun coverFallbackOf(rows: List<ChapterJoinRow>): String? =
-    rows.mapNotNull { it.downloaded }.minByOrNull { it.number ?: Float.MAX_VALUE }?.let { pageCoverRef(it.documentUri, it.isCbz) }
+    coverFallbackChapter(rows.mapNotNull { it.downloaded })?.let { pageCoverRef(it.documentUri, it.isCbz) }
+
+/**
+ * Chapitre dont la premiere page sert de repli : le plus petit numero positif, puis sans numero, puis
+ * 0 ou negatif. Un chapitre 0 (prologue, ou volume entier : Frontier, ch. 0 = volume 13 J-Novel) ou -1
+ * (hors-serie sans numero) ne montre pas la couverture de la serie.
+ */
+internal fun coverFallbackChapter(downloaded: List<DownloadedChapterEntity>): DownloadedChapterEntity? =
+    downloaded.minWithOrNull(
+        compareBy<DownloadedChapterEntity>({ d -> d.number.let { if (it != null && it > 0f) 0 else if (it == null) 1 else 2 } })
+            .thenBy { it.number ?: 0f },
+    )
 
 private fun libraryBadgeLabel(badge: SeriesBadge, s: SeriesSummary): String = when (badge) {
     SeriesBadge.BUSY -> "Traduction en cours"

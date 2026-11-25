@@ -21,6 +21,18 @@ import org.robolectric.RobolectricTestRunner
 // L'instantane disque est affiche avant le calcul Room, puis remplace par lui (et reecrit).
 @RunWith(RobolectricTestRunner::class)
 class LibraryCacheTest {
+    // Frontier : le chapitre 0 est le volume 13 J-Novel, sa premiere page n'est pas la couverture de la serie.
+    @Test fun coverFallback_prefersSmallestPositiveNumber() {
+        fun row(number: Float?) = com.tmm.mobile.data.db.DownloadedChapterEntity(
+            mihonPath = "S/F/c$number", sourceDir = "S", seriesDir = "F", chapterDir = "c$number", documentUri = "doc-$number",
+            isCbz = true, sizeBytes = 1, lastModified = 0, pageCount = 1, seriesKey = "k", chapterKey = null, number = number,
+        )
+
+        assertEquals(1f, coverFallbackChapter(listOf(row(0f), row(-1f), row(2f), row(1f), row(null)))?.number)
+        assertEquals(null, coverFallbackChapter(listOf(row(0f), row(null)))?.number)
+        assertEquals(0f, coverFallbackChapter(listOf(row(0f)))?.number)
+    }
+
     @Test fun snapshotShownFirst_thenReplacedByRoomAndRewritten() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), TmmDatabase::class.java).build()
         val file = File(kotlin.io.path.createTempDirectory().toFile(), "library_snapshot.json")

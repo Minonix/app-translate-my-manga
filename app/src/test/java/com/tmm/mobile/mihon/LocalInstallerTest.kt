@@ -9,6 +9,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocalInstallerTest {
+    private companion object {
+        val CREDITS = byteArrayOf(1, 2, 3, 4, 5, 6)
+    }
+
     private fun sha256(bytes: ByteArray) =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
@@ -146,7 +150,9 @@ class LocalInstallerTest {
 
         assertFalse(installer.ensureCover(root.absolutePath, "Serie") { "jpg" to byteArrayOf(0) })
         assertTrue(installer.ensureCover(root.absolutePath, "Serie") { "jpg" to byteArrayOf(5) })
-        assertEquals(listOf("cover.jpg"), folder.list()!!.toList())
+        // Nom garde : la sauvegarde Mihon pointe vers cover.png.
+        assertEquals(listOf("cover.png"), folder.list()!!.toList())
+        assertEquals(listOf(5), File(folder, "cover.png").readBytes().map { it.toInt() })
         assertFalse(installer.ensureCover(root.absolutePath, "Serie") { error("couverture pleine gardee") })
     }
 
@@ -158,6 +164,61 @@ class LocalInstallerTest {
         assertTrue(LocalInstaller(fs).ensureCoverIn(folder.absolutePath, stale) { "jpg" to byteArrayOf(1) })
         assertFalse(LocalInstaller(fs).ensureCoverIn(folder.absolutePath, stale) { error("couverture deja ecrite") })
         assertEquals(listOf(1), File(folder, "cover.jpg").readBytes().map { it.toInt() })
+    }
+
+    // Off to an Invincible Start : cover.webp identique a la page 001 (credits sur fond noir) de c0033.
+    private fun folderWithPageCover(): Pair<File, File> {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        val folder = File(root, "Off to an Invincible Start").apply { mkdirs() }
+        File(folder, "c0033 - Ch. 33.cbz").outputStream().use {
+            CbzPacker.pack(mapOf("001.webp" to CREDITS, "002.webp" to byteArrayOf(9, 9, 9)), it)
+        }
+        File(folder, "cover.webp").writeBytes(CREDITS)
+        return root to folder
+    }
+
+    @Test fun ensureCover_pageCoverReplacedByThumbnail_keepsName() {
+        val (root, folder) = folderWithPageCover()
+        val thumbnail = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 1, 2, 3)
+
+        val written = LocalInstaller(FakeMihonFs(root)).ensureCover(root.absolutePath, folder.name, thumbnail = { "jpg" to thumbnail }) {
+            error("une page ne remplace jamais une page")
+        }
+
+        assertTrue(written)
+        assertEquals(listOf("c0033 - Ch. 33.cbz", "cover.webp"), folder.list()!!.sorted())
+        assertEquals(thumbnail.toList(), File(folder, "cover.webp").readBytes().toList())
+    }
+
+    @Test fun ensureCover_pageCoverKeptWhenThumbnailUnavailable() {
+        val (root, folder) = folderWithPageCover()
+        val installer = LocalInstaller(FakeMihonFs(root))
+
+        assertFalse(installer.ensureCover(root.absolutePath, folder.name, thumbnail = { null }) { "webp" to byteArrayOf(9, 9, 9) })
+        assertFalse(installer.ensureCover(root.absolutePath, folder.name) { "webp" to byteArrayOf(9, 9, 9) })
+        assertEquals(CREDITS.toList(), File(folder, "cover.webp").readBytes().toList())
+    }
+
+    @Test fun ensureCover_realCoverNeverReplacedNorDownloaded() {
+        val (root, folder) = folderWithPageCover()
+        File(folder, "cover.webp").writeBytes(byteArrayOf(4, 4, 4, 4))
+
+        val written = LocalInstaller(FakeMihonFs(root)).ensureCover(
+            root.absolutePath, folder.name, thumbnail = { error("pas de telechargement pour une vraie couverture") },
+        ) { error("vraie couverture gardee") }
+
+        assertFalse(written)
+        assertEquals(listOf(4, 4, 4, 4), File(folder, "cover.webp").readBytes().map { it.toInt() })
+    }
+
+    @Test fun ensureCover_missingCover_extensionFollowsContent() {
+        val root = kotlin.io.path.createTempDirectory().toFile()
+        val folder = File(root, "S").apply { mkdirs() }
+        val png = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte(), 1)
+
+        // Le CDN annonce du jpeg, le contenu est un PNG.
+        assertTrue(LocalInstaller(FakeMihonFs(root)).ensureCover(root.absolutePath, "S", thumbnail = { "jpg" to png }) { null })
+        assertEquals(listOf("cover.png"), folder.list()!!.toList())
     }
 
     @Test fun ensureCover_nothingToWrite_leavesFolderUntouched() {

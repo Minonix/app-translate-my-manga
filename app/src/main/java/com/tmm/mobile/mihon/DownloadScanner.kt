@@ -7,6 +7,7 @@ import com.tmm.mobile.data.db.ManualChapterLinkEntity
 import com.tmm.mobile.data.db.ScannedSeriesDirEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.core.AppLog
+import com.tmm.mobile.ui.components.normalizeCoverUrl
 import java.io.File
 import java.io.IOException
 import java.util.zip.ZipException
@@ -19,6 +20,10 @@ import kotlinx.coroutines.flow.first
 // contient jamais de "/", donc aucune collision avec les vrais dossiers de downloads/.
 internal const val LOCAL_SCAN_SOURCE = "local/"
 
+// Vignettes reseau telechargees au plus par scan de local/ : un scan force (mise a jour) ne doit pas
+// bloquer le demarrage. Les dossiers restants sont repris aux scans suivants.
+private const val MAX_COVER_DOWNLOADS_PER_SCAN = 8
+
 // CAHIER_DES_CHARGES.md 8.2 : parcours downloads/<source>/<serie>/<chapitre>, cache par date de
 // modification du dossier serie, dossiers incomplets ignores. Deuxieme parcours de local/ pour
 // local_fr_chapter, en preservant jobId/mihonPath des lignes deja connues (poses par
@@ -26,7 +31,12 @@ internal const val LOCAL_SCAN_SOURCE = "local/"
 // Avec ~2000 series, le cas courant est "rien n'a change" : seuls les dossiers dont la date a bouge
 // sont relus, le catalogue n'est charge que si besoin, et les dossiers disparus (series ou chapitres
 // supprimes dans Mihon) sont retires du cache Room.
-class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
+class DownloadScanner(
+    private val fs: MihonFs,
+    private val db: TmmDatabase,
+    // Vignette reseau d'une serie (thumbnailUrl brute), injectable pour les tests (MockWebServer en http).
+    private val coverDownload: (String?) -> Pair<String, ByteArray>? = { downloadCover(it) },
+) {
 
     /**
      * [force] relit chaque dossier serie sans tenir compte du cache (tirer pour recharger la Bibliotheque),
@@ -215,13 +225,16 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
         val scanStartedAt = System.currentTimeMillis()
         val cached = db.scannedSeriesDirDao().getForSource(LOCAL_SCAN_SOURCE).associate { it.seriesDir to it.lastModified }
         val seen = HashSet<String>()
+        var thumbnails: LocalThumbnails? = null
+        val budget = CoverBudget(MAX_COVER_DOWNLOADS_PER_SCAN)
 
         for (folderEntry in fs.children(localRootDocId).filter { it.isDirectory }) {
             seen += folderEntry.name
             if (!force && cached[folderEntry.name] == folderEntry.lastModified) continue
 
             val files = fs.children(folderEntry.docId).filter { !it.isDirectory }
-            addMissingCover(folderEntry, files)
+            val index = thumbnails ?: localThumbnails().also { thumbnails = it }
+            val coverDeferred = addMissingCover(folderEntry, files, index.urlFor(folderEntry.name), budget)
             db.withTransaction {
                 val existing = db.localFrChapterDao().getForFolder(folderEntry.name).associateBy { it.localPath }
                 val rows = files.map { fileEntry ->
@@ -241,7 +254,13 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                 existing.values
                     .filter { it.localPath !in present && it.lastModified < scanStartedAt }
                     .forEach { db.localFrChapterDao().delete(it) }
-                db.scannedSeriesDirDao().upsert(ScannedSeriesDirEntity(LOCAL_SCAN_SOURCE, folderEntry.name, folderEntry.lastModified))
+                // Vignette remise a plus tard (plafond du scan atteint) : pas de date en cache, le dossier
+                // sera relu au prochain scan.
+                if (coverDeferred) {
+                    db.scannedSeriesDirDao().delete(LOCAL_SCAN_SOURCE, folderEntry.name)
+                } else {
+                    db.scannedSeriesDirDao().upsert(ScannedSeriesDirEntity(LOCAL_SCAN_SOURCE, folderEntry.name, folderEntry.lastModified))
+                }
             }
         }
 
@@ -283,23 +302,73 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
     }
 
     /**
-     * Serie traduite sans couverture dans local/ : la source Locale de Mihon n'en affichait parfois aucune.
-     * On pose la premiere page non blanche du premier chapitre ; une couverture blanche (credits poses par
-     * une version precedente) est remplacee, toute autre couverture existante est gardee.
+     * Couverture de local/<serie> : vignette reseau de la serie d'abord, premiere page non blanche des
+     * premiers chapitres a defaut (voir [LocalInstaller.ensureCoverIn]). Une couverture tiree d'une page
+     * (credits sur fond noir) est remplacee par la vignette des qu'elle est disponible.
+     * Retourne vrai si la vignette a ete remise a plus tard faute de [budget] : le dossier doit etre relu.
+     * ponytail: un echec reseau n'est pas memorise a part : la date du dossier reste en cache, il n'est
+     * retente qu'au prochain changement du dossier (chapitre installe, ou couverture de repli posee, qui
+     * change aussi sa date : au plus un nouvel essai) ou au prochain scan force. Une preference dediee
+     * serait a ajouter si des couvertures restent tirees d'une page alors que le reseau est revenu.
      */
-    private fun addMissingCover(folder: MihonDocEntry, files: List<MihonDocEntry>) {
+    private fun addMissingCover(folder: MihonDocEntry, files: List<MihonDocEntry>, thumbnailUrl: String?, budget: CoverBudget): Boolean {
+        var deferred = false
+        val thumbnail: (() -> Pair<String, ByteArray>?)? = thumbnailUrl?.let { url ->
+            {
+                if (!budget.take()) {
+                    deferred = true
+                    null
+                } else {
+                    coverDownload(url).also { if (it == null) AppLog.d("Scan", "vignette non telechargee (local/${folder.name})") }
+                }
+            }
+        }
         try {
-            val written = LocalInstaller(fs).ensureCoverIn(folder.docId, files) {
+            val written = LocalInstaller(fs).ensureCoverIn(folder.docId, files, thumbnail) {
                 files.filter { it.name.endsWith(".cbz", ignoreCase = true) }
                     .sortedWith(compareBy(CbzPacker.NATURAL_ORDER) { it.name })
-                    .take(3)
+                    .take(LocalInstaller.COVER_SOURCE_CHAPTERS)
                     .firstNotNullOfOrNull { cbz -> fs.openInput(cbz.docId).use { CbzPacker.coverPage(it) } }
                     ?.let { (name, bytes) -> name.substringAfterLast('.', "jpg") to bytes }
             }
-            if (written) AppLog.d("Scan", "couverture posee (manquante ou blanche) dans local/${folder.name}")
+            if (written) AppLog.d("Scan", "couverture posee dans local/${folder.name}")
         } catch (e: Exception) {
             AppLog.d("Scan", "couverture non posee (local/${folder.name}) : ${e.javaClass.simpleName} ${e.message}")
         }
+        return deferred
+    }
+
+    /** Telechargements de vignettes restants pour ce scan. */
+    private class CoverBudget(private var left: Int) {
+        fun take(): Boolean = (left > 0).also { if (it) left-- }
+    }
+
+    /** Vignette reseau par dossier de local/ : liaison manuelle d'abord, puis titre ou dossier downloads/. */
+    private class LocalThumbnails(private val linked: Map<String, String>, private val byName: Map<String, String>) {
+        fun urlFor(folderName: String): String? = localFolderKey(folderName).let { linked[it] ?: byName[it] }
+    }
+
+    /**
+     * Index construit une fois par scan de local/. Seules comptent les series a vignette reseau : celle de
+     * la source Locale de Mihon pointe vers le cover.* du dossier lui-meme.
+     */
+    private suspend fun localThumbnails(): LocalThumbnails {
+        val series = db.seriesDao().observeAll().first().sortedBy { it.seriesKey }
+        val urlOf = series.mapNotNull { s -> s.thumbnailUrl?.takeIf { normalizeCoverUrl(it) != null }?.let { s.seriesKey to it } }.toMap()
+        if (urlOf.isEmpty()) return LocalThumbnails(emptyMap(), emptyMap())
+        val downloaded = db.downloadedChapterDao().observeAll().first().sortedBy { it.mihonPath }
+        // Cle de liaison "downloads|source|dossier" -> serie des chapitres de ce dossier.
+        val seriesOfDir = HashMap<String, String>()
+        for (row in downloaded) row.seriesKey?.let { seriesOfDir.putIfAbsent(DownloadOnlySeries.key(row.sourceDir, row.seriesDir), it) }
+        val linked = HashMap<String, String>()
+        for (link in db.seriesLinkDao().getAll().sortedBy { it.ownerKey }) {
+            val url = (urlOf[link.ownerKey] ?: seriesOfDir[link.ownerKey]?.let(urlOf::get)) ?: continue
+            linked.putIfAbsent(localFolderKey(link.localFolder), url)
+        }
+        val byName = HashMap<String, String>()
+        for (s in series) urlOf[s.seriesKey]?.let { byName.putIfAbsent(localFolderKey(s.title), it) }
+        for (row in downloaded) row.seriesKey?.let(urlOf::get)?.let { byName.putIfAbsent(localFolderKey(row.seriesDir), it) }
+        return LocalThumbnails(linked, byName)
     }
 
     private suspend fun matchFolder(

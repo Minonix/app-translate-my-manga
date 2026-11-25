@@ -99,6 +99,18 @@ object CbzPacker {
             BlankPage.pickCover(pages, { it.second }, isBlank)
         }
 
+    /**
+     * Vrai si l'une des [max] premieres pages du CBZ est identique, octet pour octet, a [bytes]. Les
+     * pages de taille connue et differente ne sont pas lues (un scan force passe par chaque dossier).
+     */
+    fun leadingPagesContain(input: InputStream, bytes: ByteArray, max: Int = BlankPage.MAX_TRIED): Boolean =
+        ZipInputStream(input).use { zis ->
+            generateSequence { zis.nextEntry }
+                .filter { !it.isDirectory && isEligible(it.name) && isImage(it.name) }
+                .take(max)
+                .any { entry -> (entry.size < 0 || entry.size == bytes.size.toLong()) && zis.readBytes().contentEquals(bytes) }
+        }
+
     fun copyExisting(input: InputStream, output: OutputStream) {
         input.copyTo(output)
     }

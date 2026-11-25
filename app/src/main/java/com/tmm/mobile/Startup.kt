@@ -235,4 +235,5 @@ class Startup(
 // 8 : noms compares en NFC (titres japonais decomposes par le stockage), couvertures manquantes de local/.
 // 9 : couvertures blanches (credits en premiere page) remplacees dans local/ par une page pleine.
 // 10 : copies SAF « nom (1).cbz » ignorees a cote de l'original, scantrad departageant un meme numero.
-private const val MATCHER_VERSION = 10
+// 11 : couvertures de local/ tirees d'une page (credits) remplacees par la vignette reseau de la serie.
+private const val MATCHER_VERSION = 11

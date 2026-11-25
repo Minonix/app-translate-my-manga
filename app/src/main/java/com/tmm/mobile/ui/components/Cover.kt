@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.tmm.mobile.core.AppLog
+import com.tmm.mobile.mihon.LocalCoverWrites
 import com.tmm.mobile.ui.theme.TmmColors
 import com.tmm.mobile.ui.theme.TmmTheme
 import com.tmm.mobile.ui.theme.halftone
@@ -43,9 +46,18 @@ fun Cover(
     val context = LocalContext.current
     // URL reseau, sinon couverture de la source locale Mihon (cover.* dans local/<serie>/).
     val url = remember(coverUrl) { normalizeCoverUrl(coverUrl) }
-    val primary: Any? = remember(coverUrl) { url ?: localCoverUri(context, coverUrl) }
+    // Couverture de local/ reecrite par TMM sous le meme nom (meme URI) : le compteur entre dans la cle
+    // du cache memoire de Coil, sans quoi l'ancienne image restait affichee jusqu'au redemarrage.
+    // Une URL reseau n'en depend pas : une couverture ecrite ne relance pas les vignettes reseau en echec.
+    val generation by LocalCoverWrites.generation.collectAsState()
+    val localGeneration = if (url == null) generation else 0L
+    val primary: Any? = remember(coverUrl, localGeneration) {
+        url ?: localCoverUri(context, coverUrl)?.let { uri ->
+            ImageRequest.Builder(context).data(uri).memoryCacheKey("tmm-local1:$uri:$localGeneration").build()
+        }
+    }
     val backup: Any? = remember(fallback) { pageCoverModel(context, fallback) }
-    var primaryFailed by remember(coverUrl) { mutableStateOf(false) }
+    var primaryFailed by remember(coverUrl, localGeneration) { mutableStateOf(false) }
     val model = if (primary != null && !primaryFailed) primary else backup
     Box(
         modifier = modifier
