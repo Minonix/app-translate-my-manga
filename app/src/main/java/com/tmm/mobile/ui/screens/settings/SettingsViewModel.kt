@@ -8,6 +8,8 @@ import com.tmm.mobile.core.AppContainer
 import java.io.File
 import com.tmm.mobile.core.Formatters
 import com.tmm.mobile.data.CONCURRENT_INSTALLS_RANGE
+import com.tmm.mobile.data.Cleanup
+import com.tmm.mobile.data.PcCleanupState
 import com.tmm.mobile.data.DEFAULT_DIRECT_URL
 import com.tmm.mobile.data.InstallRecovery
 import com.tmm.mobile.data.PC_ONLINE_MILLIS
@@ -387,6 +389,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             is SettingsEvent.PcPairingCodeChanged ->
                 _state.update { it.copy(pcPairingCode = event.code.filter(Char::isDigit).take(6)) }
             SettingsEvent.PairPc -> pairPc()
+            SettingsEvent.OpenCleanup -> openCleanup()
+            SettingsEvent.ConfirmCleanup -> confirmCleanup()
+            SettingsEvent.CloseCleanup -> closeCleanup()
             SettingsEvent.ForgetBackupPc -> viewModelScope.launch {
                 container.router.pc.forget()
                 _state.update { it.copy(pcDirectStatus = DirectStatus.NotPaired, pcDirectUrl = "") }
@@ -499,6 +504,84 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             }
             showToast(report?.let { SettingsToast.Unblocked(it.relaunched, it.alreadyActive) } ?: SettingsToast.UnblockFailed)
         }
+    }
+
+    private fun cleanup() = Cleanup(container.db, container.transport, container.settingsSync, container.clock) { container.mihonRoot() }
+
+    private var previewJob: Job? = null
+
+    // Essai a blanc d'abord : rien n'est supprime avant la confirmation dans la feuille.
+    private fun openCleanup() {
+        if (_state.value.cleanup != null) return
+        _state.update { it.copy(cleanup = CleanupSheet.Scanning) }
+        previewJob = viewModelScope.launch {
+            val report = try {
+                cleanup().preview()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("SettingsViewModel", "apercu du nettoyage impossible : ${e.javaClass.simpleName} ${e.message}")
+                null
+            }
+            if (report == null) {
+                _state.update { it.copy(cleanup = null) }
+                showToast(SettingsToast.CleanupFailed)
+            } else {
+                _state.update { if (it.cleanup == CleanupSheet.Scanning) it.copy(cleanup = CleanupSheet.Preview(report)) else it }
+            }
+        }
+    }
+
+    // execute() recalcule tout : l'apercu peut dater de plusieurs minutes.
+    private fun confirmCleanup() {
+        if (_state.value.cleanup !is CleanupSheet.Preview) return
+        _state.update { it.copy(cleanup = CleanupSheet.Running) }
+        viewModelScope.launch {
+            val report = try {
+                cleanup().execute()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.d("SettingsViewModel", "nettoyage impossible : ${e.javaClass.simpleName} ${e.message}")
+                null
+            }
+            if (report == null) {
+                _state.update { it.copy(cleanup = null) }
+                showToast(SettingsToast.CleanupFailed)
+                return@launch
+            }
+            _state.update { it.copy(cleanup = CleanupSheet.Done(report)) }
+            AppLog.d("SettingsViewModel", "nettoyage : $report")
+            // ponytail: rescan lance dans viewModelScope, perdu si l'ecran est quitte avant la fin ; le scan
+            // d'ON_START de Startup rattrape alors l'etat au prochain retour dans l'app.
+            if (report.phone?.changed == true) launch { rescanAfterCleanup() }
+            report.pc.cmdId?.takeIf { report.pc.state == PcCleanupState.WAITING }?.let { cmdId ->
+                val sync = container.settingsSync
+                val outcome = Cleanup.pcOutcome(sync.awaitConfirmation(cmdId), sync.commandResult(cmdId))
+                val pc = report.pc.copy(state = outcome, forgotten = sync.commandResult(cmdId)?.deleted)
+                _state.update { s ->
+                    val done = s.cleanup as? CleanupSheet.Done
+                    if (done?.report?.pc?.cmdId == cmdId) s.copy(cleanup = CleanupSheet.Done(done.report.copy(pc = pc))) else s
+                }
+            }
+        }
+    }
+
+    private suspend fun rescanAfterCleanup() {
+        try {
+            container.startup.run(forceRescan = true)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLog.d("SettingsViewModel", "rescan apres nettoyage impossible : ${e.javaClass.simpleName} ${e.message}")
+        }
+    }
+
+    // Pendant l'execution, la feuille reste ouverte jusqu'au bilan.
+    private fun closeCleanup() {
+        if (_state.value.cleanup == CleanupSheet.Running) return
+        previewJob?.cancel()
+        _state.update { it.copy(cleanup = null) }
     }
 
     private fun showToast(toast: SettingsToast) {

@@ -48,7 +48,19 @@ interface JobTransport {
     )
 
     suspend fun deleteJobFolder(job: JobEntity)
+
+    // Bouton « Nettoyer » : dossiers de jobs/ avec les fichiers de protocole qu'ils contiennent.
+    // null = canal sans dossiers de jobs (acces direct) ou boite aux lettres pas encore etablie.
+    suspend fun listJobFolders(): List<JobFolderListing>? = null
+
+    // Etat (status.json `state`) d'un dossier de job, null si illisible.
+    suspend fun readJobFolderState(statusFileId: String): String? = null
+
+    suspend fun deleteFolder(folderId: String): Unit = throw UnsupportedOperationException("canal sans dossiers de jobs")
 }
+
+// files : nom du fichier (received.json, result.json, status.json) -> fichier le plus recent de ce nom.
+data class JobFolderListing(val id: String, val name: String, val files: Map<String, DriveFile>)
 
 data class LayoutInfo(val created: Boolean)
 

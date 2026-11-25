@@ -341,6 +341,18 @@ fun SettingsScreen(
                     )
                 }
 
+                // Maintenance : essai a blanc, puis confirmation dans la feuille (CleanupSheet.kt).
+                SettingsGroup(title = stringResource(R.string.settings_maintenance_group)) {
+                    SettingsRow(
+                        label = stringResource(R.string.settings_row_cleanup),
+                        value = stringResource(R.string.settings_row_cleanup_desc),
+                        actionButtonText = stringResource(R.string.settings_action_cleanup),
+                        actionEnabled = state.cleanup == null,
+                        onActionClick = { onEvent(SettingsEvent.OpenCleanup) },
+                        showBottomDivider = false,
+                    )
+                }
+
                 // Footer version
                 TmmText(
                     text = stringResource(R.string.settings_footer_app_version, BuildConfig.VERSION_NAME),
@@ -355,6 +367,7 @@ fun SettingsScreen(
         }
 
         HiddenSheet(state.hidden, onEvent)
+        CleanupSheetHost(state.cleanup, onEvent)
         SettingsToastHost(state, onEvent, Modifier.align(Alignment.BottomCenter))
     }
 }
@@ -370,6 +383,7 @@ private fun SettingsToastHost(state: SettingsState, onEvent: (SettingsEvent) -> 
         SettingsToast.UpdateFailed -> stringResource(R.string.settings_toast_update_failed)
         is SettingsToast.Unblocked -> stringResource(R.string.settings_toast_unblocked, toast.relaunched, toast.alreadyActive)
         SettingsToast.UnblockFailed -> stringResource(R.string.settings_toast_unblock_failed)
+        SettingsToast.CleanupFailed -> stringResource(R.string.settings_toast_cleanup_failed)
         null -> ""
     }
     TmmToast(

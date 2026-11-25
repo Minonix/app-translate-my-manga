@@ -394,6 +394,54 @@
     <string name="settings_action_unblock">Relancer</string>
     <string name="settings_toast_unblocked">Relancés : %1$d · déjà actifs : %2$d</string>
     <string name="settings_toast_unblock_failed">Déblocage impossible, réessayez</string>
+    <string name="settings_maintenance_group">Maintenance</string>
+    <string name="settings_row_cleanup">Nettoyer</string>
+    <string name="settings_row_cleanup_desc">Fichiers temporaires, doublons et dossiers Drive terminés</string>
+    <string name="settings_action_cleanup">Analyser</string>
+    <string name="settings_toast_cleanup_failed">Nettoyage impossible, réessayez</string>
+    <string name="cleanup_kick">Maintenance</string>
+    <string name="cleanup_title_scanning">Analyse en cours…</string>
+    <string name="cleanup_title_preview">Nettoyer ?</string>
+    <string name="cleanup_title_running">Nettoyage en cours…</string>
+    <string name="cleanup_title_done">Nettoyage terminé</string>
+    <string name="cleanup_close_cd">Fermer</string>
+    <string name="cleanup_section_phone">Téléphone</string>
+    <string name="cleanup_section_drive">Drive</string>
+    <string name="cleanup_section_pc">PC</string>
+    <plurals name="cleanup_tmp_count">
+        <item quantity="one">%1$d dossier _tmp périmé</item>
+        <item quantity="other">%1$d dossiers _tmp périmés</item>
+    </plurals>
+    <plurals name="cleanup_duplicates_count">
+        <item quantity="one">%1$d doublon (1)</item>
+        <item quantity="other">%1$d doublons (1)</item>
+    </plurals>
+    <plurals name="cleanup_to_check_count">
+        <item quantity="one">%1$d doublon à vérifier (taille différente), gardé</item>
+        <item quantity="other">%1$d doublons à vérifier (taille différente), gardés</item>
+    </plurals>
+    <plurals name="cleanup_errors_count">
+        <item quantity="one">%1$d élément non traité</item>
+        <item quantity="other">%1$d éléments non traités</item>
+    </plurals>
+    <string name="cleanup_phone_unavailable">Dossier Mihon inaccessible</string>
+    <plurals name="cleanup_drive_count">
+        <item quantity="one">%1$d dossier Drive</item>
+        <item quantity="other">%1$d dossiers Drive</item>
+    </plurals>
+    <string name="cleanup_drive_unavailable">Drive injoignable, rien supprimé</string>
+    <string name="cleanup_pc_will_ask">Oubli des jobs terminés (aucun fichier supprimé)</string>
+    <string name="cleanup_pc_never_seen">PC jamais vu, rien à envoyer</string>
+    <string name="cleanup_pc_waiting">En attente du PC</string>
+    <plurals name="cleanup_pc_done">
+        <item quantity="one">%1$d job terminé oublié</item>
+        <item quantity="other">%1$d jobs terminés oubliés</item>
+    </plurals>
+    <string name="cleanup_pc_outdated">PC pas à jour, nettoyage du PC ignoré</string>
+    <string name="cleanup_pc_rejected">Refusé par le PC</string>
+    <string name="cleanup_warning">Les suppressions sur le téléphone sont définitives. Rien n\'est touché tant qu\'un job est en cours.</string>
+    <string name="cleanup_confirm">Nettoyer</string>
+    <string name="cleanup_done">Fermer</string>
     <string name="settings_update_group">Application</string>
     <string name="settings_update_version_fmt">Version %1$s</string>
     <string name="settings_update_checking">Recherche d\'une mise à jour…</string>

@@ -72,6 +72,8 @@ class SettingsScreenBehaviorTest {
                             SettingsEvent.CloseHidden -> state.copy(hidden = state.hidden.copy(open = false))
                             is SettingsEvent.HiddenQueryChanged -> state.copy(hidden = state.hidden.copy(query = event.query))
                             is SettingsEvent.ToggleHiddenCategory, is SettingsEvent.ToggleHiddenSeries -> state
+                            SettingsEvent.OpenCleanup, SettingsEvent.ConfirmCleanup -> state
+                            SettingsEvent.CloseCleanup -> state.copy(cleanup = null)
                         }
                     },
                     onNavigateOnboarding = { onboardingNavigated = true },

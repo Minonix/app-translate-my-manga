@@ -51,6 +51,12 @@ private val FINISHED_PHONE_STATES = setOf("RESULT_READY", "DOWNLOADING", "INSTAL
 private val REDELIVER_LOCAL_CODES = setOf(LocalErrorCode.DOWNLOAD, LocalErrorCode.RESULT_MISSING)
 private val RECEPTION_STEPS = setOf("download", "install")
 
+// R10 : echec de reception avec resultat connu, relance sur le meme job (le result.cbz Drive peut resservir).
+// Partage avec Cleanup : ce dossier Drive doit rester tant que la relance est possible.
+internal fun JobEntity.reusesDeliveredResult(): Boolean =
+    phoneState == "FAILED" && resultJson != null && resultFileId != null &&
+        errorCode !in REDELIVER_LOCAL_CODES && failedStep in RECEPTION_STEPS
+
 // PLAN_GEMINI.md 5.17. Le verrou est global (pas par mihonPath) : createJobs() n'est appele qu'en
 // rafales courtes (bouton UI ou auto-translate au demarrage), jamais a haute frequence.
 class JobRepository(
@@ -287,8 +293,7 @@ class JobRepository(
     suspend fun retry(jobId: String) {
         val job = db.jobDao().get(jobId) ?: return
         when {
-            job.phoneState == "FAILED" && job.resultJson != null && job.resultFileId != null &&
-                job.errorCode !in REDELIVER_LOCAL_CODES && job.failedStep in RECEPTION_STEPS -> {
+            job.reusesDeliveredResult() -> {
                 db.jobDao().upsert(
                     job.copy(
                         phoneState = "RESULT_READY", failedStep = null, errorCode = null, errorMessage = null,
