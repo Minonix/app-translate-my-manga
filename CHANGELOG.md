@@ -11,6 +11,17 @@ Numerotation : [Semantic Versioning](https://semver.org/lang/fr/) (`MAJEUR.MINEU
 
 `versionCode` augmente de 1 a chaque release, quel que soit le niveau.
 
+## [1.19.0] - 2026-11-25
+
+### Ajoute
+- Reglages > Maintenance : bouton « Nettoyer » qui remet au propre le telephone (fichiers temporaires Mihon de plus de 24 h, doublons « (1) »), le Drive (dossiers de jobs termines) et le PC (jobs oublies). Un apercu montre ce qui sera fait avant d'agir ; un PC non mis a jour est signale sans bloquer.
+- Fiche serie : « Lier a une autre serie » rattache une serie au dossier local/ d'une autre (meme oeuvre sous un autre titre) ; les traductions s'y installent et y sont reconnues.
+
+### Corrige
+- Un chapitre est vu comme traduit des qu'une FR du meme numero existe dans local/, meme installee hors de TMM ; une FR entiere couvre ses parties (.1 a .4).
+- Les copies SAF « (1) » des telechargements Mihon ne comptent plus comme un second chapitre ; a numero egal, la scantrad departage.
+- Couvertures : la vignette de la source est telechargee avant de prendre une page du chapitre, une couverture tiree d'une page de credits est remplacee, plus de « cover (1) » cree a cote de l'ancienne.
+
 ## [1.18.0] - 2026-11-12
 
 ### Ajoute
