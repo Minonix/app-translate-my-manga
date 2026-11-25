@@ -105,6 +105,24 @@ class SettingsSync(
         return command.cmdId
     }
 
+    // Bouton « Nettoyer » : le PC oublie les jobs termines ou orphelins de son etat (aucun fichier touche).
+    // baseVersion = version connue, pas 0 : sinon le premier settings.json recu avant traitement
+    // (version > baseVersion) la classerait refusee. Un PC trop ancien la refuse en bad_request
+    // « Type de commande inconnu ». Null sans settings_json (PC jamais vu).
+    suspend fun enqueueCleanup(): String? {
+        val settings = readSettings() ?: return null
+        val command = SettingsCommand(
+            cmdId = UUID.randomUUID().toString(),
+            createdAt = Instant.now().toString(),
+            type = "cleanup",
+            baseVersion = settings.version,
+            changes = JsonObject(emptyMap()),
+        )
+        writePending(readPending() + PendingCommand(command))
+        workManager.enqueueOutbox(prefs.wifiOnly.first())
+        return command.cmdId
+    }
+
     // Appelee par OutboxWorker : ecrit sur le canal actif (direct si le PC repond, sinon Drive) les commandes en attente pas encore envoyees.
     // ponytail: lecture-modification-ecriture non atomique sur pending_commands_json - suffisant tant
     // qu'un seul worker OutboxWorker tourne a la fois (WorkManager le garantit via OUTBOX_WORK_NAME).
@@ -215,7 +233,8 @@ class SettingsSync(
                 }
                 settings.lastCommandId == id -> {
                     AppLog.d("SettingsSync", "commande refusee par le PC : ${result?.code}")
-                    resolve(p, SyncBanner.REJECTED, result?.code)
+                    // Accuse garde : son message distingue un PC pas a jour (Cleanup.pcOutcome).
+                    resolve(p, SyncBanner.REJECTED, result?.code, result)
                 }
                 // Pas encore envoyee : simplement recalee sur la version connue, sans risque de doublon.
                 !p.sent && settings.version > p.command.baseVersion ->

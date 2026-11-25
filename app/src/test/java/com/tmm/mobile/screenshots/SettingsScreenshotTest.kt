@@ -3,7 +3,13 @@ package com.tmm.mobile.screenshots
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.tmm.mobile.data.CleanupReport
+import com.tmm.mobile.data.DriveCleanup
+import com.tmm.mobile.data.PcCleanup
+import com.tmm.mobile.data.PcCleanupState
+import com.tmm.mobile.data.PhoneCleanup
 import com.tmm.mobile.ui.mock.MockupData
+import com.tmm.mobile.ui.screens.settings.CleanupSheet
 import com.tmm.mobile.ui.screens.settings.DriveRetention
 import com.tmm.mobile.ui.screens.settings.SettingsScreen
 import com.tmm.mobile.ui.screens.settings.SettingsToast
@@ -55,6 +61,19 @@ class SettingsScreenshotTest {
     fun settingsScreen_offline() = capture("SettingsScreen_offline") {
         SettingsScreen(
             state = MockupData.settings.copy(isPcOnline = false),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun settingsScreen_cleanupSheet() = capture("SettingsScreen_cleanupSheet") {
+        val report = CleanupReport(
+            phone = PhoneCleanup(tmpRemoved = 3, duplicatesRenamed = 2, duplicatesRemoved = 1, duplicatesToCheck = 1),
+            drive = DriveCleanup(folders = 5),
+            pc = PcCleanup(PcCleanupState.WILL_ASK),
+        )
+        SettingsScreen(
+            state = MockupData.settings.copy(cleanup = CleanupSheet.Preview(report)),
             onEvent = {},
         )
     }

@@ -1,6 +1,7 @@
 package com.tmm.mobile.ui.screens.settings
 
 import com.tmm.mobile.core.AppRelease
+import com.tmm.mobile.data.CleanupReport
 import com.tmm.mobile.data.DEFAULT_MAX_CONCURRENT_INSTALLS
 import java.io.File
 
@@ -26,6 +27,15 @@ sealed interface SettingsToast {
     // Bilan du bouton « Débloquer les téléchargements ».
     data class Unblocked(val relaunched: Int, val alreadyActive: Int) : SettingsToast
     data object UnblockFailed : SettingsToast
+    data object CleanupFailed : SettingsToast
+}
+
+// Feuille « Nettoyer » : analyse (essai a blanc), apercu des comptes, execution, bilan.
+sealed interface CleanupSheet {
+    data object Scanning : CleanupSheet
+    data class Preview(val report: CleanupReport) : CleanupSheet
+    data object Running : CleanupSheet
+    data class Done(val report: CleanupReport) : CleanupSheet
 }
 
 // Connexion directe (Tailscale) : etat affiche dans les Reglages.
@@ -99,6 +109,7 @@ data class SettingsState(
     val pcPairing: Boolean = false,
     val update: AppUpdateState = AppUpdateState.Checking,
     val hidden: HiddenChoice = HiddenChoice(),
+    val cleanup: CleanupSheet? = null,
 )
 
 sealed interface SettingsEvent {
@@ -134,4 +145,7 @@ sealed interface SettingsEvent {
     data class HiddenQueryChanged(val query: String) : SettingsEvent
     data class ToggleHiddenCategory(val name: String) : SettingsEvent
     data class ToggleHiddenSeries(val seriesKey: String) : SettingsEvent
+    data object OpenCleanup : SettingsEvent
+    data object ConfirmCleanup : SettingsEvent
+    data object CloseCleanup : SettingsEvent
 }

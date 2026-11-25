@@ -35,6 +35,7 @@ const val APP_FOLDER = "App"
 
 private val PC_FILES = listOf("heartbeat.json", "index.json", "settings.json", "remote.json")
 private val JOB_FILES = listOf("status.json", "result.json")
+private val CLEANUP_FILES = listOf("received.json", "result.json", "status.json")
 private const val PROTOCOL_FILE = "protocol.json"
 
 // Lectures simultanees du poll : assez pour ne plus depasser le delai, sans declencher le 429 de Drive.
@@ -421,4 +422,39 @@ class DriveTransport(
         val folderId = job.driveFolderId ?: findJobFolder(job.jobId) ?: return
         driveApi.delete(folderId)
     }
+
+    // Acces Drive complet (GoogleAuth.DRIVE_SCOPE) : les dossiers crees par le PC (repli des jobs directs)
+    // sont listes aussi. Une requete pour les dossiers, puis une recherche paginee par nom de fichier,
+    // filtree sur ces dossiers (comme poll()), plutot que trois findChild par dossier.
+    override suspend fun listJobFolders(): List<JobFolderListing>? {
+        val jobsId = prefs.driveJobsId.first() ?: return null
+        val folders = driveApi.listChildFolders(jobsId)
+        val ids = folders.mapTo(HashSet()) { it.id }
+        val byParent = HashMap<String, MutableMap<String, DriveFile>>()
+        var pageToken: String? = null
+        do {
+            val page = driveApi.listChanged(Instant.EPOCH.toString(), pageToken, CLEANUP_FILES)
+            for (file in page.files) {
+                val parent = file.parents.firstOrNull()?.takeIf { it in ids } ?: continue
+                val inFolder = byParent.getOrPut(parent) { HashMap() }
+                val known = inFolder[file.name]
+                if (known == null || (file.modifiedTime ?: "") > (known.modifiedTime ?: "")) inFolder[file.name] = file
+            }
+            pageToken = page.nextPageToken
+        } while (pageToken != null)
+        return folders.map { JobFolderListing(it.id, it.name, byParent[it.id].orEmpty()) }
+    }
+
+    override suspend fun readJobFolderState(statusFileId: String): String? = try {
+        ProtocolJson.decodeFromString(StatusJson.serializer(), driveApi.readText(statusFileId)).state
+    } catch (e: AuthExpiredException) {
+        throw e
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        AppLog.d("DriveTransport", "status.json illisible : ${e.message}")
+        null
+    }
+
+    override suspend fun deleteFolder(folderId: String) = driveApi.delete(folderId)
 }

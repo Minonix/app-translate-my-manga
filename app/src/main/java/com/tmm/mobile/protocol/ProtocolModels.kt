@@ -212,6 +212,9 @@ data class CommandResult(
     // R8 : reglages ecrases (valeur du PC remplacee) ou conserves (valeur du PC plus recente).
     val overwritten: List<String>? = null,
     val kept: List<String>? = null,
+    // Commande "cleanup" : jobs gardes par le PC (deleted = jobs oublies). Nom distinct de `kept`, deja
+    // une liste de reglages : un entier sous `kept` rendrait settings.json illisible pour toute l'app.
+    val keptJobs: Int? = null,
 )
 
 @Serializable
