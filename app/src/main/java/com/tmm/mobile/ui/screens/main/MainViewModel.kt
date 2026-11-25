@@ -20,6 +20,7 @@ import com.tmm.mobile.data.status.deriveStatus
 import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.data.status.isActive
 import com.tmm.mobile.data.status.translatingPercent
+import com.tmm.mobile.mihon.LocalFrNumbers
 import com.tmm.mobile.protocol.Heartbeat
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.protocol.ProtocolJson
@@ -63,6 +64,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val jobs: List<JobEntity>,
         val downloaded: List<DownloadedChapterEntity>,
         val localFrPaths: Set<String>,
+        // FR de local/ sans mihonPath, reconnues par dossier + numero (les telechargements masques sont deja retires).
+        val localFrNumbers: LocalFrNumbers,
         val pcIndex: List<PcIndexChapterEntity>,
     ) {
         // Calcules une fois par instantane : statusFor les reconstruisait pour chaque chapitre (O(n^2),
@@ -85,6 +88,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             jobs.filterNot(h::hidesJob),
             downloaded.filterNot(h::hidesDownloaded),
             localFr.mapNotNull { it.mihonPath }.filterNot(h::hidesPath).toSet(),
+            LocalFrNumbers.of(localFr),
             pcIndex.filterNot { h.hidesPath(it.mihonPath) },
         )
     }
@@ -188,7 +192,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 inCatalog = dl.chapterKey != null,
                 index = room.indexByPath[dl.mihonPath],
                 latestJob = room.latestJobByPath[dl.mihonPath],
-                localFr = dl.mihonPath in room.localFrPaths,
+                localFr = dl.mihonPath in room.localFrPaths || room.localFrNumbers.covers(dl.number, dl.seriesDir),
             ),
         )
     }

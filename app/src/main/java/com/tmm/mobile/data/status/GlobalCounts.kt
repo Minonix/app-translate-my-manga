@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import com.tmm.mobile.data.db.JobEntity
+import com.tmm.mobile.mihon.LocalFrNumbers
 
 // pendingTransfersCount = toSend + toFetch, toutes series confondues (recapitulatif de
 // l'Onboarding ; ex-badge de l'ecran Transferts retire en v2, PLAN_GEMINI.md 5.19).
@@ -29,6 +30,7 @@ object GlobalCounts {
     ) { downloaded, jobs, localFr, pcIndex ->
         val latestJobByPath = jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { job -> job.createdAt } }
         val localFrPaths = localFr.mapNotNull { it.mihonPath }.toSet()
+        val localFrNumbers = LocalFrNumbers.of(localFr)
         val indexByPath = pcIndex.associateBy { it.mihonPath }
         val toSend = downloaded.count { dl ->
             val facts = ChapterFacts(
@@ -36,7 +38,7 @@ object GlobalCounts {
                 inCatalog = dl.chapterKey != null,
                 index = indexByPath[dl.mihonPath],
                 latestJob = latestJobByPath[dl.mihonPath],
-                localFr = dl.mihonPath in localFrPaths,
+                localFr = dl.mihonPath in localFrPaths || localFrNumbers.covers(dl.number, dl.seriesDir),
             )
             deriveStatus(facts) == ChapterStatus.TO_SEND
         }

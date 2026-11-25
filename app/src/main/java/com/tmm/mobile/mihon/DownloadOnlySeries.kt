@@ -48,7 +48,7 @@ object DownloadOnlySeries {
      * ChapterRecognition de Mihon si des noms exotiques donnent de mauvais numeros.
      */
     fun guessNumber(chapterDirName: String): Float? {
-        val name = chapterDirName.removeSuffix(".cbz").replace(HASH_SUFFIX, "")
+        val name = baseName(chapterDirName)
         // Premier mot-cle : le numero precede le titre ("Ch. 22 - Episode 3" -> 22).
         val raw = KEYWORD_NUMBER.find(name)?.groupValues?.get(1)
             ?: ANY_NUMBER.findAll(name).lastOrNull()?.value
@@ -60,8 +60,12 @@ object DownloadOnlySeries {
      * -> "Nyx Scans", le ":" de Mihon devenu "_"). Null sans mot-cle ou sans prefixe ("Chapter 5_ Titre").
      */
     fun guessScanlator(chapterDirName: String): String? {
-        val name = chapterDirName.removeSuffix(".cbz").replace(HASH_SUFFIX, "")
+        val name = baseName(chapterDirName)
         val start = KEYWORD_NUMBER.find(name)?.range?.first ?: return null
         return name.substring(0, start).trim('_', ' ').takeIf { it.isNotEmpty() }
     }
+
+    // Sans ".cbz", sans copie SAF " (1)" (sinon lue comme numero 1), sans hachage d'URL.
+    private fun baseName(chapterDirName: String): String =
+        MihonNaming.stripSafCopySuffix(chapterDirName).removeSuffix(".cbz").replace(HASH_SUFFIX, "")
 }

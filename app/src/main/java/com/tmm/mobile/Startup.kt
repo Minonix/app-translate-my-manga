@@ -234,4 +234,5 @@ class Startup(
 // 7 : CBZ relus par ZipFile quand la lecture en flux ne trouve aucune page, images .heif/.heic.
 // 8 : noms compares en NFC (titres japonais decomposes par le stockage), couvertures manquantes de local/.
 // 9 : couvertures blanches (credits en premiere page) remplacees dans local/ par une page pleine.
-private const val MATCHER_VERSION = 9
+// 10 : copies SAF « nom (1).cbz » ignorees a cote de l'original, scantrad departageant un meme numero.
+private const val MATCHER_VERSION = 10

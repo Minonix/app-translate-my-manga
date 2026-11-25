@@ -73,6 +73,15 @@ object MihonNaming {
 
     fun isIncompleteChapterDirName(dirName: String): Boolean = dirName.endsWith(TMP_DIR_SUFFIX)
 
+    // Copie creee par SAF quand le nom est deja pris : "KaynScan_Chapter 5_a1b2c3 (1).cbz". Ancre apres le
+    // hachage Mihon : un titre qui finit lui-meme par « (2) » n'est pas touche.
+    private val SAF_COPY_SUFFIX = Regex("""(_[0-9a-f]{6})\s*\(\d+\)(\.cbz)?$""")
+
+    /** Nom de chapitre sans le suffixe de copie SAF (" (1)"), ou tel quel. */
+    fun stripSafCopySuffix(name: String): String = name.replace(SAF_COPY_SUFFIX, "$1$2")
+
+    fun isSafCopy(name: String): Boolean = SAF_COPY_SUFFIX.containsMatchIn(name)
+
     private fun md5(input: String): String {
         val digest = MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
         return digest.joinToString("") { "%02x".format(it) }

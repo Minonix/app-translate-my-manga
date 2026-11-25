@@ -5,6 +5,7 @@ import com.tmm.mobile.data.db.DownloadedChapterEntity
 import com.tmm.mobile.data.db.TmmDatabase
 import com.tmm.mobile.data.flatten
 import com.tmm.mobile.data.unflattenMihonPath
+import com.tmm.mobile.mihon.LocalFrNumbers
 import com.tmm.mobile.mihon.MihonNaming
 import com.tmm.mobile.protocol.MihonPath
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,9 @@ data class ChapterJoinRow(
     val mihonPath: MihonPath,
     val facts: ChapterFacts,
     val status: ChapterStatus,
+    // FR reconnue seulement par son numero dans local/ (aucun fait propre a cette edition) : comme une
+    // ligne seulement au catalogue, elle s'efface derriere un autre exemplaire du meme numero.
+    val frByNumberOnly: Boolean = false,
 ) {
     val flatPath: String get() = mihonPath.flatten()
 }
@@ -66,6 +70,7 @@ fun joinInputsFlow(db: TmmDatabase, seriesKey: String): Flow<ChapterJoinInputs> 
 class ChapterJoinIndex(inputs: ChapterJoinInputs) {
     internal val latestJobByPath = inputs.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { j -> j.createdAt } }
     internal val localFrPaths = inputs.localFr.mapNotNull { it.mihonPath }.toSet()
+    internal val localFrNumbers = LocalFrNumbers.of(inputs.localFr)
     internal val indexByPath = inputs.pcIndex.associateBy { it.mihonPath }
     internal val chaptersBySeries = inputs.chapters.groupBy { it.seriesKey }
     internal val downloadedBySeries = inputs.downloaded.groupBy { it.seriesKey }
@@ -118,17 +123,22 @@ fun buildChapterJoinRows(
         }
         val flat = mihonPath.flatten()
         val loose = if (downloaded == null) loosePath(flat) else null
+        val linkedFr = flat in index.localFrPaths || (loose != null && loose in index.localFrLoosePaths)
+        // FR de local/ sans mihonPath (traduite depuis un original du PC) : reconnue par dossier + numero.
+        val frByNumber = !linkedFr &&
+            index.localFrNumbers.covers(chapter?.number ?: downloaded?.number, seriesTitle, downloaded?.seriesDir)
         val facts = ChapterFacts(
             downloaded = downloaded != null,
             inCatalog = chapter != null,
             index = index.indexByPath[flat] ?: loose?.let { index.indexByLoosePath[it] },
             latestJob = index.latestJobByPath[flat] ?: loose?.let { index.latestJobByLoosePath[it] },
-            localFr = flat in index.localFrPaths || (loose != null && loose in index.localFrLoosePaths),
+            localFr = linkedFr || frByNumber,
         )
         // Chapitre absent du telephone mais connu du PC ou d'un job : on garde leur vrai chemin, celui que
         // le PC attend pour une redemande ou une retraduction (sinon il ne retrouvait pas le chapitre).
         val knownPath = if (downloaded == null) (facts.index?.mihonPath ?: facts.latestJob?.mihonPath)?.let(::unflattenMihonPath) else null
-        return ChapterJoinRow(seriesKey, chapter, downloaded, knownPath ?: mihonPath, facts, deriveStatus(facts))
+        val onlyFrByNumber = frByNumber && downloaded == null && facts.index == null && facts.latestJob == null
+        return ChapterJoinRow(seriesKey, chapter, downloaded, knownPath ?: mihonPath, facts, deriveStatus(facts), onlyFrByNumber)
     }
 
     val catalogRows = index.chaptersBySeries[seriesKey].orEmpty()
@@ -142,14 +152,17 @@ fun buildChapterJoinRows(
  * Une ligne par numero de chapitre : un exemplaire present (telecharge, sur le PC, traduit) masque
  * ses doublons seulement au catalogue (autre scantrad, serie ajoutee deux fois), et un seul de ces
  * doublons reste quand aucun n'est present. Les numeros inconnus (-1 chez Mihon) restent tous.
+ * Une ligne au catalogue « A jour » par le seul numero de sa FR dans local/ compte comme un doublon :
+ * toutes les editions du 63 (Official, J-Novel...) le deviennent ensemble et s'afficheraient sinon toutes.
  */
 internal fun dedupeCatalogOnly(rows: List<ChapterJoinRow>): List<ChapterJoinRow> {
     fun exactNumber(row: ChapterJoinRow): Float? = row.chapter?.number ?: row.downloaded?.number
-    val present = rows.filter { it.status != ChapterStatus.CATALOG_ONLY }.mapNotNullTo(HashSet(), ::exactNumber)
+    fun weak(row: ChapterJoinRow): Boolean = row.status == ChapterStatus.CATALOG_ONLY || row.frByNumberOnly
+    val present = rows.filterNot(::weak).mapNotNullTo(HashSet(), ::exactNumber)
     val keptCatalog = HashSet<Float>()
     return rows.filter { row ->
         val number = exactNumber(row)
-        row.status != ChapterStatus.CATALOG_ONLY || number == null || number < 0 || (number !in present && keptCatalog.add(number))
+        !weak(row) || number == null || number < 0 || (number !in present && keptCatalog.add(number))
     }
 }
 

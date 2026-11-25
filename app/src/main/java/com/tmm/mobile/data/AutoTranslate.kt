@@ -6,6 +6,7 @@ import com.tmm.mobile.data.status.ChapterFacts
 import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.deriveStatus
 import com.tmm.mobile.mihon.DownloadOnlySeries
+import com.tmm.mobile.mihon.LocalFrNumbers
 import com.tmm.mobile.protocol.MihonPath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -37,7 +38,10 @@ suspend fun runAutoTranslate(db: TmmDatabase, jobRepository: JobRepository) {
  */
 suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List<JobTarget> {
     if (seriesKeys.isEmpty()) return emptyList()
-    val localFrPaths = db.localFrChapterDao().observeAll().first().mapNotNull { it.mihonPath }.toSet()
+    val localFr = db.localFrChapterDao().observeAll().first()
+    val localFrPaths = localFr.mapNotNull { it.mihonPath }.toSet()
+    // FR de local/ sans mihonPath (traduite depuis un original du PC) : ne pas la renvoyer.
+    val localFrNumbers = LocalFrNumbers.of(localFr)
     val targets = mutableListOf<JobTarget>()
     for (downloaded in db.downloadedChapterDao().observeAll().first()) {
         val seriesKey = downloaded.seriesKey ?: continue
@@ -53,7 +57,7 @@ suspend fun autoTranslateTargets(db: TmmDatabase, seriesKeys: Set<String>): List
             inCatalog = index != null,
             index = index,
             latestJob = latestJob,
-            localFr = downloaded.mihonPath in localFrPaths,
+            localFr = downloaded.mihonPath in localFrPaths || localFrNumbers.covers(downloaded.number, downloaded.seriesDir),
         )
         if (deriveStatus(facts) != ChapterStatus.TO_SEND) continue
 

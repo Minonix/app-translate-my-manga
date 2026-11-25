@@ -20,6 +20,7 @@ import com.tmm.mobile.data.status.ChapterStatus
 import com.tmm.mobile.data.status.deriveStatus
 import com.tmm.mobile.data.status.ignoringProgress
 import com.tmm.mobile.mihon.DownloadOnlySeries
+import com.tmm.mobile.mihon.LocalFrNumbers
 import com.tmm.mobile.protocol.MihonPath
 import com.tmm.mobile.ui.theme.TmmColors
 import kotlinx.coroutines.CancellationException
@@ -177,6 +178,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
     private fun buildState(d: DbData, u: UiState): TranslateState {
         downloadedByPath = d.downloaded.associateBy { it.mihonPath }
         val localFrPaths = d.localFr.mapNotNull { it.mihonPath }.toSet()
+        val localFrNumbers = LocalFrNumbers.of(d.localFr)
         val indexByPath = d.pcIndex.associateBy { it.mihonPath }
         val latestJobByPath = d.jobs.groupBy { it.mihonPath }.mapValues { (_, v) -> v.maxBy { it.createdAt } }
         val downloadedBySeries = d.downloaded.groupBy { it.seriesKey }
@@ -194,7 +196,7 @@ class TranslateViewModel(private val container: AppContainer) : ViewModel() {
                         inCatalog = dl.chapterKey != null,
                         index = indexByPath[dl.mihonPath],
                         latestJob = latestJobByPath[dl.mihonPath],
-                        localFr = dl.mihonPath in localFrPaths,
+                        localFr = dl.mihonPath in localFrPaths || localFrNumbers.covers(dl.number, dl.seriesDir),
                     )
                     deriveStatus(facts) == ChapterStatus.TO_SEND
                 }

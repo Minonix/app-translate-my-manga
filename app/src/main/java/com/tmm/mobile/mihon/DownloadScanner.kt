@@ -19,9 +19,6 @@ import kotlinx.coroutines.flow.first
 // contient jamais de "/", donc aucune collision avec les vrais dossiers de downloads/.
 internal const val LOCAL_SCAN_SOURCE = "local/"
 
-// Nom des fichiers poses par le PC dans local/ : "c0033 - Ch. 33.cbz", "c0014.1 - Ch. 14.1.cbz".
-private val LOCAL_CHAPTER_NUMBER = Regex("""^c(\d+(?:\.\d+)?)""")
-
 // CAHIER_DES_CHARGES.md 8.2 : parcours downloads/<source>/<serie>/<chapitre>, cache par date de
 // modification du dossier serie, dossiers incomplets ignores. Deuxieme parcours de local/ pour
 // local_fr_chapter, en preservant jobId/mihonPath des lignes deja connues (poses par
@@ -63,9 +60,16 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
                     // Un chapitre est un dossier ou un .cbz : cover.jpg, .nomedia & co ne sont pas des
                     // chapitres (ils gonflaient le compteur "a envoyer" d'un faux chapitre par serie).
                     var downloading = false
-                    val entries = fs.children(seriesDirEntry.docId).mapNotNull { chapterEntry ->
+                    val children = fs.children(seriesDirEntry.docId)
+                    val names = children.mapTo(HashSet()) { it.name }
+                    val entries = children.mapNotNull { chapterEntry ->
                         if (isInProgress(chapterEntry.name)) {
                             downloading = true
+                            return@mapNotNull null
+                        }
+                        // Copie SAF « nom (1).cbz » a cote de l'original : meme chapitre, ne pas le compter deux fois.
+                        if (isCopyOfPresent(chapterEntry.name, names)) {
+                            AppLog.d("Scan", "copie ignoree (${seriesDirEntry.name}) : ${chapterEntry.name}")
                             return@mapNotNull null
                         }
                         val isCbz = !chapterEntry.isDirectory && chapterEntry.name.endsWith(".cbz")
@@ -267,10 +271,10 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
         val orphans = all.filter { it.mihonPath == null }
         if (orphans.isEmpty()) return
         val linked = all.mapNotNullTo(HashSet()) { it.mihonPath }
-        val bySeries = db.downloadedChapterDao().observeAll().first().groupBy { looseTitle(it.seriesDir) }
+        val bySeries = db.downloadedChapterDao().observeAll().first().groupBy { localFolderKey(it.seriesDir) }
         val updates = orphans.mapNotNull { row ->
-            val number = LOCAL_CHAPTER_NUMBER.find(row.fileName)?.groupValues?.get(1)?.toFloatOrNull() ?: return@mapNotNull null
-            val match = bySeries[looseTitle(row.folderName)].orEmpty().filter { it.number == number }
+            val number = localFrChapterNumber(row.fileName) ?: return@mapNotNull null
+            val match = bySeries[localFolderKey(row.folderName)].orEmpty().filter { it.number == number }
             val chapter = match.singleOrNull()?.takeIf { it.mihonPath !in linked } ?: return@mapNotNull null
             linked += chapter.mihonPath
             row.copy(mihonPath = chapter.mihonPath)
@@ -297,8 +301,6 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
             AppLog.d("Scan", "couverture non posee (local/${folder.name}) : ${e.javaClass.simpleName} ${e.message}")
         }
     }
-
-    private fun looseTitle(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
 
     private suspend fun matchFolder(
         sourceDir: String,
@@ -345,6 +347,12 @@ class DownloadScanner(private val fs: MihonFs, private val db: TmmDatabase) {
      * (archive en cours, renommee en ".cbz" a la fin). Le second n'etait pas reconnu : le dossier serie
      * restait en cache et le CBZ fini, souvent renomme dans la meme seconde, n'etait jamais vu.
      */
+    private fun isCopyOfPresent(name: String, names: Set<String>): Boolean {
+        if (!MihonNaming.isSafCopy(name)) return false
+        val original = MihonNaming.stripSafCopySuffix(name)
+        return original in names || original.removeSuffix(".cbz") in names
+    }
+
     private fun isInProgress(name: String): Boolean =
         MihonNaming.isIncompleteChapterDirName(name.removeSuffix(".cbz")) || name.endsWith(".tmp")
 

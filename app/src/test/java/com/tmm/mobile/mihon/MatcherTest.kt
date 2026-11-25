@@ -91,4 +91,40 @@ class MatcherTest {
         val dir = java.text.Normalizer.normalize(MihonNaming.getChapterDirName("第1話 パン", null, "https://x/p1"), java.text.Normalizer.Form.NFD)
         assertEquals("c1", Matcher.findChapter(dir, jp)?.chapterKey)
     }
+
+    // Frontier Lord (Comix) : plusieurs scantrads portent le numero 61. Un CBZ dont l'URL a change
+    // (hachage different) n'etait rattache a aucun : on departage par la scantrad du nom de fichier.
+    @Test fun assignChapters_hashMismatch_severalScanlatorsSameNumber_pickedByScanlator() {
+        val s = MatchableSeries("s", "Comix", "Frontier")
+        val kayn = MatchableChapter("k61", "Chapter 61", "KaynScan", "/k/61", 61f)
+        val official = MatchableChapter("o61", "Chapter 61", "Official", "/o/61", 61f)
+        val utoon = MatchableChapter("u61", "Chapter 61", "UToon", "/u/61", 61f)
+        val dir = "KaynScan_Chapter 61_ffffff.cbz"
+        val result = Matcher.assignChapters(listOf(dir), listOf(s to listOf(official, kayn, utoon)))
+        assertEquals(ChapterMatch(s, kayn), result[dir])
+    }
+
+    // Deux editions de la meme scantrad au meme numero : toujours ambigu, rien n'est devine.
+    @Test fun assignChapters_sameScanlatorTwiceSameNumber_staysUnmatched() {
+        val s = MatchableSeries("s", "Comix", "Frontier")
+        val a = MatchableChapter("a", "Chapter 61", "KaynScan", "/a", 61f)
+        val b = MatchableChapter("b", "Chapter 61 (v2)", "KaynScan", "/b", 61f)
+        val dir = "KaynScan_Chapter 61_ffffff.cbz"
+        assertEquals(ChapterMatch(s, null), Matcher.assignChapters(listOf(dir), listOf(s to listOf(a, b)))[dir])
+    }
+
+    // Copie SAF « nom (1).cbz » (nom deja pris a l'ecriture) : meme chapitre que l'original, pas un orphelin.
+    @Test fun assignChapters_safCopySuffix_matchesSameChapterAsOriginal() {
+        val s = MatchableSeries("s", "Comix", "Frontier")
+        val ch = MatchableChapter("k5", "Chapter 5", "KaynScan", "/k/5", 5f)
+        val dir = MihonNaming.getChapterDirName("Chapter 5", "KaynScan", "/k/5")
+        val result = Matcher.assignChapters(listOf(dir, "$dir (1)"), listOf(s to listOf(ch)))
+        assertEquals(ChapterMatch(s, ch), result[dir])
+        assertEquals(ChapterMatch(s, ch), result["$dir (1)"])
+    }
+
+    @Test fun guessNumber_ignoresSafCopySuffix() {
+        assertEquals(12f, DownloadOnlySeries.guessNumber("Extra 12_a1b2c3 (1).cbz"))
+        assertEquals("KaynScan", DownloadOnlySeries.guessScanlator("KaynScan_Chapter 61.1_a1b2c3 (1).cbz"))
+    }
 }

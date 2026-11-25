@@ -22,8 +22,10 @@ object Matcher {
     fun matchSeries(seriesDirName: String, seriesTitle: String): Boolean =
         nfc(seriesDirName) == nfc(MihonNaming.getMangaDirName(seriesTitle))
 
+    // Une copie SAF « nom (1) » est comparee comme l'original.
     fun matchChapter(chapterDirName: String, chapterName: String, scanlator: String?, chapterUrl: String): Boolean =
-        nfc(chapterDirName) in MihonNaming.getValidChapterDirNames(nfc(chapterName), scanlator?.let(::nfc), chapterUrl)
+        nfc(MihonNaming.stripSafCopySuffix(chapterDirName)) in
+            MihonNaming.getValidChapterDirNames(nfc(chapterName), scanlator?.let(::nfc), chapterUrl)
 
     /** Retrouve la SeriesEntity dont le nom de dossier (source + serie) correspond, ou null si "hors catalogue". */
     fun findSeries(sourceDirName: String, seriesDirName: String, series: List<MatchableSeries>): MatchableSeries? =
@@ -62,10 +64,22 @@ object Matcher {
         }
     }
 
+    /**
+     * Plusieurs scantrads au meme numero (Frontier Lord : KaynScan, Official, UToon...) : la scantrad lue
+     * dans le nom du fichier departage. Toujours rien si elle ne laisse pas un seul chapitre.
+     */
     private fun findByNumber(dirName: String, chapters: List<MatchableChapter>, taken: Set<String>): MatchableChapter? {
         val number = DownloadOnlySeries.guessNumber(dirName) ?: return null
-        return chapters.filter { it.number == number }.singleOrNull()?.takeIf { it.chapterKey !in taken }
+        val sameNumber = chapters.filter { it.number == number }
+        val pick = sameNumber.singleOrNull() ?: run {
+            val scanlator = DownloadOnlySeries.guessScanlator(dirName)?.let(::scanlatorKey) ?: return null
+            sameNumber.filter { it.scanlator?.let { s -> scanlatorKey(MihonNaming.buildValidFilename(s)) } == scanlator }.singleOrNull()
+        }
+        return pick?.takeIf { it.chapterKey !in taken }
     }
+
+    // Comparaison de scantrads : le nom de fichier a perdu ":" & co (remplaces par "_"), casse ignoree.
+    private fun scanlatorKey(name: String): String = nfc(name).trim('_', ' ').lowercase()
 
     /** Retrouve la ChapterEntity dont le nom de dossier chapitre correspond, ou null si "hors catalogue". */
     fun findChapter(chapterDirName: String, chapters: List<MatchableChapter>): MatchableChapter? =

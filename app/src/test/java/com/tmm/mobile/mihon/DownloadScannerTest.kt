@@ -366,6 +366,30 @@ class DownloadScannerTest {
         assertEquals(setOf("en"), db.downloadedChapterDao().observeAll().first().map { it.seriesKey }.toSet())
     }
 
+    // Frontier Lord : 81 copies « ... (1).cbz » creees par SAF a cote de l'original (nom deja pris).
+    // Elles donnaient un chapitre en double, hors catalogue. Une copie seule (original supprime) reste.
+    @Test fun scanDownloads_safCopyNextToOriginal_isNotASecondChapter() = runTest {
+        db.seriesDao().upsert(SeriesEntity("sk", "42", "/m", "Frontier", null, 0, null, "Comix", 0L, null))
+        db.chapterDao().upsertAll(
+            listOf(
+                ChapterEntity("k5", "sk", "/k/5", "Chapter 5", 5f, "KaynScan", false, 0L),
+                ChapterEntity("k6", "sk", "/k/6", "Chapter 6", 6f, "KaynScan", false, 0L),
+            ),
+        )
+        val seriesDir = File(root, "Comix (EN)/Frontier").apply { mkdirs() }
+        val dir5 = MihonNaming.getChapterDirName("Chapter 5", "KaynScan", "/k/5")
+        val dir6 = MihonNaming.getChapterDirName("Chapter 6", "KaynScan", "/k/6")
+        File(seriesDir, "$dir5.cbz").writeBytes(cbzWithOnePage())
+        File(seriesDir, "$dir5 (1).cbz").writeBytes(cbzWithOnePage())
+        File(seriesDir, "$dir6 (1).cbz").writeBytes(cbzWithOnePage())
+
+        DownloadScanner(FakeMihonFs(root), db).scanDownloads(root.absolutePath)
+
+        val rows = db.downloadedChapterDao().observeAll().first().sortedBy { it.chapterDir }
+        assertEquals(listOf("$dir5.cbz", "$dir6 (1).cbz"), rows.map { it.chapterDir })
+        assertEquals(listOf("k5", "k6"), rows.map { it.chapterKey })
+    }
+
     @Test fun scanLocal_removesDeletedFiles_keepsUnchangedFolderViaCache() = runTest {
         val localRoot = File(root, "local").apply { mkdirs() }
         val folder = File(localRoot, "OnePiece").apply { mkdirs() }
